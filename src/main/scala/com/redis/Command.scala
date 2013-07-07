@@ -20,11 +20,12 @@ sealed trait RedisCommand {
   final def execute(s: Array[Byte]): Promise[Option[Ret]] = promise success ret(s)
 }
 
-trait StringCommand extends RedisCommand
-trait ListCommand extends RedisCommand
-trait KeyCommand extends RedisCommand
-trait SetCommand extends RedisCommand
-trait SortedSetCommand extends RedisCommand
+trait StringCommand       extends RedisCommand
+trait ListCommand         extends RedisCommand
+trait KeyCommand          extends RedisCommand
+trait SetCommand          extends RedisCommand
+trait SortedSetCommand    extends RedisCommand
+trait HashCommand         extends RedisCommand
 
 object RedisCommand {
   trait SortOrder
@@ -35,6 +36,9 @@ object RedisCommand {
   case object SUM extends Aggregate
   case object MIN extends Aggregate
   case object MAX extends Aggregate
+
+  def flattenPairs(in: Iterable[Product2[Any, Any]]): List[Any] =
+    in.iterator.flatMap(x => Iterator(x._1, x._2)).toList
   
   def multiBulk(args: Seq[Array[Byte]]): Array[Byte] = {
     val b = new scala.collection.mutable.ArrayBuilder.ofByte
