@@ -126,13 +126,13 @@ object SortedSetCommands {
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
-  case class ZRemrangeByRank(key: Any, start: Int = 0, end: Int = -1)(implicit format: Format) extends SortedSetCommand {
+  case class ZRemRangeByRank(key: Any, start: Int = 0, end: Int = -1)(implicit format: Format) extends SortedSetCommand {
     type Ret = Long
     val line = multiBulk("ZREMRANGEBYRANK".getBytes("UTF-8") +: (Seq(key, start, end) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
-  case class ZRemrangeByScore(key: Any, start: Double = Double.NegativeInfinity, end: Double = Double.PositiveInfinity)(implicit format: Format) extends SortedSetCommand {
+  case class ZRemRangeByScore(key: Any, start: Double = Double.NegativeInfinity, end: Double = Double.PositiveInfinity)(implicit format: Format) extends SortedSetCommand {
     type Ret = Long
     val line = multiBulk("ZREMRANGEBYSCORE".getBytes("UTF-8") +: (Seq(key, start, end) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
