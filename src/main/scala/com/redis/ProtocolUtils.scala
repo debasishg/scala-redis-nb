@@ -7,15 +7,16 @@ object ProtocolUtils {
   /**
    * Response codes from the Redis server
    */
-  val ERR    = '-'
-  val OK     = "OK".getBytes("UTF-8")
-  val QUEUED = "QUEUED".getBytes("UTF-8")
-  val SINGLE = '+'
-  val BULK   = '$'
-  val MULTI  = '*'
-  val INT    = ':'
+  val ERR                 = '-'
+  val OK                  = "OK".getBytes("UTF-8")
+  val QUEUED              = "QUEUED".getBytes("UTF-8")
+  val Array(minus, one)   = "-1".getBytes("UTF-8")
+  val SINGLE              = '+'
+  val BULK                = '$'
+  val MULTI               = '*'
+  val INT                 = ':'
 
-  val LS     = "\r\n".getBytes("UTF-8")
+  val LS               = "\r\n".getBytes("UTF-8")
 
   val _cr: Byte        = '\r'.toByte
   val _lf: Byte        = '\n'.toByte
@@ -24,6 +25,8 @@ object ProtocolUtils {
   val _bulk: Byte      = '$'.toByte
   val _multi: Byte     = '*'.toByte
   val _err: Byte       = '-'.toByte
+
+  val NULL_BULK_REPLY_COUNT = -1
 
   /**
    * splits an Array[Byte] at a pattern of byte sequence.
@@ -64,13 +67,55 @@ object ProtocolUtils {
       }
 
       // handle sequence beginning with bulk reply
+
+      /**
+       * Bulk Reply:
+       *
+       * C: GET mykey
+       * S: $6\r\nfoobar\r\n
+       *
+       * Can be null - null bulk reply contains (-1) as the data length count
+       * C: GET nonexistingkey
+       * S: $-1
+       */
       case Array(bulk, rest@_*) if bulk == _bulk => {
         val (l, a) = rest.toArray.splitAt(rest.toArray.indexOfSlice(List(_cr, _lf)) + 2)
-        val (x, r) = a.splitAt(new String(l.dropRight(2), "UTF-8").toInt + 2)
-        splitReplies_a(r, acc ::: List(Array[Byte](_bulk) ++ l ++ x))
+        val bulkCount = new String(l.dropRight(2), "UTF-8").toInt
+
+        if (bulkCount == NULL_BULK_REPLY_COUNT) {
+          splitReplies_a(a, acc ::: List(Array[Byte](_bulk) ++ l))
+        } else {
+          val (x, r) = a.splitAt(bulkCount + 2)
+          splitReplies_a(r, acc ::: List(Array[Byte](_bulk) ++ l ++ x))
+        }
       }
 
       // handle sequence beginning with multi-bulk reply
+
+      /**
+       * Multi-Bulk Reply:
+       *
+       * C: LRANGE mylist 0 3
+       * S: *4
+       * S: $3
+       * S: foo
+       * S: $3
+       * S: bar
+       * S: $5
+       * S: Hello
+       * S: $5
+       * S: World
+       *
+       * Each bulk reply within the multi-bulk can be a null bulk as well. This should be
+       * fine and handled by the bulk reply pattern match.
+       *
+       * S: *3
+       * S: $3
+       * S: foo
+       * S: $-1
+       * S: $3
+       * S: bar
+       */
       case Array(multi, rest@_*) if multi == _multi => { 
         val(l, a) = rest.toArray.splitAt(rest.toArray.indexOfSlice(List(_cr, _lf)) + 2)
         val r = splitReplies(a)

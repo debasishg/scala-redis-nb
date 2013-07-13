@@ -19,7 +19,6 @@ sealed trait RedisCommand {
 
   // processing pipeline (downstream)
   final def execute(s: Array[Byte]): Promise[Option[Ret]] = promise complete Try(ret(s))
-  // final def execute(s: Array[Byte]): Promise[Option[Ret]] = promise success ret(s)
 }
 
 trait StringCommand       extends RedisCommand

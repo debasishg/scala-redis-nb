@@ -52,7 +52,7 @@ object RedisReplies {
         case "QUEUED" => Some(true)
         case _ => Some(false)
       }
-      case _ => None
+      case x => None
     }
 
     def asList[T](implicit parse: Parse[T]): Option[List[Option[T]]] = receive(multiBulkReply).map(_.map(_.map(parse)))

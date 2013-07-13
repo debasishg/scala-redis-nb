@@ -18,6 +18,7 @@ import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
 import serialization._
+import StringCommands._
 
 
 @RunWith(classOf[JUnitRunner])
@@ -62,11 +63,22 @@ class StringOperationsSpec extends FunSpec
         case _ => fail("set should pass")
       }
 
-      import StringCommands._
       val v = set("key100", "value200", Some(NX)) apply client 
       v onSuccess {
         case Some(r) => fail("an existing key with an value should not be set with NX option")
         case None => Await.result((get("key100") apply client), 3 seconds) should equal(Some("value100"))
+      }
+      v onFailure {
+        case t => fail("set should succeed " + t)
+      }
+      Await.result(v, 3 seconds) should equal(None)
+    }
+
+    it("should not set values to non-existing keys with option XX") {
+      val v = set("key200", "value200", Some(XX)) apply client 
+      v onSuccess {
+        case Some(r) => fail("set on a non existing key with XX will fail")
+        case None => Await.result((get("key200") apply client), 3 seconds) should equal(None)
       }
       v onFailure {
         case t => fail("set should succeed " + t)
