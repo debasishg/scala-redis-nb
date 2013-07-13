@@ -4,7 +4,12 @@ package api
 import scala.concurrent.duration._
 import akka.util.Timeout
 
-object RedisOps extends StringOperations with ListOperations {
+object RedisOps extends StringOperations 
+  with ListOperations
+  with SetOperations
+  with SortedSetOperations
+  with HashOperations
+  with KeyOperations {
   val timeout = Timeout(5 seconds)
 }
   

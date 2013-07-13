@@ -159,4 +159,29 @@ class ClientSpec extends FunSpec
       list.get.reverse should equal((0 to 100).map(a => Some(a)))
     }
   }
+
+  describe("error handling using promise failure") {
+    it("should give error trying to lpush on a key that has a non list value") {
+      val v = set("key200", "value200") apply client 
+      Await.result(v, 3 seconds) should equal(Some(true))
+
+      val x = lpush("key200", 1200) apply client
+
+      x onSuccess {
+        case Some(someLong) => fail("lpush should fail")
+        case _ => fail("lpush must return error")
+      }
+      x onFailure {
+        case t => {
+          val thrown = evaluating { Await.result(x, 3 seconds) } should produce [Exception]
+          thrown.getMessage should equal("ERR Operation against a key holding the wrong kind of value")
+        }
+      }
+
+      val thrown = evaluating {
+        Await.result(x, 3 seconds)
+      } should produce [Exception]
+      thrown.getMessage should equal("ERR Operation against a key holding the wrong kind of value")
+    }
+  }
 }

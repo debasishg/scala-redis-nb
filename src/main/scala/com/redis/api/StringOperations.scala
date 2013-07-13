@@ -21,8 +21,9 @@ trait StringOperations {
 
   // SET KEY (key, value)
   // sets the key with the specified value.
-  def set(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(Set(key, value)).mapTo[Option[Boolean]] 
+  def set(key: Any, value: Any, nxORxx: Option[SetConditionOption] = None, exORpx: Option[SetExpiryOption] = None)
+    (implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
+    client.ask(Set(key, value, nxORxx, exORpx)).mapTo[Option[Boolean]] 
   }
   
   // GETSET (key, value)
@@ -43,6 +44,13 @@ trait StringOperations {
   def setex(key: Any, expiry: Int, value: Any)
     (implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
     client.ask(SetEx(key, expiry, value)).mapTo[Option[Boolean]] 
+  }
+
+  // SETPX (key, expiry, value)
+  // sets the value for the specified key, with an expiry in millis
+  def psetex(key: Any, expiryInMillis: Int, value: Any)
+    (implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
+    client.ask(PSetEx(key, expiryInMillis, value)).mapTo[Option[Boolean]] 
   }
 
   // INCR (key)
@@ -91,7 +99,7 @@ trait StringOperations {
   // SETRANGE key offset value
   // Overwrites part of the string stored at key, starting at the specified offset, 
   // for the entire length of value.
-  def set(key: Any, offset: Int, value: Any)
+  def setrange(key: Any, offset: Int, value: Any)
     (implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
     client.ask(SetRange(key, offset, value)).mapTo[Option[Long]] 
   }

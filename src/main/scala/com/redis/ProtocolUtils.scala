@@ -23,6 +23,7 @@ object ProtocolUtils {
   val _int: Byte       = ':'.toByte
   val _bulk: Byte      = '$'.toByte
   val _multi: Byte     = '*'.toByte
+  val _err: Byte       = '-'.toByte
 
   /**
    * splits an Array[Byte] at a pattern of byte sequence.
@@ -41,24 +42,35 @@ object ProtocolUtils {
 
   /**
    * split an Array[Byte] of multiple replies into a collection of separate replies
+   * @todo : need to ahndle error replies
    */ 
   def splitReplies(bytes: Array[Byte]): List[Array[Byte]] = {
     def splitReplies_a(bytes: Array[Byte], acc: List[Array[Byte]]): List[Array[Byte]] = bytes match {
+      // handle sequence beginning with status reply
       case Array(single, x, y, cr, lf, rest@_*) if single == _single && cr == _cr && lf == _lf => {
         splitReplies_a(rest.toArray, acc ::: List(Array[Byte](_single, x, y, _cr, _lf)))
       }
 
+      // handle sequence beginning with error reply
+      case Array(err, rest@_*) if err == _err => {
+        val (x, y) = rest.toArray.splitAt(rest.indexOfSlice(List(_cr, _lf)) + 2)
+        splitReplies_a(y.toArray, acc ::: List(_err +: x))
+      }
+
+      // handle sequence beginning with integer reply
       case Array(int, rest@_*) if int == _int => {
         val (x, y) = rest.toArray.splitAt(rest.indexOfSlice(List(_cr, _lf)) + 2)
         splitReplies_a(y.toArray, acc ::: List(_int +: x))
       }
 
+      // handle sequence beginning with bulk reply
       case Array(bulk, rest@_*) if bulk == _bulk => {
         val (l, a) = rest.toArray.splitAt(rest.toArray.indexOfSlice(List(_cr, _lf)) + 2)
         val (x, r) = a.splitAt(new String(l.dropRight(2), "UTF-8").toInt + 2)
         splitReplies_a(r, acc ::: List(Array[Byte](_bulk) ++ l ++ x))
       }
 
+      // handle sequence beginning with multi-bulk reply
       case Array(multi, rest@_*) if multi == _multi => { 
         val(l, a) = rest.toArray.splitAt(rest.toArray.indexOfSlice(List(_cr, _lf)) + 2)
         val r = splitReplies(a)

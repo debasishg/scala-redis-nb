@@ -1,23 +1,25 @@
 package com.redis
 
 import scala.concurrent.Promise
+import scala.util.Try
 import ProtocolUtils._
 
 sealed trait RedisCommand {
   // command returns Option[Ret]
   type Ret
 
-  // command input
+  // command input : the request protocol of redis (upstream)
   val line: Array[Byte]
 
   // the promise which will be set by the command
   lazy val promise = Promise[Option[Ret]]
 
-  // return value
+  // mapping of redis reply to the final return type
   val ret: Array[Byte] => Option[Ret]
 
-  // execution of the command
-  final def execute(s: Array[Byte]): Promise[Option[Ret]] = promise success ret(s)
+  // processing pipeline (downstream)
+  final def execute(s: Array[Byte]): Promise[Option[Ret]] = promise complete Try(ret(s))
+  // final def execute(s: Array[Byte]): Promise[Option[Ret]] = promise success ret(s)
 }
 
 trait StringCommand       extends RedisCommand

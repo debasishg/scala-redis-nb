@@ -16,9 +16,30 @@ object StringCommands {
     val ret  = RedisReply(_: Array[Byte]).asBulk[A]
   }
   
-  case class Set(key: Any, value: Any)(implicit format: Format) extends StringCommand {
+  sealed trait SetExpiryOption
+  case class EX(expiryInSeconds: Long) extends SetExpiryOption
+  case class PX(expiryInMillis: Long) extends SetExpiryOption
+
+  sealed trait SetConditionOption
+  case object NX extends SetConditionOption
+  case object XX extends SetConditionOption
+
+  case class Set(key: Any, value: Any, nxORxx: Option[SetConditionOption] = None, exORpx: Option[SetExpiryOption] = None)
+    (implicit format: Format) extends StringCommand {
+
     type Ret = Boolean
-    val line = multiBulk("SET".getBytes("UTF-8") +: (Seq(key, value) map format.apply))
+    val line = multiBulk("SET".getBytes("UTF-8") +: (Seq(key, value) ++  
+      ((nxORxx, exORpx) match {
+        case (Some(NX), Some(EX(n))) => Seq("EX", n, "NX")
+        case (Some(XX), Some(EX(n))) => Seq("EX", n, "XX")
+        case (Some(NX), Some(PX(n))) => Seq("PX", n, "NX")
+        case (Some(XX), Some(PX(n))) => Seq("PX", n, "XX")
+        case (None, Some(EX(n))) => Seq("EX", n)
+        case (None, Some(PX(n))) => Seq("PX", n)
+        case (Some(NX), None) => Seq("NX")
+        case (Some(XX), None) => Seq("XX")
+        case (None, None) => Seq.empty
+      })) map format.apply)
     val ret  = RedisReply(_: Array[Byte]).asBoolean
   }
 
@@ -34,9 +55,15 @@ object StringCommands {
     val ret  = RedisReply(_: Array[Byte]).asBoolean
   }
   
-  case class SetEx(key: Any, expiry: Int, value: Any)(implicit format: Format) extends StringCommand {
+  case class SetEx(key: Any, expiry: Long, value: Any)(implicit format: Format) extends StringCommand {
     type Ret = Boolean
     val line = multiBulk("SETEX".getBytes("UTF-8") +: (Seq(key, expiry, value) map format.apply))
+    val ret  = RedisReply(_: Array[Byte]).asBoolean
+  }
+  
+  case class PSetEx(key: Any, expiryInMillis: Long, value: Any)(implicit format: Format) extends StringCommand {
+    type Ret = Boolean
+    val line = multiBulk("PSETEX".getBytes("UTF-8") +: (Seq(key, expiryInMillis, value) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asBoolean
   }
   
