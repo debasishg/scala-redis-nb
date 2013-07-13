@@ -12,13 +12,13 @@ sealed trait RedisCommand {
   val line: Array[Byte]
 
   // the promise which will be set by the command
-  lazy val promise = Promise[Option[Ret]]
+  lazy val promise = Promise[Ret]
 
   // mapping of redis reply to the final return type
-  val ret: Array[Byte] => Option[Ret]
+  val ret: Array[Byte] => Ret
 
   // processing pipeline (downstream)
-  final def execute(s: Array[Byte]): Promise[Option[Ret]] = promise complete Try(ret(s))
+  final def execute(s: Array[Byte]): Promise[Ret] = promise complete Try(ret(s))
 }
 
 trait StringCommand       extends RedisCommand

@@ -22,8 +22,8 @@ trait StringOperations {
   // SET KEY (key, value)
   // sets the key with the specified value.
   def set(key: Any, value: Any, nxORxx: Option[SetConditionOption] = None, exORpx: Option[SetExpiryOption] = None)
-    (implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(Set(key, value, nxORxx, exORpx)).mapTo[Option[Boolean]] 
+    (implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(Set(key, value, nxORxx, exORpx)).mapTo[Boolean] 
   }
   
   // GETSET (key, value)
@@ -35,22 +35,22 @@ trait StringOperations {
 
   // SETNX (key, value)
   // sets the value for the specified key, only if the key is not there.
-  def setnx(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(SetNx(key, value)).mapTo[Option[Boolean]] 
+  def setnx(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(SetNx(key, value)).mapTo[Boolean] 
   }
 
   // SETEX (key, expiry, value)
   // sets the value for the specified key, with an expiry
   def setex(key: Any, expiry: Int, value: Any)
-    (implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(SetEx(key, expiry, value)).mapTo[Option[Boolean]] 
+    (implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(SetEx(key, expiry, value)).mapTo[Boolean] 
   }
 
   // SETPX (key, expiry, value)
   // sets the value for the specified key, with an expiry in millis
   def psetex(key: Any, expiryInMillis: Int, value: Any)
-    (implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(PSetEx(key, expiryInMillis, value)).mapTo[Option[Boolean]] 
+    (implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(PSetEx(key, expiryInMillis, value)).mapTo[Boolean] 
   }
 
   // INCR (key)
@@ -86,14 +86,14 @@ trait StringOperations {
 
   // MSET (key1 value1 key2 value2 ..)
   // set the respective key value pairs. Overwrite value if key exists
-  def mset(kvs: (Any, Any)*)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(MSet(kvs:_*)).mapTo[Option[Boolean]]
+  def mset(kvs: (Any, Any)*)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(MSet(kvs:_*)).mapTo[Boolean]
   }
 
   // MSETNX (key1 value1 key2 value2 ..)
   // set the respective key value pairs. Noop if any key exists
-  def msetnx(kvs: (Any, Any)*)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(MSetNx(kvs:_*)).mapTo[Option[Boolean]]
+  def msetnx(kvs: (Any, Any)*)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(MSetNx(kvs:_*)).mapTo[Boolean]
   }
 
   // SETRANGE key offset value

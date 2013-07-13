@@ -53,8 +53,8 @@ trait ListOperations {
 
   // LTRIM
   // Trim an existing list so that it will contain only the specified range of elements specified.
-  def ltrim(key: Any, start: Int, end: Int)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(LTrim(key, start, end)).mapTo[Option[Boolean]] 
+  def ltrim(key: Any, start: Int, end: Int)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(LTrim(key, start, end)).mapTo[Boolean] 
   }
 
   // LINDEX
@@ -66,8 +66,8 @@ trait ListOperations {
 
   // LSET
   // set the list element at index with the new value. Out of range indexes will generate an error
-  def lset(key: Any, index: Int, value: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(LSet(key, index, value)).mapTo[Option[Boolean]] 
+  def lset(key: Any, index: Int, value: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(LSet(key, index, value)).mapTo[Boolean] 
   }
 
   // LREM

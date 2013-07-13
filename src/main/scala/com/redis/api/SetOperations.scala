@@ -44,8 +44,8 @@ trait SetOperations {
 
   // SISMEMBER
   // Test if the specified value is a member of the Set at key.
-  def sismember(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(∈(key, value)).mapTo[Option[Boolean]] 
+  def sismember(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(∈(key, value)).mapTo[Boolean] 
   }
 
   // SINTER

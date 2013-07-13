@@ -51,7 +51,7 @@ class ClientSpec extends FunSpec
       val writes = keys zip values map { case (key, value) => set(key, value) apply client }
 
       writes foreach { _ onSuccess {
-        case Some(r) => r should equal(true)
+        case true => 
         case _ => fail("set should pass")
       }}
     }
@@ -125,12 +125,12 @@ class ClientSpec extends FunSpec
   describe("non blocking apis using futures") {
     it("get and set should be non blocking") {
       val kvs = (1 to 10).map(i => s"key_$i").zip(1 to 10)
-      val setResults = kvs map {case (k, v) =>
+      val setResults: Seq[Future[Boolean]] = kvs map {case (k, v) =>
         set(k, v) apply client
       }
       val sr = Future.sequence(setResults)
 
-      Await.result(sr.map(_.flatten), 2 seconds).forall(_ == true) should equal(true)
+      Await.result(sr.map(x => x), 2 seconds).forall(_ == true) should equal(true)
 
       val ks = (1 to 10).map(i => s"key_$i")
       val getResults = ks.map {k =>
@@ -163,7 +163,7 @@ class ClientSpec extends FunSpec
   describe("error handling using promise failure") {
     it("should give error trying to lpush on a key that has a non list value") {
       val v = set("key200", "value200") apply client 
-      Await.result(v, 3 seconds) should equal(Some(true))
+      Await.result(v, 3 seconds) should equal(true)
 
       val x = lpush("key200", 1200) apply client
 

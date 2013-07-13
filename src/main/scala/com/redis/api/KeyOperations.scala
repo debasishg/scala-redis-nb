@@ -26,14 +26,14 @@ trait KeyOperations {
 
   // RENAME (oldkey, newkey)
   // atomically renames the key oldkey to newkey.
-  def rename(oldkey: Any, newkey: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(Rename(oldkey, newkey)).mapTo[Option[Boolean]]
+  def rename(oldkey: Any, newkey: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(Rename(oldkey, newkey)).mapTo[Boolean]
   }
   
   // RENAMENX (oldkey, newkey)
   // rename oldkey into newkey but fails if the destination key newkey already exists.
-  def renamenx(oldkey: Any, newkey: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(Rename(oldkey, newkey, nx = true)).mapTo[Option[Boolean]]
+  def renamenx(oldkey: Any, newkey: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(Rename(oldkey, newkey, nx = true)).mapTo[Boolean]
   }
  
   // DBSIZE
@@ -44,8 +44,8 @@ trait KeyOperations {
 
   // EXISTS (key)
   // test if the specified key exists.
-  def exists(key: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(Exists(key)).mapTo[Option[Boolean]]
+  def exists(key: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(Exists(key)).mapTo[Boolean]
   }
 
   // DELETE (key1 key2 ..)
@@ -62,26 +62,26 @@ trait KeyOperations {
 
   // EXPIRE (key, expiry)
   // sets the expire time (in sec.) for the specified key.
-  def expire(key: Any, ttl: Int)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(Expire(key, ttl)).mapTo[Option[Boolean]]
+  def expire(key: Any, ttl: Int)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(Expire(key, ttl)).mapTo[Boolean]
   }
 
   // PEXPIRE (key, expiry)
   // sets the expire time (in milli sec.) for the specified key.
-  def pexpire(key: Any, ttlInMillis: Int)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(Expire(key, ttlInMillis, millis = true)).mapTo[Option[Boolean]]
+  def pexpire(key: Any, ttlInMillis: Int)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(Expire(key, ttlInMillis, millis = true)).mapTo[Boolean]
   }
 
   // EXPIREAT (key, unix timestamp)
   // sets the expire time for the specified key.
-  def expireat(key: Any, timestamp: Long)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(ExpireAt(key, timestamp)).mapTo[Option[Boolean]]
+  def expireat(key: Any, timestamp: Long)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(ExpireAt(key, timestamp)).mapTo[Boolean]
   }
 
   // PEXPIREAT (key, unix timestamp)
   // sets the expire timestamp in millis for the specified key.
-  def pexpireat(key: Any, timestampInMillis: Long)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(ExpireAt(key, timestampInMillis, millis = true)).mapTo[Option[Boolean]]
+  def pexpireat(key: Any, timestampInMillis: Long)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(ExpireAt(key, timestampInMillis, millis = true)).mapTo[Boolean]
   }
 
   // TTL (key)
@@ -98,39 +98,39 @@ trait KeyOperations {
 
   // FLUSHDB the DB
   // removes all the DB data.
-  def flushdb: ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(FlushDB(all = false)).mapTo[Option[Boolean]]
+  def flushdb: ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(FlushDB(all = false)).mapTo[Boolean]
   }
 
   // FLUSHALL the DB's
   // removes data from all the DB's.
-  def flushall: ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(FlushDB(all = true)).mapTo[Option[Boolean]]
+  def flushall: ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(FlushDB(all = true)).mapTo[Boolean]
   }
 
   // MOVE
   // Move the specified key from the currently selected DB to the specified destination DB.
-  def move(key: Any, db: Int)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(Move(key, db)).mapTo[Option[Boolean]]
+  def move(key: Any, db: Int)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(Move(key, db)).mapTo[Boolean]
   }
   
   // QUIT
   // exits the server.
-  def quit: ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
+  def quit: ActorRef => Future[Boolean] = {client: ActorRef=>
     // @Todo : send("QUIT")(disconnect)
-    client.ask(Quit).mapTo[Option[Boolean]]
+    client.ask(Quit).mapTo[Boolean]
   }
   
   // AUTH
   // auths with the server.
-  def auth(secret: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef=>
-    client.ask(Auth(secret)).mapTo[Option[Boolean]]
+  def auth(secret: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef=>
+    client.ask(Auth(secret)).mapTo[Boolean]
   }
 
   // PERSIST (key)
   // Remove the existing timeout on key, turning the key from volatile (a key with an expire set) 
   // to persistent (a key that will never expire as no timeout is associated).
-  def persist(key: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(Persist(key)).mapTo[Option[Boolean]]
+  def persist(key: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(Persist(key)).mapTo[Boolean]
   }
 }

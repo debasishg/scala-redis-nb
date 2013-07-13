@@ -13,20 +13,20 @@ trait HashOperations {
 
   implicit val timeout: Timeout
 
-  def hset(key: Any, field: Any, value: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(HSet(key, field, value)).mapTo[Option[Boolean]] 
+  def hset(key: Any, field: Any, value: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(HSet(key, field, value)).mapTo[Boolean] 
   }
   
-  def hsetnx(key: Any, field: Any, value: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(HSet(key, field, value, true)).mapTo[Option[Boolean]] 
+  def hsetnx(key: Any, field: Any, value: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(HSet(key, field, value, true)).mapTo[Boolean] 
   }
   
   def hget[A](key: Any, field: Any)(implicit format: Format, parse: Parse[A]): ActorRef => Future[Option[A]] = {client: ActorRef =>
     client.ask(HGet(key, field)).mapTo[Option[A]] 
   }
   
-  def hmset(key: Any, map: Iterable[Product2[Any,Any]])(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(HMSet(key, map)).mapTo[Option[Boolean]] 
+  def hmset(key: Any, map: Iterable[Product2[Any,Any]])(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(HMSet(key, map)).mapTo[Boolean] 
   }
   
   def hmget[K,V](key: Any, fields: K*)(implicit format: Format, parseV: Parse[V]): ActorRef => Future[Option[Map[K,V]]] = {client: ActorRef =>
@@ -37,8 +37,8 @@ trait HashOperations {
     client.ask(HIncrby(key, field, value)).mapTo[Option[Long]] 
   }
   
-  def hexists(key: Any, field: Any)(implicit format: Format): ActorRef => Future[Option[Boolean]] = {client: ActorRef =>
-    client.ask(HExists(key, field)).mapTo[Option[Boolean]] 
+  def hexists(key: Any, field: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
+    client.ask(HExists(key, field)).mapTo[Boolean] 
   }
   
   def hdel(key: Any, field: Any, fields: Any*)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>

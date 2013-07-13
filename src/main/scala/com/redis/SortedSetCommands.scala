@@ -11,7 +11,7 @@ import akka.actor._
 
 object SortedSetCommands {
   case class ZAdd(key: Any, score: Double, member: Any, scoreVals: (Double, Any)*)(implicit format: Format) extends SortedSetCommand {
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk(
       "ZADD".getBytes("UTF-8") +: 
       (List(key, score, member) ::: scoreVals.toList.map(x => List(x._1, x._2)).flatten) map format.apply
@@ -20,25 +20,25 @@ object SortedSetCommands {
   }
   
   case class ZRem(key: Any, member: Any, members: Any*)(implicit format: Format) extends SortedSetCommand {
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk("ZREM".getBytes("UTF-8") +: (key :: member :: members.toList) map format.apply)
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
   
   case class ZIncrby(key: Any, incr: Double, member: Any)(implicit format: Format) extends SortedSetCommand {
-    type Ret = Double
+    type Ret = Option[Double]
     val line = multiBulk("ZINCRBY".getBytes("UTF-8") +: (Seq(key, incr, member) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asBulk(Parse.Implicits.parseDouble)
   }
   
   case class ZCard(key: Any)(implicit format: Format) extends SortedSetCommand {
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk("ZCARD".getBytes("UTF-8") +: (Seq(key) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
   
   case class ZScore(key: Any, element: Any)(implicit format: Format) extends SortedSetCommand {
-    type Ret = Double
+    type Ret = Option[Double]
     val line = multiBulk("ZSCORE".getBytes("UTF-8") +: (Seq(key, element) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asBulk(Parse.Implicits.parseDouble)
   }
@@ -46,7 +46,7 @@ object SortedSetCommands {
   case class ZRange[A](key: Any, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]) 
     extends SortedSetCommand {
 
-    type Ret = List[A]
+    type Ret = Option[List[A]]
     val line = multiBulk(
       (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE").getBytes("UTF-8") +: (Seq(key, start, end) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asList.map(_.flatten)
@@ -55,7 +55,7 @@ object SortedSetCommands {
   case class ZRangeWithScore[A](key: Any, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A])
     extends SortedSetCommand {
 
-    type Ret = List[(A, Double)]
+    type Ret = Option[List[(A, Double)]]
     val line = multiBulk(
       (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE").getBytes("UTF-8") +: 
       (Seq(key, start, end) map format.apply)
@@ -71,7 +71,7 @@ object SortedSetCommands {
     limit: Option[(Int, Int)],
     sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]) extends SortedSetCommand {
 
-    type Ret = List[A]
+    type Ret = Option[List[A]]
     val (limitEntries, minParam, maxParam) = 
       zrangebyScoreWithScoreInternal(min, minInclusive, max, maxInclusive, limit)
 
@@ -90,7 +90,7 @@ object SortedSetCommands {
           limit: Option[(Int, Int)],
           sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]) extends SortedSetCommand {
 
-    type Ret = List[(A, Double)]
+    type Ret = Option[List[(A, Double)]]
     val (limitEntries, minParam, maxParam) = 
       zrangebyScoreWithScoreInternal(min, minInclusive, max, maxInclusive, limit)
 
@@ -121,19 +121,19 @@ object SortedSetCommands {
   }
 
   case class ZRank(key: Any, member: Any, reverse: Boolean = false)(implicit format: Format) extends SortedSetCommand {
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk((if (reverse) "ZREVRANK" else "ZRANK").getBytes("UTF-8") +: (Seq(key, member) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
   case class ZRemRangeByRank(key: Any, start: Int = 0, end: Int = -1)(implicit format: Format) extends SortedSetCommand {
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk("ZREMRANGEBYRANK".getBytes("UTF-8") +: (Seq(key, start, end) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
   case class ZRemRangeByScore(key: Any, start: Double = Double.NegativeInfinity, end: Double = Double.PositiveInfinity)(implicit format: Format) extends SortedSetCommand {
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk("ZREMRANGEBYSCORE".getBytes("UTF-8") +: (Seq(key, start, end) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
@@ -145,7 +145,7 @@ object SortedSetCommands {
   case class ZUnionInterStore(ux: setOp, dstKey: Any, keys: Iterable[Any], aggregate: Aggregate = SUM)(implicit format: Format) 
     extends SortedSetCommand {
 
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk(
       (if (ux == union) "ZUNIONSTORE" else "ZINTERSTORE").getBytes("UTF-8") +: 
       ((Iterator(dstKey, keys.size) ++ keys.iterator ++ Iterator("AGGREGATE", aggregate)).toList) map format.apply
@@ -156,7 +156,7 @@ object SortedSetCommands {
   case class ZUnionInterStoreWeighted(ux: setOp, dstKey: Any, kws: Iterable[Product2[Any,Double]], aggregate: Aggregate = SUM)
     (implicit format: Format) extends SortedSetCommand {
 
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk(
       (if (ux == union) "ZUNIONSTORE" else "ZINTERSTORE").getBytes("UTF-8") +: 
       ((Iterator(dstKey, kws.size) ++ kws.iterator.map(_._1) ++ Iterator.single("WEIGHTS") ++ kws.iterator.map(_._2) ++ Iterator("AGGREGATE", aggregate)).toList) map format.apply
@@ -165,7 +165,7 @@ object SortedSetCommands {
   }
 
   case class ZCount(key: Any, min: Double = Double.NegativeInfinity, max: Double = Double.PositiveInfinity, minInclusive: Boolean = true, maxInclusive: Boolean = true)(implicit format: Format) extends SortedSetCommand {
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk("ZCOUNT".getBytes("UTF-8") +: (List(key, Format.formatDouble(min, minInclusive), Format.formatDouble(max, maxInclusive)) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }

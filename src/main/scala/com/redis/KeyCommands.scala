@@ -12,13 +12,13 @@ import akka.util.Timeout
 
 object KeyCommands {
   case class Keys[A](pattern: Any = "*")(implicit format: Format, parse: Parse[A]) extends KeyCommand {
-    type Ret = List[Option[A]]
+    type Ret = Option[List[Option[A]]]
     val line = multiBulk("KEYS".getBytes("UTF-8") +: Seq(format.apply(pattern)))
     val ret  = RedisReply(_: Array[Byte]).asList
   }
 
   case class RandomKey[A](implicit parse: Parse[A]) extends KeyCommand {
-    type Ret = A
+    type Ret = Option[A]
     val line = multiBulk(Seq("RANDOMKEY".getBytes("UTF-8")))
     val ret  = RedisReply(_: Array[Byte]).asBulk[A]
   }
@@ -30,7 +30,7 @@ object KeyCommands {
   }
 
   case object DBSize extends KeyCommand {
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk(Seq("DBSIZE".getBytes("UTF-8")))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
@@ -42,13 +42,13 @@ object KeyCommands {
   }
 
   case class Delete(key: Any, keys: Any*)(implicit format: Format) extends KeyCommand {
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk("DELETE".getBytes("UTF-8") +: ((key :: keys.toList) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
   case class GetType(key: Any)(implicit format: Format) extends KeyCommand {
-    type Ret = String
+    type Ret = Option[String]
     val line = multiBulk("TYPE".getBytes("UTF-8") +: Seq(format.apply(key)))
     val ret  = RedisReply(_: Array[Byte]).asString
   }
@@ -66,7 +66,7 @@ object KeyCommands {
   }
 
   case class TTL(key: Any, millis: Boolean = false)(implicit format: Format) extends KeyCommand {
-    type Ret = Long
+    type Ret = Option[Long]
     val line = multiBulk((if (millis) "PTTL" else "TTL").getBytes("UTF-8") +: Seq(format.apply(key)))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }

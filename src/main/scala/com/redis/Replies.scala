@@ -45,14 +45,14 @@ object RedisReplies {
 
     def asLong: Option[Long] =  receive(longReply orElse queuedReplyLong)
 
-    def asBoolean: Option[Boolean] = receive(longReply orElse singleLineReply) match {
-      case Some(n: Int) => Some(n > 0)
+    def asBoolean: Boolean = receive(longReply orElse singleLineReply) match {
+      case Some(n: Int) => n > 0
       case Some(s: Array[Byte]) => Parsers.parseString(s) match {
-        case "OK" => Some(true)
-        case "QUEUED" => Some(true)
-        case _ => Some(false)
+        case "OK" => true
+        case "QUEUED" => true
+        case _ => false
       }
-      case x => None
+      case x => false
     }
 
     def asList[T](implicit parse: Parse[T]): Option[List[Option[T]]] = receive(multiBulkReply).map(_.map(_.map(parse)))

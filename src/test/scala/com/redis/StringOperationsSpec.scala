@@ -52,38 +52,38 @@ class StringOperationsSpec extends FunSpec
       val writes = keys zip values map { case (key, value) => set(key, value) apply client }
 
       writes foreach { _ onSuccess {
-        case Some(r) => r should equal(true)
+        case true => 
         case _ => fail("set should pass")
       }}
     }
 
     it("should not set values to keys already existing with option NX") {
       (set("key100", "value100") apply client) onSuccess {
-        case Some(r) => r should equal(true)
+        case true => 
         case _ => fail("set should pass")
       }
 
       val v = set("key100", "value200", Some(NX)) apply client 
       v onSuccess {
-        case Some(r) => fail("an existing key with an value should not be set with NX option")
-        case None => Await.result((get("key100") apply client), 3 seconds) should equal(Some("value100"))
+        case true => fail("an existing key with an value should not be set with NX option")
+        case false => Await.result((get("key100") apply client), 3 seconds) should equal(Some("value100"))
       }
       v onFailure {
         case t => fail("set should succeed " + t)
       }
-      Await.result(v, 3 seconds) should equal(None)
+      Await.result(v, 3 seconds) should equal(false)
     }
 
     it("should not set values to non-existing keys with option XX") {
       val v = set("key200", "value200", Some(XX)) apply client 
       v onSuccess {
-        case Some(r) => fail("set on a non existing key with XX will fail")
-        case None => Await.result((get("key200") apply client), 3 seconds) should equal(None)
+        case true => fail("set on a non existing key with XX will fail")
+        case false => Await.result((get("key200") apply client), 3 seconds) should equal(None)
       }
       v onFailure {
         case t => fail("set should succeed " + t)
       }
-      Await.result(v, 3 seconds) should equal(None)
+      Await.result(v, 3 seconds) should equal(false)
     }
   }
 }
