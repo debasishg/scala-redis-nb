@@ -79,48 +79,6 @@ class ClientSpec extends FunSpec
     }
   }
 
-  describe("lpush") {
-    it("should do an lpush and retrieve the values using lrange") {
-      val forpush = List.fill(10)("listk") zip (1 to 10).map(_.toString)
-
-      val writeListResults = forpush map { case (key, value) =>
-        (key, value, (lpush(key, value) apply client))
-      }
-
-      writeListResults foreach { case (key, value, result) =>
-        result onSuccess {
-          case someLong: Long if someLong > 0 => {
-            someLong should (be > (0L) and be <= (10L))
-          }
-          case _ => fail("lpush must return a positive number")
-        }
-      }
-      writeListResults.map(e => Await.result(e._3, 3 seconds)) should equal((1 to 10).toList)
-
-      // do an lrange to check if they were inserted correctly & in proper order
-      val readListResult = lrange[String]("listk", 0, -1) apply client
-      readListResult.onSuccess {
-        case result => result should equal ((1 to 10).reverse.toList)
-      }
-    }
-  }
-
-  describe("rpush") {
-    it("should do an rpush and retrieve the values using lrange") {
-      val forrpush = List.fill(10)("listr") zip (1 to 10).map(_.toString)
-      val writeListRes = forrpush map { case (key, value) =>
-        (key, value, rpush(key, value) apply client)
-      }
-      writeListRes.map(e => Await.result(e._3, 3 seconds)) should equal((1 to 10).toList)
-
-      // do an lrange to check if they were inserted correctly & in proper order
-      val readListRes = lrange[String]("listr", 0, -1) apply client
-      readListRes.onSuccess {
-        case result => result.reverse should equal ((1 to 10).reverse.toList)
-      }
-    }
-  }
-
   import Parse.Implicits._
   describe("non blocking apis using futures") {
     it("get and set should be non blocking") {
