@@ -14,14 +14,14 @@ trait SetOperations {
 
   // SADD (VARIADIC: >= 2.4)
   // Add the specified members to the set value stored at key.
-  def sadd(key: Any, value: Any, values: Any*)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(SOp(add, key, value, values:_*)).mapTo[Option[Long]] 
+  def sadd(key: Any, value: Any, values: Any*)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(SOp(add, key, value, values:_*)).mapTo[Long] 
   }
 
   // SREM (VARIADIC: >= 2.4)
   // Remove the specified members from the set value stored at key.
-  def srem(key: Any, value: Any, values: Any*)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(SOp(rem, key, value, values:_*)).mapTo[Option[Long]] 
+  def srem(key: Any, value: Any, values: Any*)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(SOp(rem, key, value, values:_*)).mapTo[Long] 
   }
 
   // SPOP
@@ -32,14 +32,14 @@ trait SetOperations {
 
   // SMOVE
   // Move the specified member from one Set to another atomically.
-  def smove(sourceKey: Any, destKey: Any, value: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(SMove(sourceKey, destKey, value)).mapTo[Option[Long]] 
+  def smove(sourceKey: Any, destKey: Any, value: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(SMove(sourceKey, destKey, value)).mapTo[Long] 
   }
 
   // SCARD
   // Return the number of elements (the cardinality) of the Set at key.
-  def scard(key: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(SCard(key)).mapTo[Option[Long]] 
+  def scard(key: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(SCard(key)).mapTo[Long] 
   }
 
   // SISMEMBER
@@ -59,8 +59,8 @@ trait SetOperations {
   // and store the resulting Set at dstkey.
   // SINTERSTORE returns the size of the intersection, unlike what the documentation says
   // refer http://code.google.com/p/redis/issues/detail?id=121
-  def sinterstore(destKey: Any, key: Any, keys: Any*)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(SUXDStore(inter, destKey, key, keys:_*)).mapTo[Option[Long]] 
+  def sinterstore(destKey: Any, key: Any, keys: Any*)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(SUXDStore(inter, destKey, key, keys:_*)).mapTo[Long] 
   }
 
   // SUNION
@@ -74,8 +74,8 @@ trait SetOperations {
   // and store the resulting Set at dstkey.
   // SUNIONSTORE returns the size of the union, unlike what the documentation says
   // refer http://code.google.com/p/redis/issues/detail?id=121
-  def sunionstore(destKey: Any, key: Any, keys: Any*)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(SUXDStore(union, destKey, key, keys:_*)).mapTo[Option[Long]] 
+  def sunionstore(destKey: Any, key: Any, keys: Any*)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(SUXDStore(union, destKey, key, keys:_*)).mapTo[Long] 
   }
 
   // SDIFF
@@ -87,8 +87,8 @@ trait SetOperations {
   // SDIFFSTORE
   // Compute the difference between the Set key1 and all the Sets key2, ..., keyN, 
   // and store the resulting Set at dstkey.
-  def sdiffstore(destKey: Any, key: Any, keys: Any*)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(SUXDStore(diff, destKey, key, keys:_*)).mapTo[Option[Long]] 
+  def sdiffstore(destKey: Any, key: Any, keys: Any*)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(SUXDStore(diff, destKey, key, keys:_*)).mapTo[Long] 
   }
 
   // SMEMBERS
@@ -105,8 +105,8 @@ trait SetOperations {
 
   // SRANDMEMBER
   // Return multiple random elements from a Set (since 2.6)
-  def srandmember[A](key: Any, count: Int)(implicit format: Format, parse: Parse[A]): ActorRef => Future[Option[List[Option[A]]]] = {client: ActorRef =>
-    client.ask(SRandMembers(key, count)).mapTo[Option[List[Option[A]]]] 
+  def srandmember[A](key: Any, count: Int)(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef =>
+    client.ask(SRandMembers(key, count)).mapTo[List[Option[A]]] 
   }
 }
 

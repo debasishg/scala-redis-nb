@@ -14,41 +14,41 @@ trait ListOperations {
 
   // LPUSH (Variadic: >= 2.4)
   // add values to the head of the list stored at key
-  def lpush(key: Any, value: Any, values: Any*)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(LPush(key, value, values:_*)).mapTo[Option[Long]] 
+  def lpush(key: Any, value: Any, values: Any*)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(LPush(key, value, values:_*)).mapTo[Long] 
   }
 
   // LPUSHX (Variadic: >= 2.4)
   // add value to the tail of the list stored at key
-  def lpushx(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(LPushX(key, value)).mapTo[Option[Long]] 
+  def lpushx(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(LPushX(key, value)).mapTo[Long] 
   }
 
   // RPUSH (Variadic: >= 2.4)
   // add values to the head of the list stored at key
-  def rpush(key: Any, value: Any, values: Any*)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(RPush(key, value, values:_*)).mapTo[Option[Long]] 
+  def rpush(key: Any, value: Any, values: Any*)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(RPush(key, value, values:_*)).mapTo[Long] 
   }
 
   // RPUSHX (Variadic: >= 2.4)
   // add value to the tail of the list stored at key
-  def rpushx(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(RPushX(key, value)).mapTo[Option[Long]] 
+  def rpushx(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(RPushX(key, value)).mapTo[Long] 
   }
 
   // LLEN
   // return the length of the list stored at the specified key.
   // If the key does not exist zero is returned (the same behaviour as for empty lists). 
   // If the value stored at key is not a list an error is returned.
-  def llen(key: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(LLen(key)).mapTo[Option[Long]] 
+  def llen(key: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(LLen(key)).mapTo[Long] 
   }
 
   // LRANGE
   // return the specified elements of the list stored at the specified key.
   // Start and end are zero-based indexes. 
-  def lrange[A](key: Any, start: Int, end: Int)(implicit format: Format, parse: Parse[A]): ActorRef => Future[Option[List[Option[A]]]] = {client: ActorRef =>
-    client.ask(LRange(key, start, end)).mapTo[Option[List[Option[A]]]] 
+  def lrange[A](key: Any, start: Int, end: Int)(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef =>
+    client.ask(LRange(key, start, end)).mapTo[List[Option[A]]] 
   }
 
   // LTRIM
@@ -72,8 +72,8 @@ trait ListOperations {
 
   // LREM
   // Remove the first count occurrences of the value element from the list.
-  def lrem(key: Any, count: Int, value: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(LRem(key, count, value)).mapTo[Option[Long]] 
+  def lrem(key: Any, count: Int, value: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(LRem(key, count, value)).mapTo[Long] 
   }
 
   // LPOP

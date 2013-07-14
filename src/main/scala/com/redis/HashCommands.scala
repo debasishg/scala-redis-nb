@@ -30,18 +30,16 @@ object HashCommands {
   }
   
   case class HMGet[K,V](key: Any, fields: K*)(implicit format: Format, parseV: Parse[V]) extends HashCommand {
-    type Ret = Option[Map[K, V]]
+    type Ret = Map[K, V]
     val line = multiBulk("HMGET".getBytes("UTF-8") +: ((key :: fields.toList) map format.apply))
-    val ret  = RedisReply(_: Array[Byte]).asList.map { values =>
-      fields.zip(values).flatMap {
-        case (field,Some(value)) => Some((field,value))
-        case (_,None) => None
-      }.toMap
-    }
+    val ret  = RedisReply(_: Array[Byte]).asList.zip(fields).map {
+      case (Some(value), field) => Some((field, value))
+      case (None, field) => None
+    }.flatten.toMap
   }
   
   case class HIncrby(key: Any, field: Any, value: Int)(implicit format: Format) extends HashCommand {
-    type Ret = Option[Long]
+    type Ret = Long
     val line = multiBulk("HINCRBY".getBytes("UTF-8") +: (List(key, field, value) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
@@ -53,32 +51,32 @@ object HashCommands {
   }
   
   case class HDel(key: Any, field: Any, fields: Any*)(implicit format: Format) extends HashCommand {
-    type Ret = Option[Long]
+    type Ret = Long
     val line = multiBulk("HDEL".getBytes("UTF-8") +: (List(key, field, fields.toList) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
   
   case class HLen(key: Any)(implicit format: Format) extends HashCommand {
-    type Ret = Option[Long]
+    type Ret = Long
     val line = multiBulk("HLEN".getBytes("UTF-8") +: (List(key) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
   
   case class HKeys[A](key: Any)(implicit format: Format, parse: Parse[A]) extends HashCommand {
-    type Ret = Option[List[Option[A]]]
+    type Ret = List[Option[A]]
     val line = multiBulk("HKEYS".getBytes("UTF-8") +: (List(key) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asList
   }
   
   case class HVals[A](key: Any)(implicit format: Format, parse: Parse[A]) extends HashCommand {
-    type Ret = Option[List[Option[A]]]
+    type Ret = List[Option[A]]
     val line = multiBulk("HVALS".getBytes("UTF-8") +: (List(key) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asList
   }
   
   case class HGetall[K,V](key: Any)(implicit format: Format, parseK: Parse[K], parseV: Parse[V]) extends HashCommand {
-    type Ret = Option[Map[K, V]]
+    type Ret = Map[K, V]
     val line = multiBulk("HGETALL".getBytes("UTF-8") +: (List(key) map format.apply))
-    val ret  = RedisReply(_: Array[Byte]).asListPairs[K,V].map(_.flatten.toMap)
+    val ret  = RedisReply(_: Array[Byte]).asListPairs[K,V].flatten.toMap
   }
 }

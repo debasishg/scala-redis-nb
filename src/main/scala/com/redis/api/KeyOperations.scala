@@ -14,8 +14,8 @@ trait KeyOperations {
 
   // KEYS
   // returns all the keys matching the glob-style pattern.
-  def keys[A](pattern: Any = "*")(implicit format: Format, parse: Parse[A]): ActorRef => Future[Option[List[Option[A]]]] = {client: ActorRef=>
-    client.ask(Keys(pattern)).mapTo[Option[List[Option[A]]]]
+  def keys[A](pattern: Any = "*")(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef=>
+    client.ask(Keys(pattern)).mapTo[List[Option[A]]]
   }
 
   // RANDOMKEY
@@ -38,8 +38,8 @@ trait KeyOperations {
  
   // DBSIZE
   // return the size of the db.
-  def dbsize: ActorRef => Future[Option[Long]] = {client: ActorRef=>
-    client.ask(DBSize).mapTo[Option[Long]]
+  def dbsize: ActorRef => Future[Long] = {client: ActorRef=>
+    client.ask(DBSize).mapTo[Long]
   }
 
   // EXISTS (key)
@@ -50,14 +50,14 @@ trait KeyOperations {
 
   // DELETE (key1 key2 ..)
   // deletes the specified keys.
-  def del(key: Any, keys: Any*)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef=>
-    client.ask(Delete(key, keys:_*)).mapTo[Option[Long]]
+  def del(key: Any, keys: Any*)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef=>
+    client.ask(Delete(key, keys:_*)).mapTo[Long]
   }
 
   // TYPE (key)
   // return the type of the value stored at key in form of a string.
-  def getType(key: Any)(implicit format: Format): ActorRef => Future[Option[String]] = {client: ActorRef=>
-    client.ask(GetType(key)).mapTo[Option[String]]
+  def getType(key: Any)(implicit format: Format): ActorRef => Future[String] = {client: ActorRef=>
+    client.ask(GetType(key)).mapTo[String]
   }
 
   // EXPIRE (key, expiry)
@@ -86,14 +86,14 @@ trait KeyOperations {
 
   // TTL (key)
   // returns the remaining time to live of a key that has a timeout
-  def ttl(key: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef=>
-    client.ask(TTL(key)).mapTo[Option[Long]]
+  def ttl(key: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef=>
+    client.ask(TTL(key)).mapTo[Long]
   }
 
   // PTTL (key)
   // returns the remaining time to live of a key that has a timeout in millis
-  def pttl(key: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef=>
-    client.ask(TTL(key, millis = true)).mapTo[Option[Long]]
+  def pttl(key: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef=>
+    client.ask(TTL(key, millis = true)).mapTo[Long]
   }
 
   // FLUSHDB the DB

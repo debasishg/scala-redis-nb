@@ -55,33 +55,33 @@ trait StringOperations {
 
   // INCR (key)
   // increments the specified key by 1
-  def incr(key: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(Incr(key)).mapTo[Option[Long]] 
+  def incr(key: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(Incr(key)).mapTo[Long] 
   }
 
   // INCRBY (key, by)
   // increments the specified key by increment
-  def incrby(key: Any, by: Int)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(Incr(key, Some(by))).mapTo[Option[Long]] 
+  def incrby(key: Any, by: Int)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(Incr(key, Some(by))).mapTo[Long] 
   }
 
   // DECR (key)
   // decrements the specified key by 1
-  def decr(key: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(Decr(key)).mapTo[Option[Long]] 
+  def decr(key: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(Decr(key)).mapTo[Long] 
   }
 
   // DECR (key, by)
   // decrements the specified key by increment
-  def decrby(key: Any, by: Int)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(Decr(key, Some(by))).mapTo[Option[Long]] 
+  def decrby(key: Any, by: Int)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(Decr(key, Some(by))).mapTo[Long] 
   }
 
   // MGET (key, key, key, ...)
   // get the values of all the specified keys.
   def mget[A](key: Any, keys: Any*)
-    (implicit format: Format, parse: Parse[A]): ActorRef => Future[Option[List[Option[A]]]] = {client: ActorRef =>
-    client.ask(MGet[A](key, keys:_*)).mapTo[Option[List[Option[A]]]] 
+    (implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef =>
+    client.ask(MGet[A](key, keys:_*)).mapTo[List[Option[A]]] 
   }
 
   // MSET (key1 value1 key2 value2 ..)
@@ -100,8 +100,8 @@ trait StringOperations {
   // Overwrites part of the string stored at key, starting at the specified offset, 
   // for the entire length of value.
   def setrange(key: Any, offset: Int, value: Any)
-    (implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(SetRange(key, offset, value)).mapTo[Option[Long]] 
+    (implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(SetRange(key, offset, value)).mapTo[Long] 
   }
 
   // GETRANGE key start end
@@ -114,40 +114,40 @@ trait StringOperations {
 
   // STRLEN key
   // gets the length of the value associated with the key
-  def strlen(key: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(Strlen(key)).mapTo[Option[Long]] 
+  def strlen(key: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(Strlen(key)).mapTo[Long] 
   }
 
   // APPEND KEY (key, value)
   // appends the key value with the specified value.
-  def append(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(Append(key, value)).mapTo[Option[Long]] 
+  def append(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(Append(key, value)).mapTo[Long] 
   }
 
   // GETBIT key offset
   // Returns the bit value at offset in the string value stored at key
-  def getbit(key: Any, offset: Int)(implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(GetBit(key, offset)).mapTo[Option[Long]] 
+  def getbit(key: Any, offset: Int)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(GetBit(key, offset)).mapTo[Long] 
   }
 
   // SETBIT key offset value
   // Sets or clears the bit at offset in the string value stored at key
   def setbit(key: Any, offset: Int, value: Any)
-    (implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(SetBit(key, offset, value)).mapTo[Option[Long]] 
+    (implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(SetBit(key, offset, value)).mapTo[Long] 
   }
 
   // BITOP op destKey srcKey...
   // Perform a bitwise operation between multiple keys (containing string values) and store the result in the destination key.
   def bitop(op: String, destKey: Any, srcKeys: Any*)
-    (implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(BitOp(op, destKey, srcKeys:_*)).mapTo[Option[Long]] 
+    (implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(BitOp(op, destKey, srcKeys:_*)).mapTo[Long] 
   }
 
   // BITCOUNT key range
   // Count the number of set bits in the given key within the optional range
   def bitcount(key: Any, range: Option[(Int, Int)] = None)
-    (implicit format: Format): ActorRef => Future[Option[Long]] = {client: ActorRef =>
-    client.ask(BitCount(key, range)).mapTo[Option[Long]] 
+    (implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
+    client.ask(BitCount(key, range)).mapTo[Long] 
   }
 }

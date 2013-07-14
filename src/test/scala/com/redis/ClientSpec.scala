@@ -89,18 +89,18 @@ class ClientSpec extends FunSpec
 
       writeListResults foreach { case (key, value, result) =>
         result onSuccess {
-          case Some(someLong) if someLong > 0 => {
+          case someLong: Long if someLong > 0 => {
             someLong should (be > (0L) and be <= (10L))
           }
           case _ => fail("lpush must return a positive number")
         }
       }
-      writeListResults.map(e => Await.result(e._3, 3 seconds)) should equal((1 to 10).map(e => Some(e)).toList)
+      writeListResults.map(e => Await.result(e._3, 3 seconds)) should equal((1 to 10).toList)
 
       // do an lrange to check if they were inserted correctly & in proper order
       val readListResult = lrange[String]("listk", 0, -1) apply client
       readListResult.onSuccess {
-        case result => result.get should equal ((1 to 10).reverse.map(e => Some(e.toString)).toList)
+        case result => result should equal ((1 to 10).reverse.toList)
       }
     }
   }
@@ -111,12 +111,12 @@ class ClientSpec extends FunSpec
       val writeListRes = forrpush map { case (key, value) =>
         (key, value, rpush(key, value) apply client)
       }
-      writeListRes.map(e => Await.result(e._3, 3 seconds)) should equal((1 to 10).map(e => Some(e)).toList)
+      writeListRes.map(e => Await.result(e._3, 3 seconds)) should equal((1 to 10).toList)
 
       // do an lrange to check if they were inserted correctly & in proper order
       val readListRes = lrange[String]("listr", 0, -1) apply client
       readListRes.onSuccess {
-        case result => result.get.reverse should equal ((1 to 10).reverse.map(e => Some(e.toString)).toList)
+        case result => result.reverse should equal ((1 to 10).reverse.toList)
       }
     }
   }
@@ -149,14 +149,14 @@ class ClientSpec extends FunSpec
       val getResult = lrange[Long]("key", 0, -1) apply client
       
       val res = for {
-        p <- pushResult.mapTo[Option[Long]]
-        if p.get > 0
-        r <- getResult.mapTo[Option[List[Long]]]
+        p <- pushResult.mapTo[Long]
+        if p > 0
+        r <- getResult.mapTo[List[Option[Long]]]
       } yield (p, r)
 
       val (count, list) = Await.result(res, 2 seconds)
-      count should equal(Some(101))
-      list.get.reverse should equal((0 to 100).map(a => Some(a)))
+      count should equal(101)
+      list.reverse should equal((0 to 100).map(a => Some(a)))
     }
   }
 
@@ -168,7 +168,7 @@ class ClientSpec extends FunSpec
       val x = lpush("key200", 1200) apply client
 
       x onSuccess {
-        case Some(someLong) => fail("lpush should fail")
+        case someLong: Long => fail("lpush should fail")
         case _ => fail("lpush must return error")
       }
       x onFailure {
