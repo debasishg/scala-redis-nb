@@ -9,8 +9,7 @@ object ScalaRedisProject extends Build
   lazy val commonSettings: Seq[Setting[_]] = Seq(
     organization := "net.debasishg",
     version := "2.10",
-    scalaVersion := "2.10.0",
-    crossScalaVersions := Seq("2.10.0-RC5"),
+    scalaVersion := "2.10.2",
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
     resolvers ++= Seq(akkaRelease, akkaSnapshot)
   )
@@ -20,13 +19,13 @@ object ScalaRedisProject extends Build
     libraryDependencies :=
         Seq(
           "commons-pool"      %  "commons-pool"            % "1.6",
-          "org.scala-lang"    %  "scala-actors"            % "2.10.0",
-          "com.typesafe.akka" %  "akka-actor_2.10"         % "2.2.0-RC1",
-          "org.slf4j"         %  "slf4j-api"               % "1.7.2",
-          "org.slf4j"         %  "slf4j-log4j12"           % "1.7.2"      % "provided",
-          "log4j"             %  "log4j"                   % "1.2.16"     % "provided",
-          "junit"             %  "junit"                   % "4.8.1"      % "test",
-          "org.scalatest"     %  "scalatest_2.10.0"    % "2.0.M5"     % "test"),
+          "org.scala-lang"    %  "scala-actors"            % "2.10.2",
+          "com.typesafe.akka" %  "akka-actor_2.10"         % "2.2.0",
+          "org.slf4j"         %  "slf4j-api"               % "1.7.5",
+          "org.slf4j"         %  "slf4j-log4j12"           % "1.7.5"      % "provided",
+          "log4j"             %  "log4j"                   % "1.2.17"     % "provided",
+          "junit"             %  "junit"                   % "4.11"       % "test",
+          "org.scalatest"     %  "scalatest_2.10.0"        % "2.0.M5"     % "test"),
     parallelExecution in Test := false,
     publishTo <<= version { (v: String) => 
       val nexus = "https://oss.sonatype.org/" 
