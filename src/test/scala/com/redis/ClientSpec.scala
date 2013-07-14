@@ -151,21 +151,21 @@ class ClientSpec extends FunSpec
       val res = for {
         p <- pushResult.mapTo[Long]
         if p > 0
-        r <- getResult.mapTo[List[Option[Long]]]
+        r <- getResult.mapTo[List[Long]]
       } yield (p, r)
 
       val (count, list) = Await.result(res, 2 seconds)
       count should equal(101)
-      list.reverse should equal((0 to 100).map(a => Some(a)))
+      list.reverse should equal(0 to 100)
     }
   }
 
   describe("error handling using promise failure") {
     it("should give error trying to lpush on a key that has a non list value") {
-      val v = set("key200", "value200") apply client 
+      val v = set("key300", "value200") apply client
       Await.result(v, 3 seconds) should equal(true)
 
-      val x = lpush("key200", 1200) apply client
+      val x = lpush("key300", 1200) apply client
 
       x onSuccess {
         case someLong: Long => fail("lpush should fail")
