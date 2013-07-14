@@ -79,48 +79,6 @@ class ClientSpec extends FunSpec
     }
   }
 
-  describe("lpush") {
-    it("should do an lpush and retrieve the values using lrange") {
-      val forpush = List.fill(10)("listk") zip (1 to 10).map(_.toString)
-
-      val writeListResults = forpush map { case (key, value) =>
-        (key, value, (lpush(key, value) apply client))
-      }
-
-      writeListResults foreach { case (key, value, result) =>
-        result onSuccess {
-          case someLong: Long if someLong > 0 => {
-            someLong should (be > (0L) and be <= (10L))
-          }
-          case _ => fail("lpush must return a positive number")
-        }
-      }
-      writeListResults.map(e => Await.result(e._3, 3 seconds)) should equal((1 to 10).toList)
-
-      // do an lrange to check if they were inserted correctly & in proper order
-      val readListResult = lrange[String]("listk", 0, -1) apply client
-      readListResult.onSuccess {
-        case result => result should equal ((1 to 10).reverse.toList)
-      }
-    }
-  }
-
-  describe("rpush") {
-    it("should do an rpush and retrieve the values using lrange") {
-      val forrpush = List.fill(10)("listr") zip (1 to 10).map(_.toString)
-      val writeListRes = forrpush map { case (key, value) =>
-        (key, value, rpush(key, value) apply client)
-      }
-      writeListRes.map(e => Await.result(e._3, 3 seconds)) should equal((1 to 10).toList)
-
-      // do an lrange to check if they were inserted correctly & in proper order
-      val readListRes = lrange[String]("listr", 0, -1) apply client
-      readListRes.onSuccess {
-        case result => result.reverse should equal ((1 to 10).reverse.toList)
-      }
-    }
-  }
-
   import Parse.Implicits._
   describe("non blocking apis using futures") {
     it("get and set should be non blocking") {
@@ -151,21 +109,21 @@ class ClientSpec extends FunSpec
       val res = for {
         p <- pushResult.mapTo[Long]
         if p > 0
-        r <- getResult.mapTo[List[Option[Long]]]
+        r <- getResult.mapTo[List[Long]]
       } yield (p, r)
 
       val (count, list) = Await.result(res, 2 seconds)
       count should equal(101)
-      list.reverse should equal((0 to 100).map(a => Some(a)))
+      list.reverse should equal(0 to 100)
     }
   }
 
   describe("error handling using promise failure") {
     it("should give error trying to lpush on a key that has a non list value") {
-      val v = set("key200", "value200") apply client 
+      val v = set("key300", "value200") apply client
       Await.result(v, 3 seconds) should equal(true)
 
-      val x = lpush("key200", 1200) apply client
+      val x = lpush("key300", 1200) apply client
 
       x onSuccess {
         case someLong: Long => fail("lpush should fail")

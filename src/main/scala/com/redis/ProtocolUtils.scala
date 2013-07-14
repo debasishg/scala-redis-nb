@@ -121,7 +121,7 @@ object ProtocolUtils {
         val r = splitReplies(a)
         val no = new String(l.dropRight(2), "UTF-8").toInt
         val (tojoin, others) = r.splitAt(no)
-        acc ::: List(Array[Byte](_multi) ++ l ++ tojoin.tail.foldLeft(tojoin.head)(_ ++ _)) ::: others
+        acc ::: List(Array[Byte](_multi) ++ l ++ tojoin.foldLeft(Array[Byte]())(_ ++ _)) ::: others
       }
       case Array() => acc
     }

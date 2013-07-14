@@ -106,12 +106,12 @@ describe("non blocking apis using futures") {
     val res = for {
       p <- pushResult.mapTo[Long]
       if p > 0
-      r <- getResult.mapTo[List[Option[Long]]]
+      r <- getResult.mapTo[List[Long]]
     } yield (p, r)
 
     val (count, list) = Await.result(res, 2 seconds)
     count should equal(101)
-    list.reverse should equal((0 to 100).map(a => Some(a)))
+    list.reverse should equal(0 to 100)
   }
 }
 ```

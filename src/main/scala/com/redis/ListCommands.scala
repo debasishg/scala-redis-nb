@@ -35,9 +35,9 @@ object ListCommands {
   }
   
   case class LRange[A](key: Any, start: Int, stop: Int)(implicit format: Format, parse: Parse[A]) extends ListCommand {
-    type Ret = List[Option[A]]
+    type Ret = List[A]
     val line = multiBulk("LRANGE".getBytes("UTF-8") +: (Seq(key, start, stop) map format.apply))
-    val ret  = RedisReply(_: Array[Byte]).asList
+    val ret  = RedisReply(_: Array[Byte]).asList[A].flatten // TODO Remove intermediate Option[A]
   }
 
   case class LLen(key: Any)(implicit format: Format) extends ListCommand {
