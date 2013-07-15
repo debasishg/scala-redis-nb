@@ -12,6 +12,7 @@ import org.scalatest._
 import org.scalatest.concurrent.{Futures, ScalaFutures}
 import org.scalatest.time._
 
+import api.RedisOps._
 
 trait RedisSpecBase extends FunSpec
                  with Matchers
@@ -36,16 +37,16 @@ trait RedisSpecBase extends FunSpec
   }
 
   override def afterEach = {
+    Await.result(flushdb apply client, 2 seconds)
   }
 
   override def afterAll = {
+
     client ! "close"
     try { 
       val stopped: Future[Boolean] = gracefulStop(client, 5 seconds)
       stopped onSuccess {
-        case true =>
-          println(this, "shutting down actorsystem...")
-          system.shutdown()
+        case true => system.shutdown()
         case false => throw new Exception("client actor didn't stop properly")
       }
     } catch {

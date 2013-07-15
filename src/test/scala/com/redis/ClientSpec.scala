@@ -24,7 +24,7 @@ class ClientSpec extends RedisSpecBase {
       }
       val sr = Future.sequence(setResults)
 
-      sr.map(x => x).futureValue.forall(_ == true) should be (true)
+      sr.map(x => x).futureValue should contain only (true)
 
       val getResults = ks.map {k =>
         get[Long](k) apply client

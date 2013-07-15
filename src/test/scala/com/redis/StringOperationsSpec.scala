@@ -19,7 +19,7 @@ class StringOperationsSpec extends RedisSpecBase {
       val (keys, values) = (1 to numKeys map { num => ("key" + num, "value" + num) }).unzip
       val writes = keys zip values map { case (key, value) => set(key, value) apply client }
 
-      writes foreach { _.futureValue should be (true) }
+      Future.sequence(writes).futureValue should contain only (true)
     }
 
     it("should not set values to keys already existing with option NX") {
@@ -46,16 +46,21 @@ class StringOperationsSpec extends RedisSpecBase {
   describe("get") {
     it("should get results for keys set earlier") {
       val numKeys = 3
-      val (keys, values) = (1 to numKeys map { num => ("key" + num, "value" + num) }).unzip
-      val reads = keys map { key => get(key) apply client }
+      val (keys, values) = (1 to numKeys map { num => ("get" + num, "value" + num) }).unzip
+      val writes = keys zip values map { case (key, value) => set(key, value) apply client }
+      val writeResults = Future.sequence(writes).futureValue
 
-      reads zip values foreach { case (result, expectedValue) =>
-        result.futureValue should equal (Some(expectedValue))
+      val reads = keys map { key => get(key) apply client }
+      val readResults = Future.sequence(reads).futureValue
+
+      readResults zip values foreach { case (result, expectedValue) =>
+        result should equal (Some(expectedValue))
       }
-      Future.sequence(reads).futureValue should equal (List(Some("value1"), Some("value2"), Some("value3")))
+      readResults should equal (List(Some("value1"), Some("value2"), Some("value3")))
     }
+
     it("should give none for unknown keys") {
-      val reads = get("key10") apply client
+      val reads = get("get_unkown") apply client
       reads.futureValue should equal (None)
     }
   }
