@@ -21,7 +21,7 @@ trait KeyOperations {
   // RANDOMKEY
   // return a randomly selected key from the currently selected DB.
   def randomkey[A](implicit parse: Parse[A]): ActorRef => Future[Option[A]] = {client: ActorRef=>
-    client.ask(RandomKey).mapTo[Option[A]]
+    client.ask(RandomKey[A]).mapTo[Option[A]]
   }
 
   // RENAME (oldkey, newkey)
@@ -51,7 +51,7 @@ trait KeyOperations {
   // DELETE (key1 key2 ..)
   // deletes the specified keys.
   def del(key: Any, keys: Any*)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef=>
-    client.ask(Delete(key, keys:_*)).mapTo[Long]
+    client.ask(Del(key, keys:_*)).mapTo[Long]
   }
 
   // TYPE (key)

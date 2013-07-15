@@ -41,9 +41,9 @@ object KeyCommands {
     val ret  = RedisReply(_: Array[Byte]).asBoolean
   }
 
-  case class Delete(key: Any, keys: Any*)(implicit format: Format) extends KeyCommand {
+  case class Del(key: Any, keys: Any*)(implicit format: Format) extends KeyCommand {
     type Ret = Long
-    val line = multiBulk("DELETE".getBytes("UTF-8") +: ((key :: keys.toList) map format.apply))
+    val line = multiBulk("DEL".getBytes("UTF-8") +: ((key :: keys.toList) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
