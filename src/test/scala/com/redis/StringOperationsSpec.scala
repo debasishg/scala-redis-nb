@@ -42,4 +42,22 @@ class StringOperationsSpec extends RedisSpecBase {
       }
     }
   }
+
+  describe("get") {
+    it("should get results for keys set earlier") {
+      val numKeys = 3
+      val (keys, values) = (1 to numKeys map { num => ("key" + num, "value" + num) }).unzip
+      val reads = keys map { key => get(key) apply client }
+
+      reads zip values foreach { case (result, expectedValue) =>
+        result.futureValue should equal (Some(expectedValue))
+      }
+      Future.sequence(reads).futureValue should equal (List(Some("value1"), Some("value2"), Some("value3")))
+    }
+    it("should give none for unknown keys") {
+      val reads = get("key10") apply client
+      reads.futureValue should equal (None)
+    }
+  }
+
 }

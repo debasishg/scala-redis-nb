@@ -10,6 +10,7 @@ import akka.pattern.gracefulStop
 
 import org.scalatest._
 import org.scalatest.concurrent.{Futures, ScalaFutures}
+import org.scalatest.time._
 
 
 trait RedisSpecBase extends FunSpec
@@ -19,12 +20,17 @@ trait RedisSpecBase extends FunSpec
                  with BeforeAndAfterEach
                  with BeforeAndAfterAll {
 
+  // Akka setup
   implicit val executionContext = ExecutionContext.Implicits.global
   implicit val system = ActorSystem("redis-client")
+  implicit val timeout = AkkaTimeout(5 seconds)
 
+  // Scalatest setup
+  implicit val defaultPatience = PatienceConfig(timeout = Span(2, Seconds), interval = Span(5, Millis))
+
+  // Redis client setup
   val endpoint = new InetSocketAddress("localhost", 6379)
   val client = system.actorOf(Props(new RedisClient(endpoint)), name = "redis-client")
-  implicit val timeout = AkkaTimeout(5 seconds)
 
   override def beforeEach = {
   }
@@ -36,8 +42,10 @@ trait RedisSpecBase extends FunSpec
     client ! "close"
     try { 
       val stopped: Future[Boolean] = gracefulStop(client, 5 seconds)
-      Await.result(stopped, 5 seconds) match {
-        case true => system.shutdown()
+      stopped onSuccess {
+        case true =>
+          println(this, "shutting down actorsystem...")
+          system.shutdown()
         case false => throw new Exception("client actor didn't stop properly")
       }
     } catch {
