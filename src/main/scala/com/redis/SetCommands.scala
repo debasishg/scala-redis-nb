@@ -18,7 +18,7 @@ object SetCommands {
 
   case class SOp(op: Op, key: Any, value: Any, values: Any*)(implicit format: Format) extends SetCommand {
     type Ret = Long
-    val line = multiBulk("SADD".getBytes("UTF-8") +: (key :: value :: values.toList) map format.apply)
+    val line = multiBulk((if (op == add) "SADD" else "SREM").getBytes("UTF-8") +: (key :: value :: values.toList) map format.apply)
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
@@ -30,7 +30,7 @@ object SetCommands {
   
   case class SMove(srcKey: Any, destKey: Any, value: Any)(implicit format: Format) extends SetCommand {
     type Ret = Long
-    val line = multiBulk("SADD".getBytes("UTF-8") +: (Seq(srcKey, destKey, value) map format.apply))
+    val line = multiBulk("SMOVE".getBytes("UTF-8") +: (Seq(srcKey, destKey, value) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
@@ -52,7 +52,7 @@ object SetCommands {
   case object diff extends setOp
 
   case class ∩∪∖[A](ux: setOp, key: Any, keys: Any*)(implicit format: Format, parse: Parse[A]) extends SetCommand {
-    type Ret = Set[Option[A]]
+    type Ret = Set[A]
     val line = multiBulk(
       (if (ux == inter) "SINTER" else if (ux == union) "SUNION" else "SDIFF").getBytes("UTF-8") +: (key :: keys.toList) map format.apply)
     val ret  = RedisReply(_: Array[Byte]).asSet[A]
@@ -66,7 +66,7 @@ object SetCommands {
   }
 
   case class SMembers[A](key: Any)(implicit format: Format, parse: Parse[A]) extends SetCommand {
-    type Ret = Set[Option[A]]
+    type Ret = Set[A]
     val line = multiBulk("SDIFF".getBytes("UTF-8") +: Seq(key) map format.apply)
     val ret  = RedisReply(_: Array[Byte]).asSet[A]
   }
@@ -78,8 +78,8 @@ object SetCommands {
   }
 
   case class SRandMembers[A](key: Any, count: Int)(implicit format: Format, parse: Parse[A]) extends SetCommand {
-    type Ret = List[Option[A]]
+    type Ret = List[A]
     val line = multiBulk("SRANDMEMBER".getBytes("UTF-8") +: (Seq(key, count) map format.apply))
-    val ret  = RedisReply(_: Array[Byte]).asList[A]
+    val ret  = RedisReply(_: Array[Byte]).asList[A].flatten // TODO remove intermediate Option
   }
 }

@@ -47,7 +47,7 @@ object RedisReplies {
     def asLong: Long =  receive(longReply orElse queuedReplyLong)
 
     def asBoolean: Boolean = receive(longReply orElse singleLineReply) match {
-      case n: Int => n > 0
+      case n: Long => n > 0
       case s: Array[Byte] => Parsers.parseString(s) match {
         case "OK" => true
         case "QUEUED" => true
@@ -72,7 +72,7 @@ object RedisReplies {
 
     // def asExec(handlers: Seq[() => Any]): Option[List[Any]] = receive(execReply(handlers))
 
-    def asSet[T: Parse]: collection.immutable.Set[Option[T]] = asList.toSet
+    def asSet[T: Parse]: collection.immutable.Set[T] = asList.flatten.toSet
 
     def asAny = receive(longReply orElse singleLineReply orElse bulkReply orElse multiBulkReply)
   }

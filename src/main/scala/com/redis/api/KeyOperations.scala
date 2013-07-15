@@ -14,14 +14,14 @@ trait KeyOperations {
 
   // KEYS
   // returns all the keys matching the glob-style pattern.
-  def keys[A](pattern: Any = "*")(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef=>
-    client.ask(Keys(pattern)).mapTo[List[Option[A]]]
+  def keys[A](pattern: Any = "*")(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[A]] = {client: ActorRef=>
+    client.ask(Keys(pattern)).mapTo[List[A]]
   }
 
   // RANDOMKEY
   // return a randomly selected key from the currently selected DB.
   def randomkey[A](implicit parse: Parse[A]): ActorRef => Future[Option[A]] = {client: ActorRef=>
-    client.ask(RandomKey).mapTo[Option[A]]
+    client.ask(RandomKey[A]).mapTo[Option[A]]
   }
 
   // RENAME (oldkey, newkey)
@@ -51,7 +51,7 @@ trait KeyOperations {
   // DELETE (key1 key2 ..)
   // deletes the specified keys.
   def del(key: Any, keys: Any*)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef=>
-    client.ask(Delete(key, keys:_*)).mapTo[Long]
+    client.ask(Del(key, keys:_*)).mapTo[Long]
   }
 
   // TYPE (key)
