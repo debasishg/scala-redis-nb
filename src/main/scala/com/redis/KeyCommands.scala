@@ -12,9 +12,9 @@ import akka.util.Timeout
 
 object KeyCommands {
   case class Keys[A](pattern: Any = "*")(implicit format: Format, parse: Parse[A]) extends KeyCommand {
-    type Ret = List[Option[A]]
+    type Ret = List[A]
     val line = multiBulk("KEYS".getBytes("UTF-8") +: Seq(format.apply(pattern)))
-    val ret  = RedisReply(_: Array[Byte]).asList
+    val ret  = RedisReply(_: Array[Byte]).asList.flatten // TODO remove intermediate Option
   }
 
   case class RandomKey[A](implicit parse: Parse[A]) extends KeyCommand {
@@ -41,9 +41,9 @@ object KeyCommands {
     val ret  = RedisReply(_: Array[Byte]).asBoolean
   }
 
-  case class Delete(key: Any, keys: Any*)(implicit format: Format) extends KeyCommand {
+  case class Del(key: Any, keys: Any*)(implicit format: Format) extends KeyCommand {
     type Ret = Long
-    val line = multiBulk("DELETE".getBytes("UTF-8") +: ((key :: keys.toList) map format.apply))
+    val line = multiBulk("DEL".getBytes("UTF-8") +: ((key :: keys.toList) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
