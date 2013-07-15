@@ -51,7 +51,7 @@ object HashCommands {
   
   case class HDel(key: Any, field: Any, fields: Any*)(implicit format: Format) extends HashCommand {
     type Ret = Long
-    val line = multiBulk("HDEL".getBytes("UTF-8") +: (List(key, field, fields.toList) map format.apply))
+    val line = multiBulk("HDEL".getBytes("UTF-8") +: ((key :: field :: fields.toList) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
   

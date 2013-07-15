@@ -34,15 +34,15 @@ class HashOperationsSpec extends RedisSpecBase {
    describe("hincrby") {
     it("should increment map values") {
       val key = "hincrby1"
-      hincrby(key, "field1", 1).apply(client)
-      hget(key, "field1").apply(client).futureValue should equal (1)
+      hincrby(key, "field1", 1).apply(client).futureValue should equal (1)
+      hget(key, "field1").apply(client).futureValue should equal (Some("1"))
     }
    }
     
    describe("hexists") {
     it("should check existence") {
       val key = "hexists1"
-      hset(key, "field1", "val").apply(client)
+      hset(key, "field1", "val").apply(client).futureValue should be (true)
       hexists(key, "field1").apply(client).futureValue should be (true)
       hexists(key, "field2").apply(client).futureValue should be (false)
     }
