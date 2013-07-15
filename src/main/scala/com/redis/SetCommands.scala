@@ -18,7 +18,7 @@ object SetCommands {
 
   case class SOp(op: Op, key: Any, value: Any, values: Any*)(implicit format: Format) extends SetCommand {
     type Ret = Long
-    val line = multiBulk("SADD".getBytes("UTF-8") +: (key :: value :: values.toList) map format.apply)
+    val line = multiBulk((if (op == add) "SADD" else "SREM").getBytes("UTF-8") +: (key :: value :: values.toList) map format.apply)
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
@@ -30,7 +30,7 @@ object SetCommands {
   
   case class SMove(srcKey: Any, destKey: Any, value: Any)(implicit format: Format) extends SetCommand {
     type Ret = Long
-    val line = multiBulk("SADD".getBytes("UTF-8") +: (Seq(srcKey, destKey, value) map format.apply))
+    val line = multiBulk("SMOVE".getBytes("UTF-8") +: (Seq(srcKey, destKey, value) map format.apply))
     val ret  = RedisReply(_: Array[Byte]).asLong
   }
 
