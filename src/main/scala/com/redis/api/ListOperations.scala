@@ -47,8 +47,8 @@ trait ListOperations {
   // LRANGE
   // return the specified elements of the list stored at the specified key.
   // Start and end are zero-based indexes. 
-  def lrange[A](key: Any, start: Int, end: Int)(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef =>
-    client.ask(LRange(key, start, end)).mapTo[List[Option[A]]] 
+  def lrange[A](key: Any, start: Int, end: Int)(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[A]] = {client: ActorRef =>
+    client.ask(LRange(key, start, end)).mapTo[List[A]]
   }
 
   // LTRIM

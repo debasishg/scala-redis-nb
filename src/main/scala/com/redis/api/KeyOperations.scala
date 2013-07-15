@@ -14,8 +14,8 @@ trait KeyOperations {
 
   // KEYS
   // returns all the keys matching the glob-style pattern.
-  def keys[A](pattern: Any = "*")(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef=>
-    client.ask(Keys(pattern)).mapTo[List[Option[A]]]
+  def keys[A](pattern: Any = "*")(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[A]] = {client: ActorRef=>
+    client.ask(Keys(pattern)).mapTo[List[A]]
   }
 
   // RANDOMKEY

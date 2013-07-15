@@ -29,8 +29,8 @@ trait HashOperations {
     client.ask(HMSet(key, map)).mapTo[Boolean] 
   }
   
-  def hmget[K,V](key: Any, fields: K*)(implicit format: Format, parseV: Parse[V]): ActorRef => Future[Option[Map[K,V]]] = {client: ActorRef =>
-    client.ask(HMGet(key, fields:_*)).mapTo[Option[Map[K, V]]] 
+  def hmget[K,V](key: Any, fields: K*)(implicit format: Format, parseV: Parse[V]): ActorRef => Future[Map[K,V]] = {client: ActorRef =>
+    client.ask(HMGet(key, fields:_*)).mapTo[Map[K, V]]
   }
   
   def hincrby(key: Any, field: Any, value: Int)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
@@ -49,15 +49,15 @@ trait HashOperations {
     client.ask(HLen(key)).mapTo[Long] 
   }
   
-  def hkeys[A](key: Any)(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef =>
-    client.ask(HKeys(key)).mapTo[List[Option[A]]] 
+  def hkeys[A](key: Any)(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[A]] = {client: ActorRef =>
+    client.ask(HKeys(key)).mapTo[List[A]]
   }
   
-  def hvals[A](key: Any)(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef =>
-    client.ask(HVals(key)).mapTo[List[Option[A]]] 
+  def hvals[A](key: Any)(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[A]] = {client: ActorRef =>
+    client.ask(HVals(key)).mapTo[List[A]]
   }
   
-  def hgetall[K,V](key: Any)(implicit format: Format, parseK: Parse[K], parseV: Parse[V]): ActorRef => Future[Option[Map[K,V]]] = {client: ActorRef =>
-    client.ask(HGetall(key)).mapTo[Option[Map[K, V]]]
+  def hgetall[K,V](key: Any)(implicit format: Format, parseK: Parse[K], parseV: Parse[V]): ActorRef => Future[Map[K,V]] = {client: ActorRef =>
+    client.ask(HGetall(key)).mapTo[Map[K, V]]
   }
 }

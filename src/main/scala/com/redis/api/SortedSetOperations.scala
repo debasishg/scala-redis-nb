@@ -48,13 +48,13 @@ trait SortedSetOperations {
   // ZRANGE
   // 
   def zrange[A](key: Any, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]) 
-   : ActorRef => Future[List[Option[A]]] = {client: ActorRef =>
-    client.ask(ZRange(key, start, end, sortAs)).mapTo[List[Option[A]]] 
+   : ActorRef => Future[List[A]] = {client: ActorRef =>
+    client.ask(ZRange(key, start, end, sortAs)).mapTo[List[A]]
   }
 
   def zrangeWithScore[A](key: Any, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A])
-   : ActorRef => Future[List[Option[(A, Double)]]] = {client: ActorRef =>
-    client.ask(ZRangeWithScore(key, start, end, sortAs)).mapTo[List[Option[(A, Double)]]] 
+   : ActorRef => Future[List[(A, Double)]] = {client: ActorRef =>
+    client.ask(ZRangeWithScore(key, start, end, sortAs)).mapTo[List[(A, Double)]]
   }
 
   // ZRANGEBYSCORE
@@ -65,9 +65,9 @@ trait SortedSetOperations {
     max: Double = Double.PositiveInfinity,
     maxInclusive: Boolean = true,
     limit: Option[(Int, Int)],
-    sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef =>
+    sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]): ActorRef => Future[List[A]] = {client: ActorRef =>
 
-    client.ask(ZRangeByScore(key, min, minInclusive, max, maxInclusive, limit, sortAs)).mapTo[List[Option[A]]] 
+    client.ask(ZRangeByScore(key, min, minInclusive, max, maxInclusive, limit, sortAs)).mapTo[List[A]]
   }
 
   def zrangeByScoreWithScore[A](key: Any,
@@ -77,9 +77,9 @@ trait SortedSetOperations {
           maxInclusive: Boolean = true,
           limit: Option[(Int, Int)],
           sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A])
-    : ActorRef => Future[List[Option[(A, Double)]]] = {client: ActorRef =>
+    : ActorRef => Future[List[(A, Double)]] = {client: ActorRef =>
 
-    client.ask(ZRangeByScoreWithScore(key, min, minInclusive, max, maxInclusive, limit, sortAs)).mapTo[List[Option[(A, Double)]]] 
+    client.ask(ZRangeByScoreWithScore(key, min, minInclusive, max, maxInclusive, limit, sortAs)).mapTo[List[(A, Double)]]
   }
 
   // ZRANK

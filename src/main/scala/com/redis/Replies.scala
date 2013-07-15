@@ -72,7 +72,7 @@ object RedisReplies {
 
     // def asExec(handlers: Seq[() => Any]): Option[List[Any]] = receive(execReply(handlers))
 
-    def asSet[T: Parse]: collection.immutable.Set[Option[T]] = asList.toSet
+    def asSet[T: Parse]: collection.immutable.Set[T] = asList.flatten.toSet
 
     def asAny = receive(longReply orElse singleLineReply orElse bulkReply orElse multiBulkReply)
   }

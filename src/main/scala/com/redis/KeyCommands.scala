@@ -12,9 +12,9 @@ import akka.util.Timeout
 
 object KeyCommands {
   case class Keys[A](pattern: Any = "*")(implicit format: Format, parse: Parse[A]) extends KeyCommand {
-    type Ret = List[Option[A]]
+    type Ret = List[A]
     val line = multiBulk("KEYS".getBytes("UTF-8") +: Seq(format.apply(pattern)))
-    val ret  = RedisReply(_: Array[Byte]).asList
+    val ret  = RedisReply(_: Array[Byte]).asList.flatten // TODO remove intermediate Option
   }
 
   case class RandomKey[A](implicit parse: Parse[A]) extends KeyCommand {

@@ -32,10 +32,9 @@ object HashCommands {
   case class HMGet[K,V](key: Any, fields: K*)(implicit format: Format, parseV: Parse[V]) extends HashCommand {
     type Ret = Map[K, V]
     val line = multiBulk("HMGET".getBytes("UTF-8") +: ((key :: fields.toList) map format.apply))
-    val ret  = RedisReply(_: Array[Byte]).asList.zip(fields).map {
-      case (Some(value), field) => Some((field, value))
-      case (None, field) => None
-    }.flatten.toMap
+    val ret  = RedisReply(_: Array[Byte]).asList.zip(fields).collect {
+      case (Some(value), field) => (field, value)
+    }.toMap
   }
   
   case class HIncrby(key: Any, field: Any, value: Int)(implicit format: Format) extends HashCommand {
@@ -63,20 +62,20 @@ object HashCommands {
   }
   
   case class HKeys[A](key: Any)(implicit format: Format, parse: Parse[A]) extends HashCommand {
-    type Ret = List[Option[A]]
+    type Ret = List[A]
     val line = multiBulk("HKEYS".getBytes("UTF-8") +: (List(key) map format.apply))
-    val ret  = RedisReply(_: Array[Byte]).asList
+    val ret  = RedisReply(_: Array[Byte]).asList.flatten // TODO remove intermediate Option
   }
   
   case class HVals[A](key: Any)(implicit format: Format, parse: Parse[A]) extends HashCommand {
-    type Ret = List[Option[A]]
+    type Ret = List[A]
     val line = multiBulk("HVALS".getBytes("UTF-8") +: (List(key) map format.apply))
-    val ret  = RedisReply(_: Array[Byte]).asList
+    val ret  = RedisReply(_: Array[Byte]).asList.flatten // TODO remove intermediate Option
   }
   
   case class HGetall[K,V](key: Any)(implicit format: Format, parseK: Parse[K], parseV: Parse[V]) extends HashCommand {
     type Ret = Map[K, V]
     val line = multiBulk("HGETALL".getBytes("UTF-8") +: (List(key) map format.apply))
-    val ret  = RedisReply(_: Array[Byte]).asListPairs[K,V].flatten.toMap
+    val ret  = RedisReply(_: Array[Byte]).asListPairs[K,V].flatten.toMap // TODO remove intermediate Option
   }
 }

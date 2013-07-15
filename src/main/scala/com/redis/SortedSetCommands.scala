@@ -46,10 +46,10 @@ object SortedSetCommands {
   case class ZRange[A](key: Any, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]) 
     extends SortedSetCommand {
 
-    type Ret = List[Option[A]]
+    type Ret = List[A]
     val line = multiBulk(
       (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE").getBytes("UTF-8") +: (Seq(key, start, end) map format.apply))
-    val ret  = RedisReply(_: Array[Byte]).asList
+    val ret  = RedisReply(_: Array[Byte]).asList.flatten // TODO remove intermediate Option
   }
 
   case class ZRangeWithScore[A](key: Any, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A])
@@ -71,7 +71,7 @@ object SortedSetCommands {
     limit: Option[(Int, Int)],
     sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]) extends SortedSetCommand {
 
-    type Ret = List[Option[A]]
+    type Ret = List[A]
     val (limitEntries, minParam, maxParam) = 
       zrangebyScoreWithScoreInternal(min, minInclusive, max, maxInclusive, limit)
 
@@ -79,7 +79,7 @@ object SortedSetCommands {
       if (sortAs == ASC) "ZRANGEBYSCORE".getBytes("UTF-8") +: (Seq(key, minParam, maxParam, limitEntries) map format.apply)
       else "ZREVRANGEBYSCORE".getBytes("UTF-8") +: (Seq(key, maxParam, minParam, limitEntries) map format.apply)
     )
-    val ret  = RedisReply(_: Array[Byte]).asList 
+    val ret  = RedisReply(_: Array[Byte]).asList.flatten // TODO remove intermediate Option
   }
 
   case class ZRangeByScoreWithScore[A](key: Any,
