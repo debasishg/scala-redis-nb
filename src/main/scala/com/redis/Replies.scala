@@ -47,7 +47,7 @@ object RedisReplies {
     def asLong: Long =  receive(longReply orElse queuedReplyLong)
 
     def asBoolean: Boolean = receive(longReply orElse singleLineReply) match {
-      case n: Int => n > 0
+      case n: Long => n > 0
       case s: Array[Byte] => Parsers.parseString(s) match {
         case "OK" => true
         case "QUEUED" => true
