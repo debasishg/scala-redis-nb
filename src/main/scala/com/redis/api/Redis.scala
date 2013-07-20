@@ -9,7 +9,8 @@ object RedisOps extends StringOperations
   with SetOperations
   with SortedSetOperations
   with HashOperations
-  with KeyOperations {
+  with KeyOperations
+  with NodeOperations {
   val timeout = Timeout(5 seconds)
 }
   

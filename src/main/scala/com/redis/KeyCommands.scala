@@ -1,14 +1,9 @@
 package com.redis
 
-import scala.concurrent.Future
-import scala.concurrent.duration._
 import serialization._
 import Parse.{Implicits => Parsers}
 import RedisCommand._
 import RedisReplies._
-import akka.pattern.ask
-import akka.actor._
-import akka.util.Timeout
 
 object KeyCommands {
   case class Keys[A](pattern: Any = "*")(implicit format: Format, parse: Parse[A]) extends KeyCommand {
