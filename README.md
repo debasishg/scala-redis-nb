@@ -10,16 +10,24 @@
 ### Sample usage
 
 ```scala
+// Akka setup
+implicit val system = ActorSystem("redis-client")
+implicit val executionContext = system.dispatcher
+implicit val timeout = AkkaTimeout(5 seconds)
+
+// Redis client setup
+val endpoint = new InetSocketAddress("localhost", 6379)
+val client = RedisClient(endpoint)
+```
+
+```scala
 describe("set") {
   it("should set values to keys") {
     val numKeys = 3
     val (keys, values) = (1 to numKeys map { num => ("key" + num, "value" + num) }).unzip
-    val writes = keys zip values map { case (key, value) => set(key, value) apply client }
+    val writes = keys zip values map { case (key, value) => client.set(key, value) }
 
-    writes foreach { _ onSuccess {
-      case true => 
-      case _ => fail("set should pass")
-    }}
+    Future.sequence(writes).futureValue should contain only (true)
   }
 }
 ```
@@ -28,22 +36,21 @@ describe("set") {
 describe("get") {
   it("should get results for keys set earlier") {
     val numKeys = 3
-    val (keys, values) = (1 to numKeys map { num => ("key" + num, "value" + num) }).unzip
-    val reads = keys map { key => get(key) apply client }
+    val (keys, values) = (1 to numKeys map { num => ("get" + num, "value" + num) }).unzip
+    val writes = keys zip values map { case (key, value) => client.set(key, value) }
+    val writeResults = Future.sequence(writes).futureValue
 
-    reads zip values foreach { case (result, expectedValue) =>
-      result.onSuccess {
-        case resultString => resultString should equal(Some(expectedValue))
-      }
-      result.onFailure {
-        case t => println("Got some exception " + t)
-      }
+    val reads = keys map { key => client.get(key) }
+    val readResults = Future.sequence(reads).futureValue
+
+    readResults zip values foreach { case (result, expectedValue) =>
+      result should equal (Some(expectedValue))
     }
-    reads.map(e => Await.result(e, 3 seconds)) should equal(List(Some("value1"), Some("value2"), Some("value3")))
+    readResults should equal (List(Some("value1"), Some("value2"), Some("value3")))
   }
+
   it("should give none for unknown keys") {
-    val reads = get("key10") apply client
-    Await.result(reads, 3 seconds) should equal(None)
+    client.get("get_unknown").futureValue should equal (None)
   }
 }
 ```
@@ -52,66 +59,83 @@ describe("get") {
 describe("lpush") {
   it("should do an lpush and retrieve the values using lrange") {
     val forpush = List.fill(10)("listk") zip (1 to 10).map(_.toString)
+    val writeList = forpush map { case (key, value) => client.lpush(key, value) }
+    val writeListResults = Future.sequence(writeList).futureValue
 
-    val writeListResults = forpush map { case (key, value) =>
-      (key, value, (lpush(key, value) apply client))
+    writeListResults foreach {
+      case someLong: Long if someLong > 0 =>
+        someLong should (be > (0L) and be <= (10L))
+      case _ => fail("lpush must return a positive number")
     }
-
-    writeListResults foreach { case (key, value, result) =>
-      result onSuccess {
-        case someLong: Long if someLong > 0 => {
-          someLong should (be > (0L) and be <= (10L))
-        }
-        case _ => fail("lpush must return a positive number")
-      }
-    }
-    writeListResults.map(e => Await.result(e._3, 3 seconds)) should equal((1 to 10).toList)
+    writeListResults should equal (1 to 10)
 
     // do an lrange to check if they were inserted correctly & in proper order
-    val readListResult = lrange[String]("listk", 0, -1) apply client
-    readListResult.onSuccess {
-      case result => result should equal ((1 to 10).reverse.toList)
-    }
+    val readList = client.lrange[String]("listk", 0, -1)
+    readList.futureValue should equal ((1 to 10).reverse.map(_.toString))
   }
 }
 ```
 
 ```scala
+describe("hmget") {
+ it("should set and get maps") {
+   val key = "hmget1"
+   client.hmset(key, Map("field1" -> "val1", "field2" -> "val2"))
+   client.hmget(key, "field1").futureValue should equal (Map("field1" -> "val1"))
+   client.hmget(key, "field1", "field2").futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
+   client.hmget(key, "field1", "field2", "field3").futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
+ }
+}
+ ```
+
+```scala
 describe("non blocking apis using futures") {
   it("get and set should be non blocking") {
-    val kvs = (1 to 10).map(i => s"key_$i").zip(1 to 10)
-    val setResults: Seq[Future[Boolean]] = kvs map {case (k, v) =>
-      set(k, v) apply client
-    }
-    val sr = Future.sequence(setResults)
+    @volatile var callbackExecuted = false
 
-    Await.result(sr.map(x => x), 2 seconds).forall(_ == true) should equal(true)
+    val ks = (1 to 10).map(i => s"client_key_$i")
+    val kvs = ks.zip(1 to 10)
 
-    val ks = (1 to 10).map(i => s"key_$i")
-    val getResults = ks.map {k =>
-      get[Long](k) apply client
+    val sets: Seq[Future[Boolean]] = kvs map {
+      case (k, v) => client.set(k, v)
     }
 
-    val gr = Future.sequence(getResults)
-    val result = gr.map(_.flatten.sum)
+    val setResult = Future.sequence(sets) map { r: Seq[Boolean] =>
+      callbackExecuted = true
+      r
+    }
 
-    Await.result(result, 2 seconds) should equal(55)
+    callbackExecuted should be (false)
+    setResult.futureValue should contain only (true)
+    callbackExecuted should be (true)
+
+    callbackExecuted = false
+    val gets: Seq[Future[Option[Long]]] = ks.map { k => client.get[Long](k) }
+    val getResult = Future.sequence(gets).map { rs =>
+      callbackExecuted = true
+      rs.flatten.sum
+    }
+
+    callbackExecuted should be (false)
+    getResult.futureValue should equal (55)
+    callbackExecuted should be (true)
   }
 
   it("should compose with sequential combinator") {
+    val key = "client_key_seq"
     val values = (1 to 100).toList
-    val pushResult = lpush("key", 0, values:_*) apply client
-    val getResult = lrange[Long]("key", 0, -1) apply client
-    
+    val pushResult = client.lpush(key, 0, values:_*)
+    val getResult = client.lrange[Long](key, 0, -1)
+
     val res = for {
       p <- pushResult.mapTo[Long]
       if p > 0
       r <- getResult.mapTo[List[Long]]
     } yield (p, r)
 
-    val (count, list) = Await.result(res, 2 seconds)
-    count should equal(101)
-    list.reverse should equal(0 to 100)
+    val (count, list) = res.futureValue
+    count should equal (101)
+    list.reverse should equal (0 to 100)
   }
 }
 ```
@@ -119,26 +143,13 @@ describe("non blocking apis using futures") {
 ```scala
 describe("error handling using promise failure") {
   it("should give error trying to lpush on a key that has a non list value") {
-    val v = set("key200", "value200") apply client 
-    Await.result(v, 3 seconds) should equal(true)
+    val key = "client_err"
+    val v = client.set(key, "value200")
+    v.futureValue should be (true)
 
-    val x = lpush("key200", 1200) apply client
-
-    x onSuccess {
-      case someLong: Long => fail("lpush should fail")
-      case _ => fail("lpush must return error")
-    }
-    x onFailure {
-      case t => {
-        val thrown = evaluating { Await.result(x, 3 seconds) } should produce [Exception]
-        thrown.getMessage should equal("ERR Operation against a key holding the wrong kind of value")
-      }
-    }
-
-    val thrown = evaluating {
-      Await.result(x, 3 seconds)
-    } should produce [Exception]
-    thrown.getMessage should equal("ERR Operation against a key holding the wrong kind of value")
+    val x = client.lpush(key, 1200)
+    val thrown = evaluating { x.futureValue } should produce [TestFailedException]
+    thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
   }
 }
 ```
