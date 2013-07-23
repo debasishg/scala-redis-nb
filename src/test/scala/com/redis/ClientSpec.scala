@@ -16,23 +16,34 @@ class ClientSpec extends RedisSpecBase {
   import Parse.Implicits._
   describe("non blocking apis using futures") {
     it("get and set should be non blocking") {
+      @volatile var callbackExecuted = false
+
       val ks = (1 to 10).map(i => s"client_key_$i")
       val kvs = ks.zip(1 to 10)
-      val setResults: Seq[Future[Boolean]] = kvs map {case (k, v) =>
-        client.set(k, v)
-      }
-      val sr = Future.sequence(setResults)
 
-      sr.map(x => x).futureValue should contain only (true)
-
-      val getResults = ks.map {k =>
-        client.get[Long](k)
+      val sets: Seq[Future[Boolean]] = kvs map {
+        case (k, v) => client.set(k, v)
       }
 
-      val gr = Future.sequence(getResults)
-      val result = gr.map(_.flatten.sum)
+      val setResult = Future.sequence(sets) map { r: Seq[Boolean] =>
+        callbackExecuted = true
+        r
+      }
 
-      result.futureValue should equal (55)
+      callbackExecuted should be (false)
+      setResult.futureValue should contain only (true)
+      callbackExecuted should be (true)
+
+      callbackExecuted = false
+      val gets: Seq[Future[Option[Long]]] = ks.map { k => client.get[Long](k) }
+      val getResult = Future.sequence(gets).map { rs =>
+        callbackExecuted = true
+        rs.flatten.sum
+      }
+
+      callbackExecuted should be (false)
+      getResult.futureValue should equal (55)
+      callbackExecuted should be (true)
     }
 
     it("should compose with sequential combinator") {
@@ -40,7 +51,7 @@ class ClientSpec extends RedisSpecBase {
       val values = (1 to 100).toList
       val pushResult = client.lpush(key, 0, values:_*)
       val getResult = client.lrange[Long](key, 0, -1)
-      
+
       val res = for {
         p <- pushResult.mapTo[Long]
         if p > 0

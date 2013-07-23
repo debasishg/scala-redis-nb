@@ -60,8 +60,7 @@ class StringOperationsSpec extends RedisSpecBase {
     }
 
     it("should give none for unknown keys") {
-      val reads = client.get("get_unkown")
-      reads.futureValue should equal (None)
+      client.get("get_unkown").futureValue should equal (None)
     }
   }
 

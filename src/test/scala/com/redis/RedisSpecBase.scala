@@ -21,8 +21,8 @@ trait RedisSpecBase extends FunSpec
                  with BeforeAndAfterAll {
 
   // Akka setup
-  implicit val executionContext = ExecutionContext.Implicits.global
   implicit val system = ActorSystem("redis-client")
+  implicit val executionContext = system.dispatcher
   implicit val timeout = AkkaTimeout(5 seconds)
 
   // Scalatest setup
