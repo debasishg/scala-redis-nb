@@ -25,7 +25,7 @@ object ScalaRedisProject extends Build
           "org.slf4j"         %  "slf4j-log4j12"           % "1.7.5"         % "provided",
           "log4j"             %  "log4j"                   % "1.2.17"        % "provided",
           "junit"             %  "junit"                   % "4.11"          % "test",
-          "org.scalatest"     %  "scalatest_2.10"          % "2.0.M6-SNAP28" % "test"),
+          "org.scalatest"     %  "scalatest_2.10"          % "2.0.M6-SNAP34" % "test"),
     parallelExecution in Test := false,
     publishTo <<= version { (v: String) => 
       val nexus = "https://oss.sonatype.org/" 
