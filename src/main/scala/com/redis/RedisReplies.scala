@@ -3,6 +3,8 @@ package com.redis
 import serialization._
 import Parse.{Implicits => Parsers}
 import ProtocolUtils._
+import akka.util.ByteString
+
 
 object RedisReplies {
 
@@ -16,22 +18,22 @@ object RedisReplies {
    * <li> In a Multi Bulk Reply the first byte of the reply s "*"</li>
    */
 
-  type Reply[T] = PartialFunction[(Char, Array[Byte], RedisReply), T]
-  type SingleReply = Reply[Array[Byte]]
-  type BulkReply = Reply[Option[Array[Byte]]]
-  type MultiReply = Reply[List[Option[Array[Byte]]]]
+  type Reply[T] = PartialFunction[(Byte, ByteString, RedisReply), T]
+  type SingleReply = Reply[ByteString]
+  type BulkReply = Reply[Option[ByteString]]
+  type MultiReply = Reply[List[Option[ByteString]]]
   val crlf = List(13, 10)
 
-  case class RedisReply(s: Array[Byte]) {
+  case class RedisReply(s: ByteString) {
     val iter = split(s).iterator
-    def get: Option[Array[Byte]] = {
+    def get: Option[ByteString] = {
       if (iter.hasNext) Some(iter.next)
       else None
     }
 
     def receive[T](pf: Reply[T]) = get match {
       case Some(line) =>
-        (pf orElse errReply) apply ((line(0).toChar,line.slice(1,line.length), this))
+        (pf orElse errReply) apply ((line(0), line.drop(1), this))
       case None => sys.error("Error in receive")
     }
 
@@ -40,7 +42,7 @@ object RedisReplies {
     def asBulk[T: Parse]: Option[T] =  receive(bulkReply) map implicitly[Parse[T]]
   
     def asBulkWithTime[T](implicit parse: Parse[T]): Option[T] = receive(bulkReply orElse multiBulkReply) match {
-      case x: Some[Array[Byte]] => x map parse
+      case x: Some[ByteString] => x map parse
       case _ => None
     }
 
@@ -48,7 +50,7 @@ object RedisReplies {
 
     def asBoolean: Boolean = receive(longReply orElse singleLineReply) match {
       case n: Long => n > 0
-      case s: Array[Byte] => Parsers.parseString(s) match {
+      case s: ByteString => Parsers.parseString(s) match {
         case "OK" => true
         case "QUEUED" => true
         case _ => false
@@ -78,17 +80,17 @@ object RedisReplies {
   }
 
   val longReply: Reply[Long] = {
-    case (INT, s, _) => Parsers.parseLong(s)
-    case (BULK, s, _) if Parsers.parseInt(s) == -1 => -1L
+    case (Integer, s, _) => Parsers.parseLong(s)
+    case (Bulk, s, _) if Parsers.parseInt(s) == -1 => -1L
   }
 
   val singleLineReply: SingleReply = {
-    case (SINGLE, s, _) => s
-    case (INT, s, _) => s
+    case (Status, s, _) => s
+    case (Integer, s, _) => s
   }
 
   val bulkReply: BulkReply = {
-    case (BULK, s, r) => 
+    case (Bulk, s, r) => 
       val next = r.get
       Parsers.parseInt(s) match {
         case -1 => None
@@ -98,7 +100,7 @@ object RedisReplies {
   }
 
   val multiBulkReply: MultiReply = {
-    case (MULTI, str, r) =>
+    case (Multi, str, r) =>
       Parsers.parseInt(str) match {
         case -1 => List.empty
         case n => List.fill(n)(r.receive(bulkReply))
@@ -106,12 +108,12 @@ object RedisReplies {
   }
 
   val errReply: Reply[Nothing] = {
-    case (ERR, s, _) => throw new Exception(Parsers.parseString(s))
+    case (Err, s, _) => throw new Exception(Parsers.parseString(s))
     case x => throw new Exception("Protocol error: Got " + x + " as initial reply byte")
   }
 
-  def execReply(handlers: Seq[() => Any]): PartialFunction[(Char, Array[Byte]), Option[List[Any]]] = {
-    case (MULTI, str) =>
+  def execReply(handlers: Seq[() => Any]): PartialFunction[(Char, ByteString), Option[List[Any]]] = {
+    case (Multi, str) =>
       Parsers.parseInt(str) match {
         case -1 => None
         case n if n == handlers.size => 
@@ -121,14 +123,14 @@ object RedisReplies {
   }
 
   def queuedReplyInt: Reply[Int] = {
-    case (SINGLE, QUEUED, _) => Int.MaxValue
+    case (Status, Queued, _) => Int.MaxValue
   }
   
   def queuedReplyLong: Reply[Long] = {
-    case (SINGLE, QUEUED, _) => Long.MaxValue
+    case (Status, Queued, _) => Long.MaxValue
     }
 
   def queuedReplyList: MultiReply = {
-    case (SINGLE, QUEUED, _) => List(Some(QUEUED))
+    case (Status, Queued, _) => List(Some(Queued))
   }
 }
