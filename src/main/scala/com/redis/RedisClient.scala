@@ -15,21 +15,39 @@ import scala.language.existentials
 import ProtocolUtils._
 import RedisReplies._
 
-class RedisClient(remote: InetSocketAddress) extends Actor {
+
+object RedisClient {
+  import api.RedisOps
+
+  type CloseCommand = Tcp.CloseCommand
+  val Close = Tcp.Close
+  val ConfirmedClose = Tcp.ConfirmedClose
+  val Abort = Tcp.Abort
+
+  def apply(remote: InetSocketAddress, name: String = "redis-client")(implicit refFactory: ActorRefFactory) =
+    new RedisOps(refFactory.actorOf(Props(new RedisClient(remote)), name = name))
+}
+
+private class RedisClient(remote: InetSocketAddress) extends Actor {
   import Tcp._
   import context.system
 
   val log = Logging(context.system, this)
-  var buffer = Vector.empty[RedisCommand]
-  val promiseQueue = new scala.collection.mutable.Queue[RedisCommand]
+  private[this] var buffer = Vector.empty[RedisCommand]
+  private[this] val promiseQueue = new scala.collection.mutable.Queue[RedisCommand]
+
   IO(Tcp) ! Connect(remote)
 
   def receive = baseHandler
 
-  def baseHandler: Receive = {
+  protected def baseHandler: Receive = {
     case CommandFailed(c: Connect) =>
       log.error("Connect failed for " + c.remoteAddress + " with " + c.failureMessage + " stopping ..")
       context stop self
+
+    case command: RedisCommand =>
+      log.warning("attempting to send command before connected: " + command)
+      buffer :+= command
 
     case c@Connected(remote, local) =>
       log.info(c.toString)
@@ -38,7 +56,7 @@ class RedisClient(remote: InetSocketAddress) extends Actor {
 
       context become {
         case command: RedisCommand => { 
-          log.info("sending command to Redis: " + command)
+          log.debug("sending command to Redis: " + command)
 
           // flush if anything there in buffer before processing next command
           if (!buffer.isEmpty) buffer.foreach(c => sendRedisCommand(connection, c))
@@ -48,7 +66,7 @@ class RedisClient(remote: InetSocketAddress) extends Actor {
         }
 
         case Received(data) => 
-          log.info("got response from Redis: " + data.utf8String)
+          log.debug("got response from Redis: " + data.utf8String)
           val replies = splitReplies(data)
           replies.map {r =>
             promiseQueue.dequeue execute r
@@ -61,7 +79,7 @@ class RedisClient(remote: InetSocketAddress) extends Actor {
           connection ! ResumeWriting
           context become buffering(connection)
         }
-        case "close" => {
+        case Close => {
           log.info("Got to close ..")
           if (!buffer.isEmpty) buffer.foreach(c => sendRedisCommand(connection, c))
           connection ! Close
@@ -74,7 +92,7 @@ class RedisClient(remote: InetSocketAddress) extends Actor {
       }
   }
 
-  def buffering(conn: ActorRef): Receive = {
+  protected def buffering(conn: ActorRef): Receive = {
     var peerClosed = false
     var pingAttempts = 0
 
@@ -101,7 +119,7 @@ class RedisClient(remote: InetSocketAddress) extends Actor {
     }
   }
 
-  def sendRedisCommand(conn: ActorRef, command: RedisCommand)(implicit ec: ExecutionContext) = {
+  protected def sendRedisCommand(conn: ActorRef, command: RedisCommand)(implicit ec: ExecutionContext) = {
     promiseQueue += command
     if (!buffer.isEmpty) buffer = buffer drop 1
     conn ! Write(command.line)
@@ -109,4 +127,3 @@ class RedisClient(remote: InetSocketAddress) extends Actor {
     pipe(f) to sender
   }
 }
-

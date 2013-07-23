@@ -6,13 +6,12 @@ import scala.concurrent.duration._
 import akka.event.Logging
 import akka.util.{Timeout => AkkaTimeout}
 import akka.actor._
-import akka.pattern.gracefulStop
 
 import org.scalatest._
 import org.scalatest.concurrent.{Futures, ScalaFutures}
 import org.scalatest.time._
+import api.RedisOps
 
-import api.RedisOps._
 
 trait RedisSpecBase extends FunSpec
                  with Matchers
@@ -31,21 +30,18 @@ trait RedisSpecBase extends FunSpec
 
   // Redis client setup
   val endpoint = new InetSocketAddress("localhost", 6379)
-  val client = system.actorOf(Props(new RedisClient(endpoint)), name = "redis-client")
+  val client = RedisClient(endpoint)
 
   override def beforeEach = {
   }
 
   override def afterEach = {
-    Await.result(flushdb apply client, 2 seconds)
+    Await.result(client.flushdb, 2 seconds)
   }
 
-  override def afterAll = {
-
-    client ! "close"
+  override def afterAll =
     try { 
-      val stopped: Future[Boolean] = gracefulStop(client, 5 seconds)
-      stopped onSuccess {
+      client.close() onSuccess {
         case true => system.shutdown()
         case false => throw new Exception("client actor didn't stop properly")
       }
@@ -53,7 +49,6 @@ trait RedisSpecBase extends FunSpec
       // the actor wasn't stopped within 5 seconds
       case e: akka.pattern.AskTimeoutException => throw e
     }
-  }
 
 }
 

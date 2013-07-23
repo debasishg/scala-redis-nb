@@ -7,147 +7,115 @@ import akka.pattern.ask
 import akka.actor._
 import akka.util.Timeout
 
-trait StringOperations {
-
+trait StringOperations { this: RedisOps =>
   import StringCommands._
-
-  implicit val timeout: Timeout
 
   // GET (key)
   // gets the value for the specified key.
-  def get[A](key: Any)(implicit format: Format, parse: Parse[A]): ActorRef => Future[Option[A]] = {client: ActorRef =>
-    client.ask(Get[A](key)).mapTo[Option[A]] 
-  }
+  def get[A](key: Any)(implicit format: Format, parse: Parse[A]) =
+    actorRef.ask(Get[A](key)).mapTo[Option[A]]
 
   // SET KEY (key, value)
   // sets the key with the specified value.
   def set(key: Any, value: Any, nxORxx: Option[SetConditionOption] = None, exORpx: Option[SetExpiryOption] = None)
-    (implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
-    client.ask(Set(key, value, nxORxx, exORpx)).mapTo[Boolean] 
-  }
-  
+         (implicit format: Format) =
+    actorRef.ask(Set(key, value, nxORxx, exORpx)).mapTo[Boolean]
+
   // GETSET (key, value)
   // is an atomic set this value and return the old value command.
-  def getset[A](key: Any, value: Any)
-    (implicit format: Format, parse: Parse[A]): ActorRef => Future[Option[A]] = {client: ActorRef =>
-    client.ask(GetSet[A](key, value)).mapTo[Option[A]] 
-  }
+  def getset[A](key: Any, value: Any)(implicit format: Format, parse: Parse[A]) =
+    actorRef.ask(GetSet[A](key, value)).mapTo[Option[A]]
 
   // SETNX (key, value)
   // sets the value for the specified key, only if the key is not there.
-  def setnx(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
-    client.ask(SetNx(key, value)).mapTo[Boolean] 
-  }
+  def setnx(key: Any, value: Any)(implicit format: Format) =
+    actorRef.ask(SetNx(key, value)).mapTo[Boolean]
 
   // SETEX (key, expiry, value)
   // sets the value for the specified key, with an expiry
-  def setex(key: Any, expiry: Int, value: Any)
-    (implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
-    client.ask(SetEx(key, expiry, value)).mapTo[Boolean] 
-  }
+  def setex(key: Any, expiry: Int, value: Any)(implicit format: Format) =
+    actorRef.ask(SetEx(key, expiry, value)).mapTo[Boolean]
 
   // SETPX (key, expiry, value)
   // sets the value for the specified key, with an expiry in millis
-  def psetex(key: Any, expiryInMillis: Int, value: Any)
-    (implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
-    client.ask(PSetEx(key, expiryInMillis, value)).mapTo[Boolean] 
-  }
+  def psetex(key: Any, expiryInMillis: Int, value: Any)(implicit format: Format) =
+    actorRef.ask(PSetEx(key, expiryInMillis, value)).mapTo[Boolean]
 
   // INCR (key)
   // increments the specified key by 1
-  def incr(key: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(Incr(key)).mapTo[Long] 
-  }
+  def incr(key: Any)(implicit format: Format) =
+    actorRef.ask(Incr(key)).mapTo[Long]
 
   // INCRBY (key, by)
   // increments the specified key by increment
-  def incrby(key: Any, by: Int)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(Incr(key, Some(by))).mapTo[Long] 
-  }
+  def incrby(key: Any, by: Int)(implicit format: Format) =
+    actorRef.ask(Incr(key, Some(by))).mapTo[Long]
 
   // DECR (key)
   // decrements the specified key by 1
-  def decr(key: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(Decr(key)).mapTo[Long] 
-  }
+  def decr(key: Any)(implicit format: Format) =
+    actorRef.ask(Decr(key)).mapTo[Long]
 
   // DECR (key, by)
   // decrements the specified key by increment
-  def decrby(key: Any, by: Int)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(Decr(key, Some(by))).mapTo[Long] 
-  }
+  def decrby(key: Any, by: Int)(implicit format: Format) =
+    actorRef.ask(Decr(key, Some(by))).mapTo[Long]
 
   // MGET (key, key, key, ...)
   // get the values of all the specified keys.
   def mget[A](key: Any, keys: Any*)
-    (implicit format: Format, parse: Parse[A]): ActorRef => Future[List[Option[A]]] = {client: ActorRef =>
-    client.ask(MGet[A](key, keys:_*)).mapTo[List[Option[A]]] 
-  }
+    (implicit format: Format, parse: Parse[A]) =
+    actorRef.ask(MGet[A](key, keys:_*)).mapTo[List[Option[A]]]
 
   // MSET (key1 value1 key2 value2 ..)
   // set the respective key value pairs. Overwrite value if key exists
-  def mset(kvs: (Any, Any)*)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
-    client.ask(MSet(kvs:_*)).mapTo[Boolean]
-  }
+  def mset(kvs: (Any, Any)*)(implicit format: Format) =
+    actorRef.ask(MSet(kvs:_*)).mapTo[Boolean]
 
   // MSETNX (key1 value1 key2 value2 ..)
   // set the respective key value pairs. Noop if any key exists
-  def msetnx(kvs: (Any, Any)*)(implicit format: Format): ActorRef => Future[Boolean] = {client: ActorRef =>
-    client.ask(MSetNx(kvs:_*)).mapTo[Boolean]
-  }
+  def msetnx(kvs: (Any, Any)*)(implicit format: Format) =
+    actorRef.ask(MSetNx(kvs:_*)).mapTo[Boolean]
 
   // SETRANGE key offset value
-  // Overwrites part of the string stored at key, starting at the specified offset, 
+  // Overwrites part of the string stored at key, starting at the specified offset,
   // for the entire length of value.
-  def setrange(key: Any, offset: Int, value: Any)
-    (implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(SetRange(key, offset, value)).mapTo[Long] 
-  }
+  def setrange(key: Any, offset: Int, value: Any)(implicit format: Format) =
+    actorRef.ask(SetRange(key, offset, value)).mapTo[Long]
 
   // GETRANGE key start end
-  // Returns the substring of the string value stored at key, determined by the offsets 
+  // Returns the substring of the string value stored at key, determined by the offsets
   // start and end (both are inclusive).
-  def getrange[A](key: Any, start: Int, end: Int)
-    (implicit format: Format, parse: Parse[A]): ActorRef => Future[Option[A]] = {client: ActorRef =>
-    client.ask(GetRange[A](key, start, end)).mapTo[Option[A]] 
-  }
+  def getrange[A](key: Any, start: Int, end: Int)(implicit format: Format, parse: Parse[A]) =
+    actorRef.ask(GetRange[A](key, start, end)).mapTo[Option[A]]
 
   // STRLEN key
   // gets the length of the value associated with the key
-  def strlen(key: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(Strlen(key)).mapTo[Long] 
-  }
+  def strlen(key: Any)(implicit format: Format) =
+    actorRef.ask(Strlen(key)).mapTo[Long]
 
   // APPEND KEY (key, value)
   // appends the key value with the specified value.
-  def append(key: Any, value: Any)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(Append(key, value)).mapTo[Long] 
-  }
+  def append(key: Any, value: Any)(implicit format: Format) =
+    actorRef.ask(Append(key, value)).mapTo[Long]
 
   // GETBIT key offset
   // Returns the bit value at offset in the string value stored at key
-  def getbit(key: Any, offset: Int)(implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(GetBit(key, offset)).mapTo[Long] 
-  }
+  def getbit(key: Any, offset: Int)(implicit format: Format) =
+    actorRef.ask(GetBit(key, offset)).mapTo[Long]
 
   // SETBIT key offset value
   // Sets or clears the bit at offset in the string value stored at key
-  def setbit(key: Any, offset: Int, value: Any)
-    (implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(SetBit(key, offset, value)).mapTo[Long] 
-  }
+  def setbit(key: Any, offset: Int, value: Any)(implicit format: Format) =
+    actorRef.ask(SetBit(key, offset, value)).mapTo[Long]
 
   // BITOP op destKey srcKey...
   // Perform a bitwise operation between multiple keys (containing string values) and store the result in the destination key.
-  def bitop(op: String, destKey: Any, srcKeys: Any*)
-    (implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(BitOp(op, destKey, srcKeys:_*)).mapTo[Long] 
-  }
+  def bitop(op: String, destKey: Any, srcKeys: Any*)(implicit format: Format) =
+    actorRef.ask(BitOp(op, destKey, srcKeys:_*)).mapTo[Long]
 
   // BITCOUNT key range
   // Count the number of set bits in the given key within the optional range
-  def bitcount(key: Any, range: Option[(Int, Int)] = None)
-    (implicit format: Format): ActorRef => Future[Long] = {client: ActorRef =>
-    client.ask(BitCount(key, range)).mapTo[Long] 
-  }
+  def bitcount(key: Any, range: Option[(Int, Int)] = None)(implicit format: Format) =
+    actorRef.ask(BitCount(key, range)).mapTo[Long]
 }
