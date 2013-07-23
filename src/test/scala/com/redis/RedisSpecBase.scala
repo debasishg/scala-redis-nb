@@ -36,12 +36,12 @@ trait RedisSpecBase extends FunSpec
   }
 
   override def afterEach = {
-    Await.result(client.flushdb, 2 seconds)
+    Await.result(client.flushdb(), 2 seconds)
   }
 
   override def afterAll =
     try { 
-      client.close() onSuccess {
+      client.quit() onSuccess {
         case true => system.shutdown()
         case false => throw new Exception("client actor didn't stop properly")
       }
