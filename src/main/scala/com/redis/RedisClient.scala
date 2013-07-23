@@ -48,15 +48,14 @@ class RedisClient(remote: InetSocketAddress) extends Actor {
         }
 
         case Received(data) => 
-          log.info("got response from Redis: " + data.decodeString("UTF-8"))
-          val responseArray = data.toArray[Byte]
-          val replies = splitReplies(responseArray)
+          log.info("got response from Redis: " + data.utf8String)
+          val replies = splitReplies(data)
           replies.map {r =>
             promiseQueue.dequeue execute r
           }
 
         case CommandFailed(w: Write) => {
-          log.error("Write failed for " + w.data.decodeString("UTF-8"))
+          log.error("Write failed for " + w.data.utf8String)
 
           // write failed : switch to buffering mode: NACK with suspension
           connection ! ResumeWriting
@@ -84,7 +83,7 @@ class RedisClient(remote: InetSocketAddress) extends Actor {
         buffer :+= command 
         pingAttempts += 1
         if (pingAttempts == 10) {
-          log.info("Can't recover .. closing and discarding buffered commands")
+          log.warning("Can't recover .. closing and discarding buffered commands")
           conn ! Close
           context stop self
         }
@@ -92,7 +91,7 @@ class RedisClient(remote: InetSocketAddress) extends Actor {
       case PeerClosed => peerClosed = true
       case WritingResumed => {
         if (peerClosed) {
-          log.info("Can't recover .. closing and discarding buffered commands")
+          log.warning("Can't recover .. closing and discarding buffered commands")
           conn ! Close
           context stop self
         } else {
@@ -105,7 +104,7 @@ class RedisClient(remote: InetSocketAddress) extends Actor {
   def sendRedisCommand(conn: ActorRef, command: RedisCommand)(implicit ec: ExecutionContext) = {
     promiseQueue += command
     if (!buffer.isEmpty) buffer = buffer drop 1
-    conn ! Write(ByteString(command.line))
+    conn ! Write(command.line)
     val f = command.promise.future
     pipe(f) to sender
   }

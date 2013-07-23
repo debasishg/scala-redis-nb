@@ -1,6 +1,9 @@
 package com.redis
 package serialization
 
+import akka.util.ByteString
+
+
 object Format {
   def apply(f: PartialFunction[Any, Any]): Format = new Format(f)
 
@@ -17,11 +20,10 @@ object Format {
 }
 
 class Format(val format: PartialFunction[Any, Any]) {
-  def apply(in: Any): Array[Byte] =
+  def apply(in: Any): String =
     (if (format.isDefinedAt(in)) (format(in)) else (in)) match {
-      case b: Array[Byte] => b
-      case d: Double => Format.formatDouble(d, true).getBytes("UTF-8")
-      case x => x.toString.getBytes("UTF-8")
+      case d: Double => Format.formatDouble(d, true)
+      case x => x.toString
     }
 
   def orElse(that: Format): Format = Format(format orElse that.format)
@@ -30,26 +32,19 @@ class Format(val format: PartialFunction[Any, Any]) {
 }
 
 object Parse {
-  def apply[T](f: (Array[Byte]) => T) = new Parse[T](f)
+  def apply[T](f: (ByteString) => T) = new Parse[T](f)
 
   object Implicits {
-    implicit val parseString = Parse[String](new String(_, "UTF-8"))
-    implicit val parseByteArray = Parse[Array[Byte]](x => x)
-    implicit val parseInt = Parse[Int](new String(_, "UTF-8").toInt)
-    implicit val parseLong = Parse[Long](new String(_, "UTF-8").toLong)
-    implicit val parseDouble = Parse[Double](new String(_, "UTF-8").toDouble)
+    implicit val parseString = Parse[String](_.utf8String)
+    implicit val parseByteArray = Parse[Array[Byte]](_.toArray[Byte])
+    implicit val parseInt = Parse[Int](_.utf8String.toInt)
+    implicit val parseLong = Parse[Long](_.utf8String.toLong)
+    implicit val parseDouble = Parse[Double](_.utf8String.toDouble)
   }
 
-  implicit val parseDefault = Parse[String](new String(_, "UTF-8"))
-
-  val parseStringSafe = Parse[String](xs => new String(xs.iterator.flatMap{
-    case x if x > 31 && x < 127 => Iterator.single(x.toChar)
-    case 10 => "\\n".iterator
-    case 13 => "\\r".iterator
-    case x => "\\x%02x".format(x).iterator
-  }.toArray))
+  implicit val parseDefault = Parse[String](_.utf8String)
 }
 
-class Parse[A](val f: (Array[Byte]) => A) extends Function1[Array[Byte], A] {
-  def apply(in: Array[Byte]): A = f(in)
+class Parse[A](val f: (ByteString) => A) extends Function1[ByteString, A] {
+  def apply(in: ByteString): A = f(in)
 }
