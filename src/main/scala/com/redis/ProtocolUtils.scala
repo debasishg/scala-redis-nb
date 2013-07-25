@@ -5,6 +5,7 @@ import annotation.tailrec
 
 object ProtocolUtils {
 
+
   /**
    * Response codes from the Redis server
    */

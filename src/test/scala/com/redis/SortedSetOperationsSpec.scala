@@ -6,6 +6,7 @@ import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
 import serialization._
+import com.redis.command.{RedisCommand, SortedSetCommands}
 
 
 @RunWith(classOf[JUnitRunner])

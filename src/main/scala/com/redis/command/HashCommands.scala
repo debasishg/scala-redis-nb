@@ -1,14 +1,9 @@
-package com.redis
+package com.redis.command
 
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import serialization._
-import Parse.{Implicits => Parsers}
+import com.redis.serialization.{Parse, Format}
 import RedisCommand._
-import RedisReplies._
-import akka.pattern.ask
-import akka.actor._
-import akka.util.ByteString
+import scala.Some
+import com.redis.RedisReply
 
 
 object HashCommands {
@@ -16,25 +11,25 @@ object HashCommands {
     type Ret = Boolean
     val line = multiBulk(
       (if (nx) "HSETNX" else "HSET") +: (List(key, field, value) map format.apply))
-    val ret  = RedisReply(_: ByteString).asBoolean
+    val ret  = (_: RedisReply).asBoolean
   }
   
   case class HGet[A](key: Any, field: Any)(implicit format: Format, parse: Parse[A]) extends HashCommand {
     type Ret = Option[A]
     val line = multiBulk("HGET" +: (List(key, field) map format.apply))
-    val ret  = RedisReply(_: ByteString).asBulk[A]
+    val ret  = (_: RedisReply).asBulk[A]
   }
   
   case class HMSet(key: Any, map: Iterable[Product2[Any,Any]])(implicit format: Format) extends HashCommand {
     type Ret = Boolean
     val line = multiBulk("HMSET" +: ((key :: flattenPairs(map)) map format.apply))
-    val ret  = RedisReply(_: ByteString).asBoolean
+    val ret  = (_: RedisReply).asBoolean
   }
   
   case class HMGet[K,V](key: Any, fields: K*)(implicit format: Format, parseV: Parse[V]) extends HashCommand {
     type Ret = Map[K, V]
     val line = multiBulk("HMGET" +: ((key :: fields.toList) map format.apply))
-    val ret  = RedisReply(_: ByteString).asList.zip(fields).collect {
+    val ret  = (_: RedisReply).asList.zip(fields).collect {
       case (Some(value), field) => (field, value)
     }.toMap
   }
@@ -42,42 +37,42 @@ object HashCommands {
   case class HIncrby(key: Any, field: Any, value: Int)(implicit format: Format) extends HashCommand {
     type Ret = Long
     val line = multiBulk("HINCRBY" +: (List(key, field, value) map format.apply))
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
   
   case class HExists(key: Any, field: Any)(implicit format: Format) extends HashCommand {
     type Ret = Boolean
     val line = multiBulk("HEXISTS" +: (List(key, field) map format.apply))
-    val ret  = RedisReply(_: ByteString).asBoolean
+    val ret  = (_: RedisReply).asBoolean
   }
   
   case class HDel(key: Any, field: Any, fields: Any*)(implicit format: Format) extends HashCommand {
     type Ret = Long
     val line = multiBulk("HDEL" +: ((key :: field :: fields.toList) map format.apply))
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
   
   case class HLen(key: Any)(implicit format: Format) extends HashCommand {
     type Ret = Long
     val line = multiBulk("HLEN" +: (List(key) map format.apply))
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
   
   case class HKeys[A](key: Any)(implicit format: Format, parse: Parse[A]) extends HashCommand {
     type Ret = List[A]
     val line = multiBulk("HKEYS" +: (List(key) map format.apply))
-    val ret  = RedisReply(_: ByteString).asList.flatten // TODO remove intermediate Option
+    val ret  = (_: RedisReply).asList.flatten // TODO remove intermediate Option
   }
   
   case class HVals[A](key: Any)(implicit format: Format, parse: Parse[A]) extends HashCommand {
     type Ret = List[A]
     val line = multiBulk("HVALS" +: (List(key) map format.apply))
-    val ret  = RedisReply(_: ByteString).asList.flatten // TODO remove intermediate Option
+    val ret  = (_: RedisReply).asList.flatten // TODO remove intermediate Option
   }
   
   case class HGetall[K,V](key: Any)(implicit format: Format, parseK: Parse[K], parseV: Parse[V]) extends HashCommand {
     type Ret = Map[K, V]
     val line = multiBulk("HGETALL" +: (List(key) map format.apply))
-    val ret  = RedisReply(_: ByteString).asListPairs[K,V].flatten.toMap // TODO remove intermediate Option
+    val ret  = (_: RedisReply).asListPairs[K,V].flatten.toMap // TODO remove intermediate Option
   }
 }

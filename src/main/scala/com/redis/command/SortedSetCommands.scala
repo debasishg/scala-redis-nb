@@ -1,14 +1,8 @@
-package com.redis
+package com.redis.command
 
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import serialization._
-import Parse.{Implicits => Parsers}
+import com.redis.serialization.{Parse, Format}
 import RedisCommand._
-import RedisReplies._
-import akka.pattern.ask
-import akka.actor._
-import akka.util.ByteString
+import com.redis.RedisReply
 
 
 object SortedSetCommands {
@@ -18,31 +12,31 @@ object SortedSetCommands {
       "ZADD" +:
       (List(key, score, member) ::: scoreVals.toList.map(x => List(x._1, x._2)).flatten) map format.apply
     )
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
   
   case class ZRem(key: Any, member: Any, members: Any*)(implicit format: Format) extends SortedSetCommand {
     type Ret = Long
     val line = multiBulk("ZREM" +: (key :: member :: members.toList) map format.apply)
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
   
   case class ZIncrby(key: Any, incr: Double, member: Any)(implicit format: Format) extends SortedSetCommand {
     type Ret = Option[Double]
     val line = multiBulk("ZINCRBY" +: (Seq(key, incr, member) map format.apply))
-    val ret  = RedisReply(_: ByteString).asBulk(Parse.Implicits.parseDouble)
+    val ret  = (_: RedisReply).asBulk(Parse.Implicits.parseDouble)
   }
   
   case class ZCard(key: Any)(implicit format: Format) extends SortedSetCommand {
     type Ret = Long
     val line = multiBulk("ZCARD" +: (Seq(key) map format.apply))
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
   
   case class ZScore(key: Any, element: Any)(implicit format: Format) extends SortedSetCommand {
     type Ret = Option[Double]
     val line = multiBulk("ZSCORE" +: (Seq(key, element) map format.apply))
-    val ret  = RedisReply(_: ByteString).asBulk(Parse.Implicits.parseDouble)
+    val ret  = (_: RedisReply).asBulk(Parse.Implicits.parseDouble)
   }
 
   case class ZRange[A](key: Any, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]) 
@@ -51,7 +45,7 @@ object SortedSetCommands {
     type Ret = List[A]
     val line = multiBulk(
       (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE") +: (Seq(key, start, end) map format.apply))
-    val ret  = RedisReply(_: ByteString).asList.flatten // TODO remove intermediate Option
+    val ret  = (_: RedisReply).asList.flatten // TODO remove intermediate Option
   }
 
   case class ZRangeWithScore[A](key: Any, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A])
@@ -62,7 +56,7 @@ object SortedSetCommands {
       (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE") +:
       (Seq(key, start, end, "WITHSCORES") map format.apply)
     )
-    val ret  = RedisReply(_: ByteString).asListPairs(parse, Parse.Implicits.parseDouble).flatten
+    val ret  = (_: RedisReply).asListPairs(parse, Parse.Implicits.parseDouble).flatten
   }
 
   case class ZRangeByScore[A](key: Any,
@@ -81,7 +75,7 @@ object SortedSetCommands {
       if (sortAs == ASC) "ZRANGEBYSCORE" +: ((Seq(key, minParam, maxParam) ++ limitEntries) map format.apply)
       else "ZREVRANGEBYSCORE" +: ((Seq(key, maxParam, minParam) ++ limitEntries) map format.apply)
     )
-    val ret  = RedisReply(_: ByteString).asList.flatten // TODO remove intermediate Option
+    val ret  = (_: RedisReply).asList.flatten // TODO remove intermediate Option
   }
 
   case class ZRangeByScoreWithScore[A](key: Any,
@@ -99,7 +93,7 @@ object SortedSetCommands {
     val line = multiBulk(
       if (sortAs == ASC) "ZRANGEBYSCORE" +: ((Seq(key, minParam, maxParam, "WITHSCORES") ++ limitEntries) map format.apply)
       else "ZREVRANGEBYSCORE" +: ((Seq(key, maxParam, minParam, "WITHSCORES") ++ limitEntries) map format.apply))
-    val ret  = RedisReply(_: ByteString).asListPairs(parse, Parse.Implicits.parseDouble).flatten
+    val ret  = (_: RedisReply).asListPairs(parse, Parse.Implicits.parseDouble).flatten
   }
 
   private def zrangebyScoreWithScoreInternal[A](
@@ -125,19 +119,19 @@ object SortedSetCommands {
   case class ZRank(key: Any, member: Any, reverse: Boolean = false)(implicit format: Format) extends SortedSetCommand {
     type Ret = Long
     val line = multiBulk((if (reverse) "ZREVRANK" else "ZRANK") +: (Seq(key, member) map format.apply))
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
 
   case class ZRemRangeByRank(key: Any, start: Int = 0, end: Int = -1)(implicit format: Format) extends SortedSetCommand {
     type Ret = Long
     val line = multiBulk("ZREMRANGEBYRANK" +: (Seq(key, start, end) map format.apply))
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
 
   case class ZRemRangeByScore(key: Any, start: Double = Double.NegativeInfinity, end: Double = Double.PositiveInfinity)(implicit format: Format) extends SortedSetCommand {
     type Ret = Long
     val line = multiBulk("ZREMRANGEBYSCORE" +: (Seq(key, start, end) map format.apply))
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
 
   trait setOp 
@@ -152,7 +146,7 @@ object SortedSetCommands {
       (if (ux == union) "ZUNIONSTORE" else "ZINTERSTORE") +:
       ((Iterator(dstKey, keys.size) ++ keys.iterator ++ Iterator("AGGREGATE", aggregate)).toList) map format.apply
     )
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
 
   case class ZUnionInterStoreWeighted(ux: setOp, dstKey: Any, kws: Iterable[Product2[Any,Double]], aggregate: Aggregate = SUM)
@@ -163,12 +157,12 @@ object SortedSetCommands {
       (if (ux == union) "ZUNIONSTORE" else "ZINTERSTORE") +:
       ((Iterator(dstKey, kws.size) ++ kws.iterator.map(_._1) ++ Iterator.single("WEIGHTS") ++ kws.iterator.map(_._2) ++ Iterator("AGGREGATE", aggregate)).toList) map format.apply
     )
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
 
   case class ZCount(key: Any, min: Double = Double.NegativeInfinity, max: Double = Double.PositiveInfinity, minInclusive: Boolean = true, maxInclusive: Boolean = true)(implicit format: Format) extends SortedSetCommand {
     type Ret = Long
     val line = multiBulk("ZCOUNT" +: (List(key, Format.formatDouble(min, minInclusive), Format.formatDouble(max, maxInclusive)) map format.apply))
-    val ret  = RedisReply(_: ByteString).asLong
+    val ret  = (_: RedisReply).asLong
   }
 }
