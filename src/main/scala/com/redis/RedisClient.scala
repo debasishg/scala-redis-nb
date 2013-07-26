@@ -22,7 +22,7 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
   import Tcp._
   import context.system
 
-  val log = Logging(context.system, this)
+  private val log = Logging(context.system, this)
   private[this] var pendingRequests = Queue.empty[RedisRequest]
   private[this] var sentRequests = Queue.empty[RedisRequest]
 
@@ -31,14 +31,14 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
   def receive: Receive = {
     case cmd: RedisCommand =>
       log.info("attempting to send command before connected: {}", cmd)
-      pendingRequests :+= RedisRequest(sender, cmd)
+      addPendingRequest(cmd)
 
     case c @ Connected(remote, _) =>
       log.info(c.toString)
       val connection = sender
       val pipe = context.actorOf(TcpPipelineHandler.props(init, connection, self))
       connection ! Register(pipe)
-      context.become(running(pipe))
+      context become (running(pipe))
 
       log.debug("flushing {} pending requests...", pendingRequests.length)
       flushRequestQueue(pipe)
@@ -50,28 +50,41 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
   }
 
   def running(pipe: ActorRef): Receive = {
-    case command: RedisCommand => {
+    case command: RedisCommand =>
       if (pendingRequests.nonEmpty) {
         log.debug("flushing {} requests...", pendingRequests.length)
         flushRequestQueue(pipe)
         log.debug("done.")
       }
       sendRequest(pipe, RedisRequest(sender, command))
-    }
 
     case init.Event(RedisReplyEvent(replies)) =>
       response(replies)
 
-    case c: CloseCommand => {
+
+    case init.Event(BackpressureBuffer.HighWatermarkReached) =>
+      log.info("Client is high loaded. Start buffering...")
+      context become (buffering(pipe))
+
+    case c: CloseCommand =>
       log.info("Got to close ..")
       flushRequestQueue(pipe)
-      context.become(closing(pipe))
-    }
+      context become (closing(pipe))
 
     case Terminated(`pipe`) => {
       log.info("connection pipeline closed: {}", pipe)
       context stop self
     }
+  }
+
+  def buffering(pipe: ActorRef): Receive = {
+    case cmd: RedisCommand =>
+      addPendingRequest(cmd)
+
+    case init.Event(BackpressureBuffer.LowWatermarkReached) =>
+      log.info("Client backpressure became lower, resuming...")
+      context become running(pipe)
+      flushRequestQueue(pipe)
   }
 
   def closing(pipe: ActorRef): Receive = {
@@ -91,6 +104,10 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
     }
   }
 
+  def addPendingRequest(cmd: RedisCommand): Unit = {
+    pendingRequests :+= RedisRequest(sender, cmd)
+  }
+
   def sendRequest(pipe: ActorRef, req: RedisRequest): Unit = {
     log.debug("sending command: {}", req.command)
     sentRequests :+= req
@@ -105,33 +122,37 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
       flushRequestQueue(pipe)
     }
 
-  def response(replies: List[RedisReply[_]]): Unit = {
-    val len = replies.length
-    val reqs = sentRequests.take(len)
-    sentRequests = sentRequests.drop(len)
-    reqs zip replies map { case (req, reply) =>
+  @tailrec
+  final def response(replies: List[RedisReply[_]]): Unit =
+    if (replies.nonEmpty) {
+      val req = sentRequests.head
+      val reply = replies.head
+      sentRequests = sentRequests.tail
+
       req.sender ! (reply match {
         case err: ErrorReply =>
           Status.Failure(err.value)
+
         case _ =>
           try req.command.ret(reply)
           catch {
             case e: Throwable =>
-              log.error("Error on marshalling result with command: {}, reply: {}", req.command, reply, e)
+              log.error("Error on marshalling result with command: {}, reply: {}\n{}: {}",
+                req.command, reply, e.getMessage, e.getStackTraceString)
               Status.Failure(e)
           }
       })
-    }
-  }
 
+      response(replies.tail)
+    }
 
   val init = TcpPipelineHandler.withLogger(log,
     new ResponseParsing() >>
     new RequestRendering() >>
     new BackpressureBuffer(
       lowBytes = 100,
-      highBytes = 1000,
-      maxBytes = 5000
+      highBytes = 2000,
+      maxBytes = 3000
     )
   )
 
