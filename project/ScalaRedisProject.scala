@@ -18,14 +18,14 @@ object ScalaRedisProject extends Build
     name := "RedisClient",
     libraryDependencies :=
         Seq(
-          "commons-pool"      %  "commons-pool"            % "1.6",
-          "org.scala-lang"    %  "scala-actors"            % "2.10.2",
-          "com.typesafe.akka" %  "akka-actor_2.10"         % "2.2.0",
-          "org.slf4j"         %  "slf4j-api"               % "1.7.5",
-          "org.slf4j"         %  "slf4j-log4j12"           % "1.7.5"         % "provided",
-          "log4j"             %  "log4j"                   % "1.2.17"        % "provided",
-          "junit"             %  "junit"                   % "4.11"          % "test",
-          "org.scalatest"     %  "scalatest_2.10"          % "2.0.M6-SNAP34" % "test"),
+          "com.typesafe.akka" %%  "akka-actor"      % "2.2.0",
+          "com.typesafe.akka" %%  "akka-slf4j"      % "2.2.0"         % "provided",
+          "commons-pool"      %   "commons-pool"    % "1.6",
+          "org.scala-lang"    %   "scala-actors"    % "2.10.2",
+          "org.slf4j"         %   "slf4j-api"       % "1.7.5"         % "provided",
+          "ch.qos.logback"    %   "logback-classic" % "1.0.13"        % "provided",
+          "junit"             %   "junit"           % "4.11"          % "test",
+          "org.scalatest"     %%  "scalatest"       % "2.0.M6-SNAP34" % "test"),
     parallelExecution in Test := false,
     publishTo <<= version { (v: String) => 
       val nexus = "https://oss.sonatype.org/" 
