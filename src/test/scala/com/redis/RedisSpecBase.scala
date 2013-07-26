@@ -33,14 +33,14 @@ trait RedisSpecBase extends FunSpec
   val client = RedisClient(endpoint)
 
   override def beforeEach = {
+    client.flushdb()
   }
 
-  override def afterEach = {
-    Await.result(client.flushdb(), 2 seconds)
-  }
+  override def afterEach = { }
 
   override def afterAll =
-    try { 
+    try {
+      client.flushdb()
       client.quit() onSuccess {
         case true => system.shutdown()
         case false => throw new Exception("client actor didn't stop properly")

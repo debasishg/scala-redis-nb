@@ -8,6 +8,7 @@ import akka.io.{BackpressureBuffer, IO, Tcp, TcpPipelineHandler}
 import scala.language.existentials
 
 import com.redis.command.RedisCommand
+import scala.annotation.tailrec
 
 
 object RedisClient {
@@ -27,11 +28,9 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
 
   IO(Tcp) ! Connect(remote)
 
-  def receive = baseHandler
-
-  protected def baseHandler: Receive = {
+  def receive: Receive = {
     case cmd: RedisCommand =>
-      log.info("attempting to send command before connected: " + cmd)
+      log.info("attempting to send command before connected: {}", cmd)
       pendingRequests :+= RedisRequest(sender, cmd)
 
     case c @ Connected(remote, _) =>
@@ -40,41 +39,32 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
       val pipe = context.actorOf(TcpPipelineHandler.props(init, connection, self))
       connection ! Register(pipe)
       context.become(running(pipe))
+
+      log.debug("flushing {} pending requests...", pendingRequests.length)
       flushRequestQueue(pipe)
+      log.debug("done.")
 
     case CommandFailed(c: Connect) =>
-      log.error("Connect failed for " + c.remoteAddress + " with " + c.failureMessage + " stopping ..")
+      log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
       context stop self
   }
 
   def running(pipe: ActorRef): Receive = {
     case command: RedisCommand => {
-      log.debug("sending command: {}", command)
-
-      val req = RedisRequest(sender, command)
-      sentRequests :+= req
-      pipe ! init.Command(req)
+      if (pendingRequests.nonEmpty) {
+        log.debug("flushing {} requests...", pendingRequests.length)
+        flushRequestQueue(pipe)
+        log.debug("done.")
+      }
+      sendRequest(pipe, RedisRequest(sender, command))
     }
 
     case init.Event(RedisReplyEvent(replies)) =>
-      val len = replies.length
-      val reqs = sentRequests.take(len)
-      sentRequests = sentRequests.drop(len)
-      reqs zip replies map { case (req, reply) =>
-        log.info("received reply: {}", (reply.toString.take(30) + (if (reply.toString.length > 30) "..." else "")))
-        reply match {
-          case err: ErrorReply =>
-            log.warning("received error reply: {}", err)
-            req.sender ! Status.Failure(err.value)
-          case _ =>
-            req.sender ! req.command.ret(reply)
-        }
-      }
+      response(replies)
 
     case c: CloseCommand => {
       log.info("Got to close ..")
       flushRequestQueue(pipe)
-//      pipe ! init.Command(c)
       context.become(closing(pipe))
     }
 
@@ -85,17 +75,55 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
   }
 
   def closing(pipe: ActorRef): Receive = {
+    case init.Event(RedisReplyEvent(replies)) =>
+      response(replies)
+      if (sentRequests.isEmpty)
+        pipe ! ConfirmedClose
+
     case init.Event(evt) => {
       log.info("stopping by {}", evt)
-      //      log.info("error cause = " + evt.getErrorCause + " isAborted = " + evt.isAborted + " isConfirmed = " + evt.isConfirmed + " isErrorClosed = " + evt.isErrorClosed + " isPeerClosed = " + evt.isPeerClosed)
+      context stop self
+    }
+
+    case Terminated(`pipe`) => {
+      log.info("connection pipeline closed: {}", pipe)
       context stop self
     }
   }
 
-  protected def flushRequestQueue(pipe: ActorRef): Unit = {
-    pendingRequests foreach (pipe.!)
-    pendingRequests = Queue.empty[RedisRequest]
+  def sendRequest(pipe: ActorRef, req: RedisRequest): Unit = {
+    log.debug("sending command: {}", req.command)
+    sentRequests :+= req
+    pipe ! init.Command(req)
   }
+
+  @tailrec
+  final def flushRequestQueue(pipe: ActorRef): Unit =
+    if (pendingRequests.nonEmpty) {
+      sendRequest(pipe, pendingRequests.head)
+      pendingRequests = pendingRequests.tail
+      flushRequestQueue(pipe)
+    }
+
+  def response(replies: List[RedisReply[_]]): Unit = {
+    val len = replies.length
+    val reqs = sentRequests.take(len)
+    sentRequests = sentRequests.drop(len)
+    reqs zip replies map { case (req, reply) =>
+      req.sender ! (reply match {
+        case err: ErrorReply =>
+          Status.Failure(err.value)
+        case _ =>
+          try req.command.ret(reply)
+          catch {
+            case e: Throwable =>
+              log.error("Error on marshalling result with command: {}, reply: {}", req.command, reply, e)
+              Status.Failure(e)
+          }
+      })
+    }
+  }
+
 
   val init = TcpPipelineHandler.withLogger(log,
     new ResponseParsing() >>
@@ -103,7 +131,7 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
     new BackpressureBuffer(
       lowBytes = 100,
       highBytes = 1000,
-      maxBytes = 10000
+      maxBytes = 5000
     )
   )
 

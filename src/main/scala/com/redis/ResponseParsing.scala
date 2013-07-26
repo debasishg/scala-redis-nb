@@ -21,7 +21,6 @@ class ResponseParsing extends PipelineStage[HasLogging, Command, Command, Event 
       @tailrec def inner(input: CompactByteString = CompactByteString.empty): Iterable[Result] =
         parser.parse(input) match {
           case ParseResult.Ok(reply) =>
-            log.debug("Parsed reply: {}", reply)
             replyAggregator += reply
             inner(CompactByteString.empty)
 

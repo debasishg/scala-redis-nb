@@ -1,8 +1,6 @@
 package com.redis
 
 import serialization._
-import Parse.{Implicits => Parsers}
-import scala.collection
 
 
 /**
@@ -15,7 +13,7 @@ import scala.collection
  * <li> In a Multi Bulk Reply the first byte of the reply s "*"</li>
  */
 
-sealed trait RedisReply[+T] {
+sealed trait RedisReply[T] {
 
   def value: T
 
@@ -57,7 +55,7 @@ case class ErrorReply(value: RedisError) extends RedisReply[RedisError] {
   override def asBoolean = false
 }
 
-case class MultiReply(value: Seq[RedisReply[_]]) extends RedisReply[Seq[Any]] {
+case class MultiReply(value: List[RedisReply[_]]) extends RedisReply[List[Any]] {
 
   override def asList[T: Parse]: List[Option[T]] =
     value.asInstanceOf[List[RedisReply[Option[String]]]].map {
@@ -68,7 +66,7 @@ case class MultiReply(value: Seq[RedisReply[_]]) extends RedisReply[Seq[Any]] {
     val parseA = implicitly[Parse[A]]
     val parseB = implicitly[Parse[B]]
 
-    asList[String].grouped(2).flatMap{
+    asList[String].grouped(2).flatMap {
       case List(Some(a), Some(b)) => Iterator.single(Some((parseA(a), parseB(b))))
       case _ => Iterator.single(None)
     }.toList
