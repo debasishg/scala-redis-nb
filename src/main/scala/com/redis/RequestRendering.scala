@@ -14,7 +14,8 @@ class RequestRendering extends PipelineStage[HasLogging, Command, Command, Event
     }
 
     val commandPipeline = (cmd: Command) => cmd match {
-      case cmd @ RedisRequest(_, redisCmd) => render(redisCmd)
+      case RedisRequest(_, redisCmd) => render(redisCmd)
+      case cmd: Tcp.Command => ctx.singleCommand(cmd)
     }
 
     val eventPipeline = (evt: Event) => ctx.singleEvent(evt)

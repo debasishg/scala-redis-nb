@@ -4,13 +4,14 @@ import scala.collection.mutable.{ListBuffer, ArrayBuilder}
 import akka.util.CompactByteString
 import scala.annotation.tailrec
 import ProtocolUtils._
+import scala.language.existentials
 
 
 class ResponseParser {
   import ResponseParser._
 
-  private[this] val multiBulkBuffer = new MultiReplyBuffer[Any]
-  private[this] val transactionBuffer = new MultiReplyBuffer[Any]
+  private[this] val multiBulkBuffer = new MultiReplyBuffer[RedisReply[_]]
+  private[this] val transactionBuffer = new MultiReplyBuffer[RedisReply[_]]
 
   private[this] var input: RawReply = new RawReply(CompactByteString.empty)
 
@@ -19,7 +20,7 @@ class ResponseParser {
     try {
       val result = parseAny(transaction)
       input = input.remaining()
-      ParseResult.Ok(RedisReply(result))
+      ParseResult.Ok(result)
     } catch {
       case NotEnoughDataException =>
         input.rewind()
@@ -30,12 +31,13 @@ class ResponseParser {
     }
   }
 
-  def parseAny(transaction: Boolean = false) =
+  def parseAny(transaction: Boolean = false): RedisReply[_] =
     input.nextByte() match {
-      case Bulk => parseBulk()
-      case Integer => parseLong()
-      case Status | Err => parseSingle()
-      case Multi => parseMulti(transaction)
+      case Bulk => BulkReply(parseBulk())
+      case Integer => IntegerReply(parseLong())
+      case Status => StatusReply(parseSingle())
+      case Err => ErrorReply(RedisError(parseSingle()))
+      case Multi => MultiReply(parseMulti(transaction))
       case x => throw new IllegalArgumentException("Unexpected input: "+ x)
     }
 
@@ -82,7 +84,7 @@ class ResponseParser {
     }
   }
 
-  def parseMulti(transaction: Boolean = false): List[Any] = {
+  def parseMulti(transaction: Boolean = false): List[RedisReply[_]] = {
     val buffer = if (transaction) transactionBuffer else multiBulkBuffer
 
     if (buffer.isEmpty)
@@ -103,7 +105,7 @@ object ResponseParser {
 
   object ParseResult {
     case object NeedMoreData extends ParseResult
-    case class Ok(data: RedisReply) extends ParseResult
+    case class Ok(reply: RedisReply[_]) extends ParseResult
     case class Failed(cause: Throwable, data: CompactByteString) extends ParseResult
   }
 

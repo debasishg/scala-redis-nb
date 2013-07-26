@@ -14,7 +14,7 @@ sealed trait RedisCommand {
   val line: ByteString
 
   // mapping of redis reply to the final return type
-  val ret: RedisReply => Ret
+  val ret: RedisReply[_] => Ret
 }
 
 trait StringCommand       extends RedisCommand

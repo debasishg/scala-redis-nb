@@ -11,16 +11,12 @@ import scala.collection.mutable.ListBuffer
 
 class ResponseParsing extends PipelineStage[HasLogging, Command, Command, Event , Event] {
   val parser = new ResponseParser()
-  val replyAggregator = new ListBuffer[RedisReply]
+  val replyAggregator = new ListBuffer[RedisReply[_]]
 
   def apply(ctx: HasLogging) = new PipePair[Command, Command, Event, Event] {
     import ctx.{getLogger => log}
 
-    var waitingCommands = Queue.empty[RedisCommand]
-
     def parse(data: CompactByteString): Iterable[Result] = {
-      val redisCmd = waitingCommands.head
-      waitingCommands = waitingCommands.tail
 
       @tailrec def inner(input: CompactByteString = CompactByteString.empty): Iterable[Result] =
         parser.parse(input) match {
@@ -44,13 +40,7 @@ class ResponseParsing extends PipelineStage[HasLogging, Command, Command, Event 
       inner(data)
     }
 
-    val commandPipeline = (cmd: Command) => cmd match {
-      case req @ RedisRequest(_, redisCmd) =>
-        waitingCommands = waitingCommands enqueue redisCmd
-        ctx.singleCommand(req)
-
-      case cmd => ctx.singleCommand(cmd)
-    }
+    val commandPipeline = (cmd: Command) => ctx.singleCommand(cmd)
 
     val eventPipeline = (evt: Event) => evt match {
       case Tcp.Received(data: CompactByteString) => parse(data)

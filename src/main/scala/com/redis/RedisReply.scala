@@ -2,6 +2,7 @@ package com.redis
 
 import serialization._
 import Parse.{Implicits => Parsers}
+import scala.collection
 
 
 /**
@@ -14,45 +15,66 @@ import Parse.{Implicits => Parsers}
  * <li> In a Multi Bulk Reply the first byte of the reply s "*"</li>
  */
 
-class RedisReply(value: Any) {
+sealed trait RedisReply[+T] {
 
-  def asString: String = value.asInstanceOf[String]
+  def value: T
 
-  def asBulk[T: Parse]: Option[T] = value.asInstanceOf[Option[String]] map implicitly[Parse[T]]
+  def asAny = value.asInstanceOf[Any]
 
-  def asLong: Long =  value.asInstanceOf[Long]
+  def asLong: Long =  ???
 
-  def asBoolean: Boolean = value match {
-    case n: Long => n > 0
-    case s: String => s match {
-      case "OK" => true
-      case "QUEUED" => true
-      case _ => false
+  def asString: String = ???
+
+  def asBulk[T: Parse]: Option[T] = ???
+
+  def asBoolean: Boolean = ???
+
+  def asList[T: Parse]: List[Option[T]] = ???
+
+  def asListPairs[A: Parse, B: Parse]: List[Option[(A,B)]] = ???
+
+  def asSet[T: Parse]: Set[T] = ???
+}
+
+case class IntegerReply(value: Long) extends RedisReply[Long] {
+  override def asLong = value
+  override def asBoolean: Boolean = value > 0
+}
+
+case class StatusReply(value: String) extends RedisReply[String] {
+  override def asString = value
+  override val asBoolean = true
+}
+
+case class BulkReply(value: Option[String]) extends RedisReply[Option[String]] {
+  override def asBoolean: Boolean = value.isDefined
+  override def asBulk[T: Parse]: Option[T] = value map implicitly[Parse[T]]
+  override def asString = value.get
+}
+
+case class ErrorReply(value: RedisError) extends RedisReply[RedisError] {
+  override def asString = value.message
+  override def asBoolean = false
+}
+
+case class MultiReply(value: Seq[RedisReply[_]]) extends RedisReply[Seq[Any]] {
+
+  override def asList[T: Parse]: List[Option[T]] =
+    value.asInstanceOf[List[RedisReply[Option[String]]]].map {
+      _.value.map(implicitly[Parse[T]])
     }
-    case x => false
-  }
 
-  def asList[T: Parse]: List[Option[T]] = value.asInstanceOf[List[Option[String]]].map(_.map(implicitly[Parse[T]]))
-
-  def asListPairs[A: Parse, B: Parse]: List[Option[(A,B)]] = {
+  override def asListPairs[A: Parse, B: Parse]: List[Option[(A,B)]] = {
     val parseA = implicitly[Parse[A]]
     val parseB = implicitly[Parse[B]]
 
-    value.asInstanceOf[List[Option[String]]].grouped(2).flatMap{
+    asList[String].grouped(2).flatMap{
       case List(Some(a), Some(b)) => Iterator.single(Some((parseA(a), parseB(b))))
       case _ => Iterator.single(None)
     }.toList
   }
 
-  def asQueuedList: List[Option[String]] = asList[String]
+  override def asSet[T: Parse]: Set[T] = asList[T].flatten.toSet
 
-  // def asExec(handlers: Seq[() => Any]): Option[List[Any]] = receive(execReply(handlers))
-
-  def asSet[T: Parse]: collection.immutable.Set[T] = asList.flatten.toSet
-
-  def asAny = value
 }
 
-object RedisReply {
-  def apply(value: Any) = new RedisReply(value)
-}

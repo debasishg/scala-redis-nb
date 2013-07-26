@@ -4,7 +4,7 @@ import java.net.InetSocketAddress
 import scala.collection.immutable.Queue
 import akka.actor._
 import akka.event.Logging
-import akka.io.{IO, Tcp, TcpPipelineHandler}
+import akka.io.{BackpressureBuffer, IO, Tcp, TcpPipelineHandler}
 import scala.language.existentials
 
 import com.redis.command.RedisCommand
@@ -49,7 +49,7 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
 
   def running(pipe: ActorRef): Receive = {
     case command: RedisCommand => {
-      log.debug("sending command to Redis: " + command)
+      log.debug("sending command: {}", command)
 
       val req = RedisRequest(sender, command)
       sentRequests :+= req
@@ -57,33 +57,39 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
     }
 
     case init.Event(RedisReplyEvent(replies)) =>
-      log.debug("received {} replies: {}", replies.length)
-
       val len = replies.length
       val reqs = sentRequests.take(len)
       sentRequests = sentRequests.drop(len)
-      reqs zip replies map { case (req, rep) =>
-        req.sender ! req.command.ret(rep)
+      reqs zip replies map { case (req, reply) =>
+        log.info("received reply: {}", (reply.toString.take(30) + (if (reply.toString.length > 30) "..." else "")))
+        reply match {
+          case err: ErrorReply =>
+            log.warning("received error reply: {}", err)
+            req.sender ! Status.Failure(err.value)
+          case _ =>
+            req.sender ! req.command.ret(reply)
+        }
       }
 
     case c: CloseCommand => {
       log.info("Got to close ..")
       flushRequestQueue(pipe)
-      pipe ! init.Command(c)
-    }
-
-    case evt: ConnectionClosed => {
-      log.info("stopping ..")
-      log.info("error cause = " + evt.getErrorCause + " isAborted = " + evt.isAborted + " isConfirmed = " + evt.isConfirmed + " isErrorClosed = " + evt.isErrorClosed + " isPeerClosed = " + evt.isPeerClosed)
-      context stop self
+//      pipe ! init.Command(c)
+      context.become(closing(pipe))
     }
 
     case Terminated(`pipe`) => {
       log.info("connection pipeline closed: {}", pipe)
       context stop self
     }
+  }
 
-    case x => log.error("Unknown command: {}", x)
+  def closing(pipe: ActorRef): Receive = {
+    case init.Event(evt) => {
+      log.info("stopping by {}", evt)
+      //      log.info("error cause = " + evt.getErrorCause + " isAborted = " + evt.isAborted + " isConfirmed = " + evt.isConfirmed + " isErrorClosed = " + evt.isErrorClosed + " isPeerClosed = " + evt.isPeerClosed)
+      context stop self
+    }
   }
 
   protected def flushRequestQueue(pipe: ActorRef): Unit = {
@@ -93,7 +99,12 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
 
   val init = TcpPipelineHandler.withLogger(log,
     new ResponseParsing() >>
-    new RequestRendering()
+    new RequestRendering() >>
+    new BackpressureBuffer(
+      lowBytes = 100,
+      highBytes = 1000,
+      maxBytes = 10000
+    )
   )
 
 }
