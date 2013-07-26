@@ -1,12 +1,11 @@
-package com
+package com.redis
 
-import akka.actor.ActorRef
 import akka.io.Tcp
-import com.redis.command.RedisCommand
-import scala.language.existentials
+import akka.actor.ActorRef
+import akka.util.ByteString
 
 
-package object redis {
+package object protocol {
 
   type Command = Tcp.Command
 
@@ -28,4 +27,21 @@ package object redis {
 
 
   case class RedisError(message: String) extends Throwable(message)
+
+
+  /**
+   * Response codes from the Redis server
+   */
+  val Cr      = '\r'.toByte
+  val Lf      = '\n'.toByte
+  val Status  = '+'.toByte
+  val Integer = ':'.toByte
+  val Bulk    = '$'.toByte
+  val Multi   = '*'.toByte
+  val Err     = '-'.toByte
+
+  val Newline = ByteString("\r\n")
+
+  val NullBulkReplyCount = -1
+
 }

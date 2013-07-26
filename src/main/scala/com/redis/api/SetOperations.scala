@@ -4,7 +4,7 @@ package api
 import serialization._
 import akka.pattern.ask
 import akka.util.Timeout
-import com.redis.command.SetCommands
+import com.redis.protocol.SetCommands
 
 trait SetOperations { this: RedisOps =>
   import SetCommands._

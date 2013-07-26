@@ -1,11 +1,7 @@
 package com.redis
 
-import scala.concurrent.Future
-
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
-
-import serialization._
 
 
 @RunWith(classOf[JUnitRunner])
@@ -36,7 +32,7 @@ class HashOperationsSpec extends RedisSpecBase {
       client.hget(key, "field1").futureValue should equal (Some("1"))
     }
    }
-    
+
    describe("hexists") {
     it("should check existence") {
       val key = "hexists1"
@@ -45,7 +41,7 @@ class HashOperationsSpec extends RedisSpecBase {
       client.hexists(key, "field2").futureValue should be (false)
     }
    }
-    
+
    describe("hdel") {
     it("should delete fields") {
       val key = "hdel1"
@@ -57,7 +53,7 @@ class HashOperationsSpec extends RedisSpecBase {
       client.hdel(key, "field1", "field2").futureValue should equal (2)
     }
    }
-    
+
    describe("hlen") {
     it("should turn the length of the fields") {
       val key = "hlen1"
@@ -65,7 +61,7 @@ class HashOperationsSpec extends RedisSpecBase {
       client.hlen(key).futureValue should be (2)
     }
    }
-    
+
    describe("hkeys, hvals and client.hgetall") {
     it("should turn the aggregates") {
       val key = "hash_aggregates"

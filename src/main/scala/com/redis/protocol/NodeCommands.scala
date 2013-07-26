@@ -1,7 +1,6 @@
-package com.redis.command
+package com.redis.protocol
 
 import RedisCommand._
-import com.redis.RedisReply
 import com.redis.serialization.Format
 
 

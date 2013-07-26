@@ -4,7 +4,7 @@ package api
 import serialization._
 import akka.pattern.ask
 import akka.util.Timeout
-import com.redis.command.NodeCommands
+import com.redis.protocol.NodeCommands
 
 trait NodeOperations { this: RedisOps =>
   import NodeCommands._
@@ -32,16 +32,16 @@ trait NodeOperations { this: RedisOps =>
   def bgrewriteaof()(implicit timeout: Timeout) = clientRef.ask(BGRewriteAOF).mapTo[Boolean]
 
   // INFO
-  // the info command returns different information and statistics about the server.
+  // the info protocol returns different information and statistics about the server.
   def info()(implicit timeout: Timeout) = clientRef.ask(Info).mapTo[Option[String]]
 
   // MONITOR
-  // is a debugging command that outputs the whole sequence of commands received by the Redis server.
+  // is a debugging protocol that outputs the whole sequence of commands received by the Redis server.
   def monitor()(implicit timeout: Timeout) =
     clientRef.ask(Monitor).mapTo[Boolean]
 
   // SLAVEOF
-  // The SLAVEOF command can change the replication settings of a slave on the fly.
+  // The SLAVEOF protocol can change the replication settings of a slave on the fly.
   def slaveof(options: Any)(implicit timeout: Timeout) =
     clientRef.ask(SlaveOf(options)).mapTo[Boolean]
 

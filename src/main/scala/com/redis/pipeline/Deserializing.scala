@@ -1,16 +1,16 @@
-package com.redis
+package com.redis.pipeline
 
 import akka.io._
 import akka.util.CompactByteString
-import scala.collection.immutable.Queue
-import scala.annotation.tailrec
-import com.redis.command.RedisCommand
-import ResponseParser.ParseResult
 import scala.collection.mutable.ListBuffer
+import scala.annotation.tailrec
+import com.redis.protocol._
+import com.redis.serialization.Deserializer
+import Deserializer.Result
 
 
-class ResponseParsing extends PipelineStage[HasLogging, Command, Command, Event , Event] {
-  val parser = new ResponseParser()
+class Deserializing extends PipelineStage[HasLogging, Command, Command, Event , Event] {
+  val parser = new Deserializer()
   val replyAggregator = new ListBuffer[RedisReply[_]]
 
   def apply(ctx: HasLogging) = new PipePair[Command, Command, Event, Event] {
@@ -19,11 +19,11 @@ class ResponseParsing extends PipelineStage[HasLogging, Command, Command, Event 
     def parse(data: CompactByteString): Iterable[Result] = {
       @tailrec def parseChunk(): Iterable[Result] =
         parser.parse() match {
-          case ParseResult.Ok(reply) =>
+          case Result.Ok(reply) =>
             replyAggregator += reply
             parseChunk()
 
-          case ParseResult.NeedMoreData =>
+          case Result.NeedMoreData =>
             if (replyAggregator.isEmpty) ctx.nothing
             else {
               val replies = replyAggregator.result
@@ -31,8 +31,8 @@ class ResponseParsing extends PipelineStage[HasLogging, Command, Command, Event 
               ctx.singleEvent(RedisReplyEvent(replies))
             }
 
-          case ParseResult.Failed(_, data) =>
-            log.error("Failed to parse response: {}", data)
+          case Result.Failed(_, data) =>
+            log.error("Failed to parse response: {}", data.utf8String.replace("\r\n", "\\r\\n"))
             ctx.singleCommand(Close)
         }
 

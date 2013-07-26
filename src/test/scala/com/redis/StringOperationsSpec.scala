@@ -5,13 +5,11 @@ import scala.concurrent.Future
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
-import serialization._
-import com.redis.command.{RedisCommand, StringCommands}
+import com.redis.protocol.StringCommands
 
 
 @RunWith(classOf[JUnitRunner])
 class StringOperationsSpec extends RedisSpecBase {
-  import RedisCommand._
   import StringCommands._
 
   describe("set") {

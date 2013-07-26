@@ -1,7 +1,6 @@
-package com.redis
+package com.redis.protocol
 
-import serialization._
-
+import com.redis.serialization.Parse
 
 /**
  * Redis will reply to commands with different kinds of replies. It is always possible to detect the kind of reply
@@ -55,12 +54,10 @@ case class ErrorReply(value: RedisError) extends RedisReply[RedisError] {
   override def asBoolean = false
 }
 
-case class MultiReply(value: List[RedisReply[_]]) extends RedisReply[List[Any]] {
+case class MultiBulkReply(value: List[BulkReply]) extends RedisReply[List[BulkReply]] {
 
   override def asList[T: Parse]: List[Option[T]] =
-    value.asInstanceOf[List[RedisReply[Option[String]]]].map {
-      _.value.map(implicitly[Parse[T]])
-    }
+    value.map { _.value.map(implicitly[Parse[T]]) }
 
   override def asListPairs[A: Parse, B: Parse]: List[Option[(A,B)]] = {
     val parseA = implicitly[Parse[A]]
@@ -75,4 +72,3 @@ case class MultiReply(value: List[RedisReply[_]]) extends RedisReply[List[Any]] 
   override def asSet[T: Parse]: Set[T] = asList[T].flatten.toSet
 
 }
-

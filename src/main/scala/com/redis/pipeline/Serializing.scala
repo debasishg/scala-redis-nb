@@ -1,10 +1,10 @@
-package com.redis
+package com.redis.pipeline
 
 import akka.io._
-import com.redis.command.RedisCommand
+import com.redis.protocol._
 
 
-class RequestRendering extends PipelineStage[HasLogging, Command, Command, Event, Event] {
+class Serializing extends PipelineStage[HasLogging, Command, Command, Event, Event] {
 
   def apply(ctx: HasLogging) = new PipePair[Command, Command, Event, Event] {
     import ctx.{getLogger => log}

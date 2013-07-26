@@ -1,32 +1,32 @@
-package com.redis
+package com.redis.serialization
 
-import scala.collection.mutable.{ListBuffer, ArrayBuilder}
 import akka.util.CompactByteString
 import scala.annotation.tailrec
-import ProtocolUtils._
+import scala.collection.mutable.{ListBuffer, ArrayBuilder}
 import scala.language.existentials
+import com.redis.protocol._
 
 
-class ResponseParser {
-  import ResponseParser._
+class Deserializer {
+  import Deserializer._
 
   private[this] var input: RawReply = new RawReply(CompactByteString.empty)
 
   def append(data: CompactByteString): Unit =
     input = input append data
 
-  def parse(transaction: Boolean = false): ParseResult =
+  def parse(transaction: Boolean = false): Result =
     try {
       val result = parseAny(transaction)
       input = input.remaining()
-      ParseResult.Ok(result)
+      Result.Ok(result)
     } catch {
       case NotEnoughDataException =>
         input.rewind()
-        ParseResult.NeedMoreData
+        Result.NeedMoreData
 
       case e: Exception =>
-        ParseResult.Failed(e, input.data)
+        Result.Failed(e, input.data)
     }
 
   def parseAny(transaction: Boolean = false): RedisReply[_] =
@@ -35,7 +35,7 @@ class ResponseParser {
       case Integer => IntegerReply(parseLong())
       case Status => StatusReply(parseSingle())
       case Err => ErrorReply(RedisError(parseSingle()))
-      case Multi => MultiReply(parseMulti(transaction))
+      case Multi => MultiBulkReply(parseMultiBulk())
       case x => throw new IllegalArgumentException("Unexpected input: "+ x)
     }
 
@@ -82,27 +82,31 @@ class ResponseParser {
     }
   }
 
-  def parseMulti(transaction: Boolean = false): List[RedisReply[_]] = {
-    val buffer = new MultiReplyBuffer[RedisReply[_]]
+  def parseMultiBulk(): List[BulkReply] = {
+    val buffer = new ListBuffer[BulkReply]
+    val len = parseInt()
 
-    if (buffer.isEmpty)
-      buffer.sizeHint(parseInt())
+    @tailrec def inner(i: Int): Unit = if (i > 0) {
+      input.jump(1)
+      val a = BulkReply(parseBulk())
+      buffer += a
+      inner(i - 1)
+    }
 
-    while ( ! buffer.isDone)
-      buffer += parseAny(false)
-
+    buffer.sizeHint(len)
+    inner(len)
     buffer.result
   }
 }
 
-object ResponseParser {
+object Deserializer {
 
-  sealed trait ParseResult
+  sealed trait Result
 
-  object ParseResult {
-    case object NeedMoreData extends ParseResult
-    case class Ok(reply: RedisReply[_]) extends ParseResult
-    case class Failed(cause: Throwable, data: CompactByteString) extends ParseResult
+  object Result {
+    case object NeedMoreData extends Result
+    case class Ok(reply: RedisReply[_]) extends Result
+    case class Failed(cause: Throwable, data: CompactByteString) extends Result
   }
 
   object NotEnoughDataException extends Exception
@@ -144,30 +148,6 @@ object ResponseParser {
     }
 
     def remaining() = new RawReply(data.drop(cursor).compact, 0)
-  }
-
-  private class MultiReplyBuffer[T] {
-    private val buffer = new ListBuffer[T]
-    private var remaining: Int = _
-
-    def isEmpty = buffer.isEmpty
-
-    def isDone = remaining == 0
-
-    def clear() = buffer.clear()
-
-    def sizeHint(size: Int) = {
-      remaining = size
-      buffer.sizeHint(size)
-    }
-
-    def +=(elem: T) = {
-      buffer += elem
-      remaining -= 1
-    }
-
-    def result: List[T] = buffer.result()
-    def toList = result
   }
 
 }

@@ -1,16 +1,15 @@
-package com.redis.command
+package com.redis.protocol
 
 import scala.concurrent.Promise
 import scala.util.Try
 import akka.util.{ByteString, ByteStringBuilder}
-import com.redis.{RedisReply, ProtocolUtils}
 
 
 sealed trait RedisCommand {
-  // command returns Option[Ret]
+  // protocol returns Option[Ret]
   type Ret
 
-  // command input : the request protocol of redis (upstream)
+  // protocol input : the request protocol of redis (upstream)
   val line: ByteString
 
   // mapping of redis reply to the final return type
@@ -26,7 +25,6 @@ trait HashCommand         extends RedisCommand
 trait NodeCommand         extends RedisCommand
 
 object RedisCommand {
-  import ProtocolUtils._
 
   trait SortOrder
   case object ASC extends SortOrder

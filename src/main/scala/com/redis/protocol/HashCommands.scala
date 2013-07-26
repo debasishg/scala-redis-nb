@@ -1,9 +1,7 @@
-package com.redis.command
+package com.redis.protocol
 
 import com.redis.serialization.{Parse, Format}
 import RedisCommand._
-import scala.Some
-import com.redis.RedisReply
 
 
 object HashCommands {

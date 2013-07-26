@@ -8,7 +8,7 @@ import akka.pattern.ask
 import akka.actor._
 import akka.util.Timeout
 import akka.pattern.gracefulStop
-import com.redis.command.KeyCommands
+import com.redis.protocol._
 
 
 trait KeyOperations { this: RedisOps =>
@@ -102,7 +102,7 @@ trait KeyOperations { this: RedisOps =>
   // QUIT
   // exits the server.
   def quit()(implicit timeout: Timeout): Future[Boolean] = {
-    clientRef ! ConfirmedClose
+    clientRef ! Quit
     gracefulStop(clientRef, 5 seconds)
   }
 

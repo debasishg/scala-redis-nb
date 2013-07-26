@@ -1,16 +1,13 @@
 package com.redis
 
 import java.net.InetSocketAddress
-import scala.concurrent.{ExecutionContext, Await, Future}
 import scala.concurrent.duration._
-import akka.event.Logging
 import akka.util.{Timeout => AkkaTimeout}
 import akka.actor._
 
 import org.scalatest._
 import org.scalatest.concurrent.{Futures, ScalaFutures}
 import org.scalatest.time._
-import api.RedisOps
 
 
 trait RedisSpecBase extends FunSpec
@@ -19,14 +16,15 @@ trait RedisSpecBase extends FunSpec
                  with ScalaFutures
                  with BeforeAndAfterEach
                  with BeforeAndAfterAll {
+  import RedisSpecBase._
 
   // Akka setup
-  implicit val system = ActorSystem("redis-client")
+  implicit val system = ActorSystem("redis-test-"+ iter.next)
   implicit val executionContext = system.dispatcher
   implicit val timeout = AkkaTimeout(5 seconds)
 
   // Scalatest setup
-  implicit val defaultPatience = PatienceConfig(timeout = Span(2, Seconds), interval = Span(5, Millis))
+  implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
   // Redis client setup
   val endpoint = new InetSocketAddress("localhost", 6379)
@@ -52,3 +50,8 @@ trait RedisSpecBase extends FunSpec
 
 }
 
+object RedisSpecBase {
+
+  private val iter = Iterator from 0
+
+}
