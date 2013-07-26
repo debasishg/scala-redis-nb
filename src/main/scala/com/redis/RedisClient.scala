@@ -137,8 +137,8 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
           try req.command.ret(reply)
           catch {
             case e: Throwable =>
-              log.error("Error on marshalling result with command: {}, reply: {}\n{}: {}",
-                req.command, reply, e.getMessage, e.getStackTraceString)
+              log.error("Error on marshalling result with command: {}, reply: {}\n{}:\n{}",
+                req.command, reply, e, e.getStackTraceString)
               Status.Failure(e)
           }
       })
@@ -151,8 +151,8 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
     new RequestRendering() >>
     new BackpressureBuffer(
       lowBytes = 100,
-      highBytes = 2000,
-      maxBytes = 3000
+      highBytes = 4000,
+      maxBytes = 5000
     )
   )
 

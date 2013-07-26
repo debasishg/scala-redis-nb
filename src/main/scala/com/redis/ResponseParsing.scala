@@ -17,12 +17,11 @@ class ResponseParsing extends PipelineStage[HasLogging, Command, Command, Event 
     import ctx.{getLogger => log}
 
     def parse(data: CompactByteString): Iterable[Result] = {
-
-      @tailrec def inner(input: CompactByteString = CompactByteString.empty): Iterable[Result] =
-        parser.parse(input) match {
+      @tailrec def parseChunk(): Iterable[Result] =
+        parser.parse() match {
           case ParseResult.Ok(reply) =>
             replyAggregator += reply
-            inner(CompactByteString.empty)
+            parseChunk()
 
           case ParseResult.NeedMoreData =>
             if (replyAggregator.isEmpty) ctx.nothing
@@ -36,7 +35,9 @@ class ResponseParsing extends PipelineStage[HasLogging, Command, Command, Event 
             log.error("Failed to parse response: {}", data)
             ctx.singleCommand(Close)
         }
-      inner(data)
+
+      parser.append(data)
+      parseChunk()
     }
 
     val commandPipeline = (cmd: Command) => ctx.singleCommand(cmd)

@@ -10,13 +10,12 @@ import scala.language.existentials
 class ResponseParser {
   import ResponseParser._
 
-  private[this] val multiBulkBuffer = new MultiReplyBuffer[RedisReply[_]]
-  private[this] val transactionBuffer = new MultiReplyBuffer[RedisReply[_]]
-
   private[this] var input: RawReply = new RawReply(CompactByteString.empty)
 
-  def parse(_input: CompactByteString, transaction: Boolean = false): ParseResult = {
-    input = input ++ _input
+  def append(data: CompactByteString): Unit =
+    input = input append data
+
+  def parse(transaction: Boolean = false): ParseResult =
     try {
       val result = parseAny(transaction)
       input = input.remaining()
@@ -29,7 +28,6 @@ class ResponseParser {
       case e: Exception =>
         ParseResult.Failed(e, input.data)
     }
-  }
 
   def parseAny(transaction: Boolean = false): RedisReply[_] =
     input.nextByte() match {
@@ -85,7 +83,7 @@ class ResponseParser {
   }
 
   def parseMulti(transaction: Boolean = false): List[RedisReply[_]] = {
-    val buffer = if (transaction) transactionBuffer else multiBulkBuffer
+    val buffer = new MultiReplyBuffer[RedisReply[_]]
 
     if (buffer.isEmpty)
       buffer.sizeHint(parseInt())
@@ -93,9 +91,7 @@ class ResponseParser {
     while ( ! buffer.isDone)
       buffer += parseAny(false)
 
-    val res = buffer.result
-    buffer.clear()
-    res
+    buffer.result
   }
 }
 
@@ -117,7 +113,7 @@ object ResponseParser {
         private[this] var cursor: Int = 0
       ) {
 
-    def ++(other: CompactByteString) = new RawReply((data ++ other).compact, cursor)
+    def append(other: CompactByteString) = new RawReply((data ++ other).compact, cursor)
 
     def hasNext = cursor < data.length
 
@@ -151,7 +147,6 @@ object ResponseParser {
   }
 
   private class MultiReplyBuffer[T] {
-
     private val buffer = new ListBuffer[T]
     private var remaining: Int = _
 

@@ -44,13 +44,13 @@ object RedisCommand {
     val b = new ByteStringBuilder
     b += Multi
     b ++= ByteString(args.size.toString)
-    b ++= LS
+    b ++= Newline
     args foreach { arg =>
       b += Bulk
       b ++= ByteString(arg.size.toString)
-      b ++= LS
+      b ++= Newline
       b ++= ByteString(arg)
-      b ++= LS
+      b ++= Newline
     }
     b.result
   }
