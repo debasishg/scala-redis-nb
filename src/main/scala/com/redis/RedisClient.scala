@@ -1,53 +1,59 @@
 package com.redis
 
-import java.net.InetSocketAddress
+import java.net.{InetAddress, InetSocketAddress}
 import scala.collection.immutable.Queue
 import akka.actor._
 import akka.actor.Status.Failure
-import akka.event.Logging
 import akka.io.{BackpressureBuffer, IO, Tcp, TcpPipelineHandler}
 import scala.language.existentials
 import scala.annotation.tailrec
-import com.redis.pipeline.{Serializing, Deserializing}
+import pipeline._
 import protocol._
 
 
 object RedisClient {
   import api.RedisOps
 
-  def apply(remote: InetSocketAddress, name: String = "redis-client")(implicit refFactory: ActorRefFactory) =
+  def apply(hostname: String, port: Int = 6379, name: String = defaultName)(implicit refFactory: ActorRefFactory) =
+    apply(new InetSocketAddress(hostname, port), name)
+
+  def apply(address: InetAddress, port: Int = 6379, name: String = defaultName)(implicit refFactory: ActorRefFactory) =
+    apply(new InetSocketAddress(address, port), name)
+
+  def apply(remote: InetSocketAddress, name: String = defaultName)(implicit refFactory: ActorRefFactory) =
     new RedisOps(refFactory.actorOf(Props(new RedisClient(remote)), name = name))
+
+
+  private def defaultName = "redis-client-" + nameSeq.next
+  private val nameSeq = Iterator from 0
+
 }
 
-private class RedisClient(remote: InetSocketAddress) extends Actor {
+private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLogging {
   import Tcp._
-  import context.system
 
-  private val log = Logging(context.system, this)
   private[this] var pendingRequests = Queue.empty[RedisRequest]
   private[this] var sentRequests = Queue.empty[RedisRequest]
 
   IO(Tcp) ! Connect(remote)
 
-  def receive: Receive = {
+  def receive = unconnected
+
+  def unconnected: Receive = {
     case cmd: RedisCommand =>
       log.info("Attempting to send command before connected: {}", cmd)
       addPendingRequest(cmd)
 
     case c @ Connected(remote, _) =>
-      log.info(c.toString)
+      log.info("Connected to redis server {}:{}.", remote.getHostName, remote.getPort)
       val connection = sender
-      val pipe = context.actorOf(TcpPipelineHandler.props(init, connection, self))
+      val pipe = context.actorOf(TcpPipelineHandler.props(init, connection, self), name = "pipeline")
       connection ! Register(pipe)
       context become (running(pipe))
       flushRequestQueue(pipe)
 
     case CommandFailed(c: Connect) =>
       log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
-      context stop self
-
-    case x =>
-      log.error("Unknown command: {}", x)
       context stop self
   }
 
@@ -66,44 +72,32 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
       log.info("Got to close ..")
       flushRequestQueue(pipe)
       context become (closing(pipe))
-
-    case Terminated(`pipe`) => {
-      log.info("Connection pipeline closed: {}", pipe)
-      context stop self
-    }
-
-    case x =>
-      log.error("Unknown command: {}", x)
-      context stop self
   }
 
-  def buffering(pipe: ActorRef): Receive = {
+  def buffering(pipe: ActorRef): Receive = withTerminationManagement {
     case cmd: RedisCommand =>
+      log.debug("Received a command while buffering: {}", cmd)
       addPendingRequest(cmd)
 
     case init.Event(BackpressureBuffer.LowWatermarkReached) =>
       log.info("Client backpressure became lower, resuming...")
       context become running(pipe)
       flushRequestQueue(pipe)
-
-    case x =>
-      log.error("Unknown command: {}", x)
-      context stop self
   }
 
-  def closing(pipe: ActorRef): Receive = {
+  def closing(pipe: ActorRef): Receive = withTerminationManagement {
     case init.Event(RedisReplyEvent(replies)) =>
       response(replies)
       if (sentRequests.isEmpty)
         pipe ! ConfirmedClose
 
-    case init.Event(evt) => {
+    case init.Event(evt) =>
       log.warning("Stopping by {}", evt)
-      context stop self
-    }
+  }
 
-    case Terminated(`pipe`) => {
-      log.warning("Connection pipeline closed: {}", pipe)
+  def withTerminationManagement(handler: Receive): Receive = handler orElse {
+    case Terminated(x) => {
+      log.info("Child termination detected: {}", x)
       context stop self
     }
 
@@ -142,11 +136,12 @@ private class RedisClient(remote: InetSocketAddress) extends Actor {
         case err: ErrorReply =>
           Failure(err.value)
 
-        case _ =>
+        case _: RedisReply[_] =>
           try req.command.ret(reply)
           catch {
             case e: Throwable =>
-              log.error("Error on marshalling {} requested by {}\n{}:\n{}", reply, req.command, e, e.getStackTraceString)
+              log.error("Error on marshalling {} requested by {}\n{}:\n{}",
+                reply, req.command, e, e.getStackTraceString)
               Failure(e)
           }
       })
