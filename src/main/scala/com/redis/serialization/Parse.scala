@@ -14,7 +14,7 @@ object Parse {
     implicit val parseDouble = Parse[Double](java.lang.Double.parseDouble)
   }
 
-  implicit val parseDefault = Implicits.parseString
+  implicit def parseDefault = Implicits.parseString
 }
 
 class Parse[A](val f: String => A) extends Function1[String, A] {
