@@ -6,6 +6,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import com.redis.protocol.StringCommands
 
+
 trait StringOperations { this: RedisOps =>
   import StringCommands._
 
@@ -21,7 +22,7 @@ trait StringOperations { this: RedisOps =>
     clientRef.ask(Set(key, value, nxORxx, exORpx)).mapTo[Boolean]
 
   // GETSET (key, value)
-  // is an atomic set this value and return the old value protocol.
+  // is an atomic set this value and return the old value command.
   def getset[A](key: Any, value: Any)(implicit timeout: Timeout, format: Format, parse: Parse[A]) =
     clientRef.ask(GetSet[A](key, value)).mapTo[Option[A]]
 

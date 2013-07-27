@@ -6,10 +6,10 @@ import akka.util.{ByteString, ByteStringBuilder}
 
 
 sealed trait RedisCommand {
-  // protocol returns Option[Ret]
+  // command returns Option[Ret]
   type Ret
 
-  // protocol input : the request protocol of redis (upstream)
+  // command input : the request protocol of redis (upstream)
   val line: ByteString
 
   // mapping of redis reply to the final return type

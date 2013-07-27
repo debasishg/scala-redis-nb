@@ -4,9 +4,9 @@ package api
 import serialization._
 import akka.pattern.ask
 import akka.util.Timeout
-import com.redis.protocol.RedisCommand
+import com.redis.protocol.{RedisCommand, SortedSetCommands}
 import RedisCommand._
-import com.redis.protocol.SortedSetCommands
+
 
 trait SortedSetOperations { this: RedisOps =>
   import SortedSetCommands._
