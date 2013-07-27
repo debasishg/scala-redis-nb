@@ -14,23 +14,16 @@ import protocol._
 object RedisClient {
   import api.RedisOps
 
-  def apply(hostname: String, port: Int = 6379, name: String = defaultName)(implicit refFactory: ActorRefFactory) =
-    apply(new InetSocketAddress(hostname, port), name)
-
-  def apply(address: InetAddress, port: Int = 6379, name: String = defaultName)(implicit refFactory: ActorRefFactory) =
-    apply(new InetSocketAddress(address, port), name)
-
-  def apply(remote: InetSocketAddress, name: String = defaultName)(implicit refFactory: ActorRefFactory) =
+  def apply(remote: InetSocketAddress, name: String = defaultName)(implicit refFactory: ActorRefFactory): RedisOps =
     new RedisOps(refFactory.actorOf(Props(new RedisClient(remote)), name = name))
-
 
   private def defaultName = "redis-client-" + nameSeq.next
   private val nameSeq = Iterator from 0
-
 }
 
 private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLogging {
   import Tcp._
+  import context.system
 
   private[this] var pendingRequests = Queue.empty[RedisRequest]
   private[this] var sentRequests = Queue.empty[RedisRequest]
@@ -57,7 +50,7 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
       context stop self
   }
 
-  def running(pipe: ActorRef): Receive = {
+  def running(pipe: ActorRef): Receive = withTerminationManagement {
     case command: RedisCommand =>
       sendRequest(pipe, RedisRequest(sender, command))
 
