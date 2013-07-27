@@ -133,8 +133,7 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
           try req.command.ret(reply)
           catch {
             case e: Throwable =>
-              log.error("Error on marshalling {} requested by {}\n{}:\n{}",
-                reply, req.command, e, e.getStackTraceString)
+              log.error(e, "Error on marshalling {} requested by {}", reply, req.command)
               Failure(e)
           }
       })

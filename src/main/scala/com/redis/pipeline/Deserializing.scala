@@ -31,8 +31,8 @@ class Deserializing extends PipelineStage[HasLogging, Command, Command, Event , 
               ctx.singleEvent(RedisReplyEvent(replies))
             }
 
-          case Result.Failed(_, data) =>
-            log.error("Failed to parse response: {}", data.utf8String.replace("\r\n", "\\r\\n"))
+          case Result.Failed(err, data) =>
+            log.error(err, "Failed to parse response: {}", data.utf8String.replace("\r\n", "\\r\\n"))
             ctx.singleCommand(Close)
         }
 
