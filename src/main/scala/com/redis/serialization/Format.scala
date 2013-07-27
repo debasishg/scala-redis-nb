@@ -1,7 +1,4 @@
-package com.redis
-package serialization
-
-import akka.util.ByteString
+package com.redis.serialization
 
 
 object Format {
@@ -31,20 +28,3 @@ class Format(val format: PartialFunction[Any, Any]) {
   def orElse(that: PartialFunction[Any, Any]): Format = Format(format orElse that)
 }
 
-object Parse {
-  def apply[T](f: (ByteString) => T) = new Parse[T](f)
-
-  object Implicits {
-    implicit val parseString = Parse[String](_.utf8String)
-    implicit val parseByteArray = Parse[Array[Byte]](_.toArray[Byte])
-    implicit val parseInt = Parse[Int](_.utf8String.toInt)
-    implicit val parseLong = Parse[Long](_.utf8String.toLong)
-    implicit val parseDouble = Parse[Double](_.utf8String.toDouble)
-  }
-
-  implicit val parseDefault = Parse[String](_.utf8String)
-}
-
-class Parse[A](val f: (ByteString) => A) extends Function1[ByteString, A] {
-  def apply(in: ByteString): A = f(in)
-}

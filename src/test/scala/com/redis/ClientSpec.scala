@@ -1,7 +1,6 @@
 package com.redis
 
 import scala.concurrent.Future
-import scala.util.{Either, Left, Right}
 
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.junit.JUnitRunner

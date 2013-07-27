@@ -2,3 +2,6 @@
 target
 project/boot
 *.swp
+*.iml
+.idea
+.idea_modules

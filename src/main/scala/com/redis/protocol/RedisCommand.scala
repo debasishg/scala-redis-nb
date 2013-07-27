@@ -1,8 +1,7 @@
-package com.redis
+package com.redis.protocol
 
 import scala.concurrent.Promise
 import scala.util.Try
-import ProtocolUtils._
 import akka.util.{ByteString, ByteStringBuilder}
 
 
@@ -13,14 +12,8 @@ sealed trait RedisCommand {
   // command input : the request protocol of redis (upstream)
   val line: ByteString
 
-  // the promise which will be set by the command
-  lazy val promise = Promise[Ret]
-
   // mapping of redis reply to the final return type
-  val ret: ByteString => Ret
-
-  // processing pipeline (downstream)
-  final def execute(s: ByteString): Promise[Ret] = promise complete Try(ret(s))
+  val ret: RedisReply[_] => Ret
 }
 
 trait StringCommand       extends RedisCommand
@@ -32,6 +25,7 @@ trait HashCommand         extends RedisCommand
 trait NodeCommand         extends RedisCommand
 
 object RedisCommand {
+
   trait SortOrder
   case object ASC extends SortOrder
   case object DESC extends SortOrder
@@ -48,13 +42,13 @@ object RedisCommand {
     val b = new ByteStringBuilder
     b += Multi
     b ++= ByteString(args.size.toString)
-    b ++= LS
+    b ++= Newline
     args foreach { arg =>
       b += Bulk
       b ++= ByteString(arg.size.toString)
-      b ++= LS
+      b ++= Newline
       b ++= ByteString(arg)
-      b ++= LS
+      b ++= Newline
     }
     b.result
   }

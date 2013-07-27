@@ -1,17 +1,15 @@
 package com.redis
 
-import scala.concurrent.Future
 
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
-import serialization._
+import com.redis.protocol.RedisCommand
 
 
 @RunWith(classOf[JUnitRunner])
 class SortedSetOperationsSpec extends RedisSpecBase {
   import RedisCommand._
-  import SortedSetCommands._
 
   private def add = {
     val add1 = client.zadd("hackers", 1965, "yukihiro matsumoto")
