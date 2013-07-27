@@ -5,7 +5,7 @@ import scala.concurrent.Future
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
-import serialization._
+import com.redis.serialization.Parse
 
 
 @RunWith(classOf[JUnitRunner])

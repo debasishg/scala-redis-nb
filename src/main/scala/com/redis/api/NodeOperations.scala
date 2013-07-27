@@ -1,11 +1,10 @@
 package com.redis
 package api
 
-import scala.concurrent.Future
 import serialization._
 import akka.pattern.ask
-import akka.actor._
 import akka.util.Timeout
+import com.redis.protocol.NodeCommands
 
 trait NodeOperations { this: RedisOps =>
   import NodeCommands._
