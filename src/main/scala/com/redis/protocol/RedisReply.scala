@@ -15,51 +15,43 @@ import com.redis.serialization.Parse
 sealed trait RedisReply[T] {
 
   def value: T
-
   def asAny = value.asInstanceOf[Any]
 
   def asLong: Long =  ???
-
   def asString: String = ???
-
-  def asBulk[T: Parse]: Option[T] = ???
-
+  def asBulk[A: Parse]: Option[A] = ???
   def asBoolean: Boolean = ???
-
-  def asList[T: Parse]: List[Option[T]] = ???
-
+  def asList[A: Parse]: List[Option[A]] = ???
   def asListPairs[A: Parse, B: Parse]: List[Option[(A,B)]] = ???
-
-  def asSet[T: Parse]: Set[T] = ???
+  def asSet[A: Parse]: Set[A] = ???
 }
 
 case class IntegerReply(value: Long) extends RedisReply[Long] {
-  override def asLong = value
-  override def asBoolean: Boolean = value > 0
+  final override def asLong = value
+  final override def asBoolean: Boolean = value > 0
 }
 
 case class StatusReply(value: String) extends RedisReply[String] {
-  override def asString = value
-  override val asBoolean = true
+  final override def asString = value
+  final override def asBoolean = true
 }
 
 case class BulkReply(value: Option[String]) extends RedisReply[Option[String]] {
-  override def asBoolean: Boolean = value.isDefined
-  override def asBulk[T: Parse]: Option[T] = value map implicitly[Parse[T]]
-  override def asString = value.get
+  final override def asBoolean: Boolean = value.isDefined
+  final override def asBulk[A: Parse]: Option[A] = value map implicitly[Parse[A]]
+  final override def asString = value.get
 }
 
 case class ErrorReply(value: RedisError) extends RedisReply[RedisError] {
-  override def asString = value.message
-  override def asBoolean = false
+  final override def asString = value.message
+  final override def asBoolean = false
 }
 
 case class MultiBulkReply(value: List[BulkReply]) extends RedisReply[List[BulkReply]] {
 
-  override def asList[T: Parse]: List[Option[T]] =
-    value.map { _.value.map(implicitly[Parse[T]]) }
+  final override def asList[A: Parse] = value.map { _.value map implicitly[Parse[A]] }
 
-  override def asListPairs[A: Parse, B: Parse]: List[Option[(A,B)]] = {
+  final override def asListPairs[A: Parse, B: Parse]: List[Option[(A,B)]] = {
     val parseA = implicitly[Parse[A]]
     val parseB = implicitly[Parse[B]]
 
@@ -69,6 +61,6 @@ case class MultiBulkReply(value: List[BulkReply]) extends RedisReply[List[BulkRe
     }.toList
   }
 
-  override def asSet[T: Parse]: Set[T] = asList[T].flatten.toSet
+  final override def asSet[A: Parse]: Set[A] = asList[A].flatten.toSet
 
 }

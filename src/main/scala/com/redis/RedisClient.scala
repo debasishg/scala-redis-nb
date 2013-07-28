@@ -26,7 +26,6 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
   import context.system
 
   private[this] var pendingRequests = Queue.empty[RedisRequest]
-  private[this] var sentRequests = Queue.empty[RedisRequest]
 
   IO(Tcp) ! Connect(remote)
 
@@ -42,6 +41,7 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
       val connection = sender
       val pipe = context.actorOf(TcpPipelineHandler.props(init, connection, self), name = "pipeline")
       connection ! Register(pipe)
+      context.watch(pipe)
       context become (running(pipe))
       flushRequestQueue(pipe)
 
@@ -53,9 +53,6 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
   def running(pipe: ActorRef): Receive = withTerminationManagement {
     case command: RedisCommand =>
       sendRequest(pipe, RedisRequest(sender, command))
-
-    case init.Event(RedisReplyEvent(replies)) =>
-      response(replies)
 
     case init.Event(BackpressureBuffer.HighWatermarkReached) =>
       log.info("Backpressure is too high. Start buffering...")
@@ -79,11 +76,6 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
   }
 
   def closing(pipe: ActorRef): Receive = withTerminationManagement {
-    case init.Event(RedisReplyEvent(replies)) =>
-      response(replies)
-      if (sentRequests.isEmpty)
-        pipe ! ConfirmedClose
-
     case init.Event(evt) =>
       log.warning("Stopping by {}", evt)
   }
@@ -99,15 +91,11 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
       context stop self
   }
 
-  def addPendingRequest(cmd: RedisCommand): Unit = {
+  def addPendingRequest(cmd: RedisCommand): Unit =
     pendingRequests :+= RedisRequest(sender, cmd)
-  }
 
-  def sendRequest(pipe: ActorRef, req: RedisRequest): Unit = {
-    log.debug("Sending command: {}", req.command)
-    sentRequests :+= req
+  def sendRequest(pipe: ActorRef, req: RedisRequest): Unit =
     pipe ! init.Command(req)
-  }
 
   @tailrec
   final def flushRequestQueue(pipe: ActorRef): Unit =
@@ -117,32 +105,9 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
       flushRequestQueue(pipe)
     }
 
-  @tailrec
-  final def response(replies: List[RedisReply[_]]): Unit =
-    if (replies.nonEmpty) {
-      val req = sentRequests.head
-      val reply = replies.head
-
-      log.debug("Received response: {}", reply)
-
-      req.sender ! (reply match {
-        case err: ErrorReply =>
-          Failure(err.value)
-
-        case _: RedisReply[_] =>
-          try req.command.ret(reply)
-          catch {
-            case e: Throwable =>
-              log.error(e, "Error on marshalling {} requested by {}", reply, req.command)
-              Failure(e)
-          }
-      })
-
-      sentRequests = sentRequests.tail
-      response(replies.tail)
-    }
 
   val init = TcpPipelineHandler.withLogger(log,
+    new ClientFrontend() >>
     new Deserializing() >>
     new Serializing() >>
     new BackpressureBuffer(
