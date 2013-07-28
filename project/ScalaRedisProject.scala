@@ -25,7 +25,7 @@ object ScalaRedisProject extends Build
           "org.slf4j"         %   "slf4j-api"       % "1.7.5"         % "provided",
           "ch.qos.logback"    %   "logback-classic" % "1.0.13"        % "provided",
           "junit"             %   "junit"           % "4.11"          % "test",
-          "org.scalatest"     %%  "scalatest"       % "2.0.M6-SNAP34" % "test"),
+          "org.scalatest"     %%  "scalatest"       % "2.0.M6-SNAP35" % "test"),
     parallelExecution in Test := false,
     fork in Test := true,
     publishTo <<= version { (v: String) => 

@@ -5,3 +5,4 @@ project/boot
 *.iml
 .idea
 .idea_modules
+dump.rdb

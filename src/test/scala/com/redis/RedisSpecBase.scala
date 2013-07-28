@@ -21,7 +21,7 @@ trait RedisSpecBase extends FunSpec
   // Akka setup
   implicit val system = ActorSystem("redis-test-"+ iter.next)
   implicit val executionContext = system.dispatcher
-  implicit val timeout = AkkaTimeout(5 seconds)
+  implicit val timeout = AkkaTimeout(2 seconds)
 
   // Scalatest setup
   implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
