@@ -95,5 +95,47 @@ object KeyCommands {
     val ret  = (_: RedisReply[_]).asBoolean
   }
 
+  case class Sort[A](key: String, 
+    limit: Option[Pair[Int, Int]] = None, 
+    desc: Boolean = false, 
+    alpha: Boolean = false, 
+    by: Option[String] = None, 
+    get: List[String] = Nil)(implicit format: Format, parse: Parse[A]) extends KeyCommand {
+
+    type Ret = List[A]
+    val commands: Seq[Any] = makeSortArgs(key, limit, desc, alpha, by, get)
+    val line = multiBulk("SORT" +: (commands map format.apply))
+    val ret  = (_: RedisReply[_]).asList[A].flatten
+  }
+
+  case class SortNStore[A](key: String, 
+    limit: Option[Pair[Int, Int]] = None, 
+    desc: Boolean = false, 
+    alpha: Boolean = false, 
+    by: Option[String] = None, 
+    get: List[String] = Nil,
+    storeAt: String)(implicit format: Format, parse: Parse[A]) extends KeyCommand {
+
+    type Ret = Long
+    val commands: Seq[Any] = makeSortArgs(key, limit, desc, alpha, by, get) ::: List("STORE", storeAt)
+    val line = multiBulk("SORT" +: (commands map format.apply))
+    val ret  = (_: RedisReply[_]).asLong
+  }
+
+  private def makeSortArgs(key: String, 
+    limit: Option[Pair[Int, Int]] = None, 
+    desc: Boolean = false, 
+    alpha: Boolean = false, 
+    by: Option[String] = None, 
+    get: List[String] = Nil): List[Any] = {
+
+    List(List(key), limit.map(l => List("LIMIT", l._1, l._2)).getOrElse(Nil)
+      , (if (desc) List("DESC") else Nil)
+      , (if (alpha) List("ALPHA") else Nil)
+      , by.map(b => List("BY", b)).getOrElse(Nil)
+      , get.map(g => List("GET", g)).flatMap(x=>x)
+    ).flatMap(x=>x)
+  }
+
   // case class Select ..
 }

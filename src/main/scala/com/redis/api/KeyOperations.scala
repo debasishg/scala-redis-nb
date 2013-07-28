@@ -116,4 +116,25 @@ trait KeyOperations { this: RedisOps =>
   // to persistent (a key that will never expire as no timeout is associated).
   def persist(key: Any)(implicit timeout: Timeout, format: Format) =
     clientRef.ask(Persist(key)).mapTo[Boolean]
+
+  // SORT
+  // sort keys in a set, and optionally pull values for them
+  def sort[A](key: String, 
+    limit: Option[Pair[Int, Int]] = None, 
+    desc: Boolean = false, 
+    alpha: Boolean = false, 
+    by: Option[String] = None, 
+    get: List[String] = Nil)(implicit timeout: Timeout, format: Format, parse: Parse[A]) =
+    clientRef.ask(Sort(key, limit, desc, alpha, by, get)).mapTo[List[A]]
+
+  // SORT with STORE
+  // sort keys in a set, and store result in the supplied key
+  def sortNStore[A](key: String, 
+    limit: Option[Pair[Int, Int]] = None, 
+    desc: Boolean = false, 
+    alpha: Boolean = false, 
+    by: Option[String] = None, 
+    get: List[String] = Nil,
+    storeAt: String)(implicit timeout: Timeout, format:Format, parse:Parse[A]) =
+    clientRef.ask(SortNStore(key, limit, desc, alpha, by, get, storeAt)).mapTo[Long]
 }
