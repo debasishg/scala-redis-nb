@@ -25,6 +25,8 @@ package object protocol {
 
   case class RedisReplyEvent(replies: List[RedisReply[_]]) extends Event
 
+  case object RequestQueueEmpty extends Event
+
 
   case class RedisError(message: String) extends Throwable(message)
 

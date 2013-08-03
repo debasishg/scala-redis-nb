@@ -1,10 +1,9 @@
 package com.redis
 
-import java.net.{InetAddress, InetSocketAddress}
-import scala.collection.immutable.Queue
+import java.net.InetSocketAddress
 import akka.actor._
-import akka.actor.Status.Failure
 import akka.io.{BackpressureBuffer, IO, Tcp, TcpPipelineHandler}
+import scala.collection.immutable.Queue
 import scala.language.existentials
 import scala.annotation.tailrec
 import pipeline._
@@ -14,14 +13,19 @@ import protocol._
 object RedisClient {
   import api.RedisOps
 
-  def apply(remote: InetSocketAddress, name: String = defaultName)(implicit refFactory: ActorRefFactory): RedisOps =
-    new RedisOps(refFactory.actorOf(Props(new RedisClient(remote)), name = name))
+  def apply(host: String, port: Int = 6379, name: String = defaultName,
+            settings: RedisClientSettings = RedisClientSettings())(implicit refFactory: ActorRefFactory): RedisOps =
+    apply(new InetSocketAddress(host, port), name, settings)
+
+  def apply(remote: InetSocketAddress, name: String, settings: RedisClientSettings)
+           (implicit refFactory: ActorRefFactory): RedisOps =
+    new RedisOps(refFactory.actorOf(Props(classOf[RedisClient], remote, settings), name = name))
 
   private def defaultName = "redis-client-" + nameSeq.next
   private val nameSeq = Iterator from 0
 }
 
-private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLogging {
+private class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) extends Actor with ActorLogging {
   import Tcp._
   import context.system
 
@@ -36,14 +40,14 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
       log.info("Attempting to send command before connected: {}", cmd)
       addPendingRequest(cmd)
 
-    case c @ Connected(remote, _) =>
+    case Connected(remote, _) =>
       log.info("Connected to redis server {}:{}.", remote.getHostName, remote.getPort)
       val connection = sender
       val pipe = context.actorOf(TcpPipelineHandler.props(init, connection, self), name = "pipeline")
       connection ! Register(pipe)
-      context.watch(pipe)
+      sendAllPendingRequests(pipe)
       context become (running(pipe))
-      flushRequestQueue(pipe)
+      context watch pipe
 
     case CommandFailed(c: Connect) =>
       log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
@@ -60,7 +64,7 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
 
     case c: CloseCommand =>
       log.info("Got to close ..")
-      flushRequestQueue(pipe)
+      sendAllPendingRequests(pipe)
       context become (closing(pipe))
   }
 
@@ -72,12 +76,17 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
     case init.Event(BackpressureBuffer.LowWatermarkReached) =>
       log.info("Client backpressure became lower, resuming...")
       context become running(pipe)
-      flushRequestQueue(pipe)
+      sendAllPendingRequests(pipe)
   }
 
   def closing(pipe: ActorRef): Receive = withTerminationManagement {
-    case init.Event(evt) =>
-      log.warning("Stopping by {}", evt)
+    case init.Event(RequestQueueEmpty) =>
+      log.debug("All done.")
+      context stop self
+
+    case init.Event(Closed) =>
+      log.debug("Closed")
+      context stop self
   }
 
   def withTerminationManagement(handler: Receive): Receive = handler orElse {
@@ -85,10 +94,6 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
       log.info("Child termination detected: {}", x)
       context stop self
     }
-
-    case x =>
-      log.error("Unknown command: {}", x)
-      context stop self
   }
 
   def addPendingRequest(cmd: RedisCommand): Unit =
@@ -98,22 +103,28 @@ private class RedisClient(remote: InetSocketAddress) extends Actor with ActorLog
     pipe ! init.Command(req)
 
   @tailrec
-  final def flushRequestQueue(pipe: ActorRef): Unit =
+  final def sendAllPendingRequests(pipe: ActorRef): Unit =
     if (pendingRequests.nonEmpty) {
       sendRequest(pipe, pendingRequests.head)
       pendingRequests = pendingRequests.tail
-      flushRequestQueue(pipe)
+      sendAllPendingRequests(pipe)
     }
 
 
-  val init = TcpPipelineHandler.withLogger(log,
-    new ResponseHandling() >>
-    new Serializing() >>
-    new BackpressureBuffer(
-      lowBytes = 100,
-      highBytes = 4000,
-      maxBytes = 5000
-    )
-  )
+  val init = {
+    import RedisClientSettings._
+    import settings._
+
+    val stages = Seq(
+      Some(new ResponseHandling),
+      Some(new Serializing),
+      backpressureBufferSettings map {
+        case BackpressureBufferSettings(lowBytes, highBytes, maxBytes) =>
+          new BackpressureBuffer(lowBytes, highBytes, maxBytes)
+      }
+    ).flatten.reduceLeft(_ >> _)
+
+    TcpPipelineHandler.withLogger(log, stages)
+  }
 
 }

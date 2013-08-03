@@ -24,7 +24,7 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
     private def handleResponse(data: CompactByteString): Iterable[Result] = {
       @tailrec
       def parseAndDispatch(): Iterable[Result] =
-        if (sentRequests.isEmpty) ctx.nothing
+        if (sentRequests.isEmpty) ctx.singleEvent(RequestQueueEmpty)
         else {
           val RedisRequest(commander, cmd) = sentRequests.head
           parser.parse() match {
@@ -44,7 +44,7 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
               sentRequests = sentRequests.tail
               parseAndDispatch()
 
-            case Result.NeedMoreData => ctx.nothing
+            case Result.NeedMoreData => ctx.singleEvent(RequestQueueEmpty)
 
             case Result.Failed(err, data) =>
               log.error(err, "Failed to parse response: {}", data.utf8String.replace("\r\n", "\\r\\n"))

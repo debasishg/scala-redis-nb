@@ -10,7 +10,7 @@ sealed trait RedisCommand {
   type Ret
 
   // command input : the request protocol of redis (upstream)
-  val line: ByteString
+  def line: ByteString
 
   // mapping of redis reply to the final return type
   val ret: RedisReply[_] => Ret
