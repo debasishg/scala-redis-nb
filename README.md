@@ -16,8 +16,7 @@ implicit val executionContext = system.dispatcher
 implicit val timeout = AkkaTimeout(5 seconds)
 
 // Redis client setup
-val endpoint = new InetSocketAddress("localhost", 6379)
-val client = RedisClient(endpoint)
+val client = RedisClient("localhost", 6379)
 ```
 
 ```scala

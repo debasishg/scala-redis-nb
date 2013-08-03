@@ -1,6 +1,5 @@
 package com.redis
 
-import java.net.InetSocketAddress
 import scala.concurrent.duration._
 import akka.util.{Timeout => AkkaTimeout}
 import akka.actor._
@@ -27,8 +26,7 @@ trait RedisSpecBase extends FunSpec
   implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
   // Redis client setup
-  val endpoint = new InetSocketAddress("localhost", 6379)
-  val client = RedisClient(endpoint)
+  val client = RedisClient("localhost", 6379)
 
   override def beforeEach = {
     client.flushdb()
