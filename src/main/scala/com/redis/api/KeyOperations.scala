@@ -137,4 +137,9 @@ trait KeyOperations { this: RedisOps =>
     get: List[String] = Nil,
     storeAt: String)(implicit timeout: Timeout, format:Format, parse:Parse[A]) =
     clientRef.ask(SortNStore(key, limit, desc, alpha, by, get, storeAt)).mapTo[Long]
+
+  // SELECT (index)
+  // selects the DB to connect, defaults to 0 (zero).
+  def select(index: Int)(implicit timeout: Timeout, format: Format) =
+    clientRef.ask(Select(index)).mapTo[Boolean]
 }

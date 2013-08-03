@@ -23,6 +23,7 @@ trait SetCommand          extends RedisCommand
 trait SortedSetCommand    extends RedisCommand
 trait HashCommand         extends RedisCommand
 trait NodeCommand         extends RedisCommand
+trait EvalCommand         extends RedisCommand
 
 object RedisCommand {
 
