@@ -137,5 +137,9 @@ object KeyCommands {
     ).flatMap(x=>x)
   }
 
-  // case class Select ..
+  case class Select(index: Int)(implicit format: Format) extends KeyCommand {
+    type Ret = Boolean
+    val line = multiBulk("SELECT" +: (Seq(index) map format.apply))
+    val ret  = (_: RedisReply[_]).asBoolean
+  }
 }
