@@ -65,7 +65,7 @@ class EvalOperationsSpec extends RedisSpecBase {
       
       import com.redis.serialization.Parse.Implicits._
       val rs = client.scriptExists(shahash.get).futureValue
-      rs should equal (Some(1))
+      rs should equal (List(1))
     }
     
     it("should remove script cache") {      
@@ -77,7 +77,7 @@ class EvalOperationsSpec extends RedisSpecBase {
       
       client.scriptFlush.futureValue should equal (Some("OK"))
       
-      client.scriptExists(shahash.get).futureValue should equal (Some(0))
+      client.scriptExists(shahash.get).futureValue should equal (List(0))
     }
   }
 }
