@@ -25,7 +25,7 @@ trait EvalOperations { this: RedisOps =>
     clientRef.ask(ScriptLoad(script)).mapTo[Option[String]]
 
   def scriptExists(shaHash: String)(implicit timeout: Timeout) =
-    clientRef.ask(ScriptExists(shaHash)).mapTo[Option[Int]]
+    clientRef.ask(ScriptExists(shaHash)).mapTo[List[Int]]
 
   def scriptFlush(implicit timeout: Timeout) =
     clientRef.ask(ScriptFlush).mapTo[Option[String]]

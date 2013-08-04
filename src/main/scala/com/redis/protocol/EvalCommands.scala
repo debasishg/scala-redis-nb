@@ -31,14 +31,15 @@ object EvalCommands {
 
   case class ScriptLoad(script: String) extends EvalCommand {
     type Ret = Option[String]
-    def line = multiBulk("LOAD" +: Seq(script))
+    def line = multiBulk("SCRIPT" +: Seq("LOAD", script))
     val ret  = (_: RedisReply[_]).asBulk[String]
   }
-
+      
+  import com.redis.serialization.Parse.Implicits._
   case class ScriptExists(shaHash: String) extends EvalCommand {
-    type Ret = Option[Int]
+    type Ret = List[Int]
     def line = multiBulk("SCRIPT" +: Seq("EXISTS", shaHash))
-    val ret  = (_: RedisReply[_]).asList[String].flatten.headOption.map(_.toInt).orElse(None)
+    val ret  = (_: RedisReply[_]).asList[Int].flatten
   }
 
   case object ScriptFlush extends EvalCommand {
