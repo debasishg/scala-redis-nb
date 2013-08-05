@@ -1,29 +1,18 @@
 package com.redis.protocol
 
-import scala.concurrent.Promise
-import scala.util.Try
 import akka.util.{ByteString, ByteStringBuilder}
+import com.redis.serialization.PartialDeserializer
 
 
-sealed trait RedisCommand {
-  // command returns Option[Ret]
-  type Ret
+abstract class RedisCommand[A]()(implicit _des: PartialDeserializer[A]) {
+
+  type Ret = A
 
   // command input : the request protocol of redis (upstream)
   def line: ByteString
 
-  // mapping of redis reply to the final return type
-  val ret: RedisReply[_] => Ret
+  def des = _des
 }
-
-trait StringCommand       extends RedisCommand
-trait ListCommand         extends RedisCommand
-trait KeyCommand          extends RedisCommand
-trait SetCommand          extends RedisCommand
-trait SortedSetCommand    extends RedisCommand
-trait HashCommand         extends RedisCommand
-trait NodeCommand         extends RedisCommand
-trait EvalCommand         extends RedisCommand
 
 object RedisCommand {
 

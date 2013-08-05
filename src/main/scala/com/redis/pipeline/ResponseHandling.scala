@@ -6,10 +6,11 @@ import akka.actor.ActorRef
 import akka.actor.Status.Failure
 import akka.util.CompactByteString
 import com.redis.protocol._
-import com.redis.serialization.Deserializer
+import com.redis.serialization.{PartialDeserializer, Deserializer}
 import com.redis.serialization.Deserializer.Result
 import scala.collection.immutable.Queue
 import scala.annotation.tailrec
+import scala.language.existentials
 
 
 class ResponseHandling extends PipelineStage[WithinActorContext, Command, Command, Event, Event] {
@@ -23,26 +24,21 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
 
     private def handleResponse(data: CompactByteString): Iterable[Result] = {
       @tailrec
-      def parseAndDispatch(): Iterable[Result] =
+      def parseAndDispatch(data: CompactByteString): Iterable[Result] =
         if (sentRequests.isEmpty) ctx.singleEvent(RequestQueueEmpty)
         else {
           val RedisRequest(commander, cmd) = sentRequests.head
-          parser.parse() match {
-            case Result.Ok(reply) =>
+          parser.parse(data, cmd.des) match {
+            case Result.Ok(reply, remaining) =>
               val result = reply match {
-                case err: ErrorReply    =>
-                  Failure(err.value)
+                case err: RedisError => Failure(err)
 
-                case rep: RedisReply[_] =>
-                  try cmd.ret(rep) catch {
-                    case e: Throwable =>
-                      log.error(e, "Error on marshalling {} requested by {}", rep, cmd)
-                      Failure(e)
-                  }
+                case _ => reply
               }
+              log.debug("RESULT: {}", result)
               commander.tell(result, redisClientRef)
               sentRequests = sentRequests.tail
-              parseAndDispatch()
+              parseAndDispatch(remaining)
 
             case Result.NeedMoreData => ctx.singleEvent(RequestQueueEmpty)
 
@@ -53,8 +49,7 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
         }
 
       log.debug("Received data from server: {}", data.utf8String.replace("\r\n", "\\r\\n"))
-      parser.append(data)
-      parseAndDispatch()
+      parseAndDispatch(data)
     }
 
 

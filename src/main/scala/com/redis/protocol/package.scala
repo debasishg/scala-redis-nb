@@ -3,6 +3,7 @@ package com.redis
 import akka.io.Tcp
 import akka.actor.ActorRef
 import akka.util.ByteString
+import scala.language.existentials
 
 
 package object protocol {
@@ -14,7 +15,7 @@ package object protocol {
   val ConfirmedClose = Tcp.ConfirmedClose
   val Abort = Tcp.Abort
 
-  case class RedisRequest(sender: ActorRef, command: RedisCommand) extends Command
+  case class RedisRequest(sender: ActorRef, command: RedisCommand[_]) extends Command
 
 
   type Event = Tcp.Event
