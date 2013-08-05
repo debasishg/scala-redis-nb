@@ -43,9 +43,9 @@ object EvalCommands {
   }
 
   case object ScriptFlush extends EvalCommand {
-    type Ret = Option[String]
+    type Ret = Boolean
     def line = multiBulk("SCRIPT" +: Seq("FLUSH"))
-    val ret  = (_: RedisReply[_]).asBulk[String]
+    val ret  = (_: RedisReply[_]).asBoolean
   }
 
   private def argsForEval(luaCode: String, keys: List[Any], args: List[Any]): List[Any] =
