@@ -47,9 +47,12 @@ case class ErrorReply(value: RedisError) extends RedisReply[RedisError] {
   final override def asBoolean = false
 }
 
-case class MultiBulkReply(value: List[BulkReply]) extends RedisReply[List[BulkReply]] {
+case class MultiBulkReply(value: List[RedisReply[_]]) extends RedisReply[List[RedisReply[_]]] {
 
-  final override def asList[A: Parse] = value.map { _.value map implicitly[Parse[A]] }
+  final override def asList[A](implicit parse: Parse[A]) = value.map {
+    case BulkReply(strOpt) => strOpt map parse
+    case x => Some(parse(x.value.toString))
+  }
 
   final override def asListPairs[A: Parse, B: Parse]: List[Option[(A,B)]] = {
     val parseA = implicitly[Parse[A]]

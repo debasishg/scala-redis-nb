@@ -75,7 +75,7 @@ class EvalOperationsSpec extends RedisSpecBase {
 	        """
       val shahash = client.scriptLoad(luaCode).futureValue
       
-      client.scriptFlush.futureValue should equal (Some("OK"))
+      client.scriptFlush.futureValue should be (true)
       
       client.scriptExists(shahash.get).futureValue should equal (List(0))
     }
