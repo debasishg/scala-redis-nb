@@ -15,9 +15,9 @@ class Deserializer {
   def append(data: CompactByteString): Unit =
     input = input append data
 
-  def parse(transaction: Boolean = false): Result =
+  def parse(): Result =
     try {
-      val result = parseAny(transaction)
+      val result = parseReply()
       input = input.remaining()
       Result.Ok(result)
     } catch {
@@ -29,7 +29,7 @@ class Deserializer {
         Result.Failed(e, input.data)
     }
 
-  def parseAny(transaction: Boolean = false): RedisReply[_] =
+  def parseReply(): RedisReply[_] =
     input.nextByte() match {
       case Bulk => BulkReply(parseBulk())
       case Integer => IntegerReply(parseLong())
@@ -82,13 +82,12 @@ class Deserializer {
     }
   }
 
-  def parseMultiBulk(): List[BulkReply] = {
-    val buffer = new ListBuffer[BulkReply]
+  def parseMultiBulk(): List[RedisReply[_]] = {
+    val buffer = new ListBuffer[RedisReply[_]]
     val len = parseInt()
 
     @tailrec def inner(i: Int): Unit = if (i > 0) {
-      input.jump(1)
-      val a = BulkReply(parseBulk())
+      val a = parseReply()
       buffer += a
       inner(i - 1)
     }
