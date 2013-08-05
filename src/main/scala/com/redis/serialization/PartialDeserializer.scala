@@ -29,7 +29,7 @@ object PartialDeserializer extends LowPriorityPD {
   implicit val stringPD    = new PrefixDeserializer[String]         (Bulk,    readString _)
   implicit val optStringPD = new PrefixDeserializer[Option[String]] (Bulk,    readBulk _)
   implicit val booleanPD = apply(
-    new PrefixDeserializer[Boolean](Status, (x: RawReply) => StatusReply(readSingle(x)).asBoolean) orElse
+    new PrefixDeserializer[Boolean](Status, (x: RawReply) => {readSingle(x); true })orElse
     (longPD andThen (_ > 0)) orElse
     (optStringPD andThen (_.isDefined))
   )

@@ -24,10 +24,7 @@ package object protocol {
   val ConfirmedClosed = Tcp.ConfirmedClosed
   val Aborted = Tcp.Aborted
 
-  case class RedisReplyEvent(replies: List[RedisReply[_]]) extends Event
-
   case object RequestQueueEmpty extends Event
-
 
   case class RedisError(message: String) extends Throwable(message)
 
