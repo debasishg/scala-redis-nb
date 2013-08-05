@@ -51,7 +51,6 @@ case class MultiBulkReply(value: List[RedisReply[_]]) extends RedisReply[List[Re
 
   final override def asList[A](implicit parse: Parse[A]) = value.map {
     case BulkReply(strOpt) => strOpt map parse
-    case a: RedisReply[_] if a.value.isInstanceOf[A] => Some(a.value.asInstanceOf[A])
     case x => Some(parse(x.value.toString))
   }
 
