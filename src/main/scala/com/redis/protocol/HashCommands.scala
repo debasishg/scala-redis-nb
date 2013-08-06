@@ -50,7 +50,7 @@ object HashCommands {
     def line = multiBulk("HVALS" +: (List(key) map format.apply))
   }
   
-  case class HGetall[K,V](key: Any)
+  case class HGetall[K, V](key: Any)
                          (implicit format: Format, parseK: Parse[K], parseV: Parse[V]) extends RedisCommand[Map[K, V]] {
     def line = multiBulk("HGETALL" +: (List(key) map format.apply))
   }
