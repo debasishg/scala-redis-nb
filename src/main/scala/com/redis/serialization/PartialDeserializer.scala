@@ -53,12 +53,15 @@ private[serialization] trait LowPriorityPD extends CommandSpecificPD {
     pairOptionIteratorPD[A, B] andThen (_.next)
 
   implicit def mapPD[K, V](implicit parseA: Parse[K], parseB: Parse[V]): PartialDeserializer[Map[K, V]] =
-    pairOptionIteratorPD[K, V] andThen (_.flatten.toMap)
+    pairIteratorPD[K, V] andThen (_.toMap)
 
-  implicit def pairOptionIteratorPD[A, B](implicit parseA: Parse[A], parseB: Parse[B]): PartialDeserializer[Iterator[Option[(A, B)]]] =
-    multiBulkPD[Option[String], Iterable] andThen (_.grouped(2).flatMap {
-      case Seq(Some(a), Some(b)) => Iterator.single(Some((parseA(a), parseB(b))))
-      case _ => Iterator.single(None)
+  protected def pairIteratorPD[A, B](implicit parseA: Parse[A], parseB: Parse[B]): PartialDeserializer[Iterator[(A, B)]] =
+    multiBulkPD[String, Iterable] andThen (_.grouped(2).map { case Seq(a, b) => (parseA(a), parseB(b)) })
+
+  protected def pairOptionIteratorPD[A, B](implicit parseA: Parse[A], parseB: Parse[B]): PartialDeserializer[Iterator[Option[(A, B)]]] =
+    multiBulkPD[Option[String], Iterable] andThen (_.grouped(2).map {
+      case Seq(Some(a), Some(b)) => Some((parseA(a), parseB(b)))
+      case _ => None
     })
 }
 
@@ -72,9 +75,9 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
   import Parse.Implicits._
   implicit def doublePD: PartialDeserializer[Option[Double]] = parsedOptionPD[Double]
   implicit def scoredListPD[A](implicit parseA: Parse[A]): PartialDeserializer[List[(A, Double)]] =
-    pairOptionIteratorPD[A, Double] andThen (_.flatten.toList)
+    pairIteratorPD[A, Double] andThen (_.toList)
 
   // special deserializer for Hash
   def hmgetPD[K, V](fields: K*)(implicit parseV: Parse[V]): PartialDeserializer[Map[K, V]] =
-    multiBulkPD[Option[V], Iterable] andThen { _.zip(fields).collect { case (Some(value), field) => (field, value) }.toMap }
+    multiBulkPD[Option[V], Iterable] andThen { _.view.zip(fields).collect { case (Some(value), field) => (field, value) }.toMap }
 }
