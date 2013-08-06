@@ -45,37 +45,33 @@ object PartialDeserializer extends LowPriorityPD {
 private[serialization] trait LowPriorityPD extends CommandSpecificPD {
   import PartialDeserializer._
 
+  implicit def parsedPD[A](implicit parse: Parse[A]): PartialDeserializer[A] =
+    stringPD andThen parse
+
   implicit def parsedOptionPD[A](implicit parse: Parse[A]): PartialDeserializer[Option[A]] =
     bulkPD andThen (_ map parse)
 
-  implicit def pairOptionPD[A, B](implicit parseA: Parse[A], parseB: Parse[B]): PartialDeserializer[Option[(A, B)]] =
-    listPairPD[A, B] andThen (_.head)
-
-  implicit def listPD[A](implicit parse: Parse[A]): PartialDeserializer[List[A]] =
-    multiBulkPD[String] andThen (_.map(parse))
-
-  implicit def listOptPD[A](implicit parse: Parse[A]): PartialDeserializer[List[Option[A]]] =
-    multiBulkPD[Option[String]] andThen (_ map (_ map parse))
-
   implicit def setPD[A](implicit parse: Parse[A]): PartialDeserializer[Set[A]] =
-    listPD[A] andThen (_.toSet)
+    multiBulkPD[A] andThen (_.toSet)
 
   implicit def listPairPD[A, B](implicit parseA: Parse[A], parseB: Parse[B]): PartialDeserializer[List[Option[(A, B)]]] =
-    listOptPD[String] andThen (_.grouped(2).flatMap {
+    multiBulkPD[Option[String]] andThen (_.grouped(2).flatMap {
       case List(Some(a), Some(b)) => Iterator.single(Some((parseA(a), parseB(b))))
       case _ => Iterator.single(None)
     }.toList)
 
+  implicit def pairOptionPD[A, B](implicit parseA: Parse[A], parseB: Parse[B]): PartialDeserializer[Option[(A, B)]] =
+    listPairPD[A, B] andThen (_.head)
+
   implicit def mapPD[K, V](implicit parseA: Parse[K], parseB: Parse[V]): PartialDeserializer[Map[K, V]] =
     listPairPD[K, V] andThen (_.flatten.toMap)
-
 }
 
 private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
   import PartialDeserializer._
 
   // special deserializer for Eval
-  implicit val intListPD: PartialDeserializer[List[Int]] = new PrefixDeserializer[List[Int]](Multi, readMultiBulk(_)(intPD))
+  implicit val intListPD: PartialDeserializer[List[Int]] = multiBulkPD(intPD)
 
   // special deserializers for Sorted Set
   import Parse.Implicits._
@@ -85,6 +81,5 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
 
   // special deserializer for Hash
   def hmgetPD[K, V](fields: K*)(implicit parseV: Parse[V]): PartialDeserializer[Map[K, V]] =
-    listOptPD[V] andThen (_.zip(fields).collect { case (Some(value), field) => (field, value) }.toMap)
-
+    multiBulkPD[Option[V]] andThen (_.zip(fields).collect { case (Some(value), field) => (field, value) }.toMap)
 }
