@@ -36,7 +36,7 @@ class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) exte
   def receive = unconnected
 
   def unconnected: Receive = {
-    case cmd: RedisCommand =>
+    case cmd: RedisCommand[_] =>
       log.info("Attempting to send command before connected: {}", cmd)
       addPendingRequest(cmd)
 
@@ -55,7 +55,7 @@ class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) exte
   }
 
   def running(pipe: ActorRef): Receive = withTerminationManagement {
-    case command: RedisCommand =>
+    case command: RedisCommand[_] =>
       sendRequest(pipe, RedisRequest(sender, command))
 
     case init.Event(BackpressureBuffer.HighWatermarkReached) =>
@@ -69,7 +69,7 @@ class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) exte
   }
 
   def buffering(pipe: ActorRef): Receive = withTerminationManagement {
-    case cmd: RedisCommand =>
+    case cmd: RedisCommand[_] =>
       log.debug("Received a command while buffering: {}", cmd)
       addPendingRequest(cmd)
 
@@ -96,7 +96,7 @@ class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) exte
     }
   }
 
-  def addPendingRequest(cmd: RedisCommand): Unit =
+  def addPendingRequest(cmd: RedisCommand[_]): Unit =
     pendingRequests :+= RedisRequest(sender, cmd)
 
   def sendRequest(pipe: ActorRef, req: RedisRequest): Unit =

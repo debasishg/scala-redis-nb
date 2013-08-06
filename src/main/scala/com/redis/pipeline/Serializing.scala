@@ -9,7 +9,7 @@ class Serializing extends PipelineStage[HasLogging, Command, Command, Event, Eve
   def apply(ctx: HasLogging) = new PipePair[Command, Command, Event, Event] {
     import ctx.{getLogger => log}
 
-    def render(req: RedisCommand) = {
+    def render(req: RedisCommand[_]) = {
       ctx.singleCommand(Tcp.Write(req.line))
     }
 
