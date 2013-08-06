@@ -21,14 +21,12 @@ object ScalaRedisProject extends Build
           "com.typesafe.akka" %%  "akka-actor"      % "2.2.0",
           "com.typesafe.akka" %%  "akka-slf4j"      % "2.2.0"         % "provided",
           "commons-pool"      %   "commons-pool"    % "1.6",
-          "org.scala-lang"    %   "scala-actors"    % "2.10.2",
           "org.slf4j"         %   "slf4j-api"       % "1.7.5"         % "provided",
           "ch.qos.logback"    %   "logback-classic" % "1.0.13"        % "provided",
           "junit"             %   "junit"           % "4.11"          % "test",
-          "org.scalatest"     %%  "scalatest"       % "2.0.M6-SNAP35" % "test"),
+          "org.scalatest"     %%  "scalatest"       % "2.0.RC1-SNAP1" % "test"),
     parallelExecution in Test := false,
-    fork in Test := true,
-    publishTo <<= version { (v: String) => 
+    publishTo <<= version { (v: String) =>
       val nexus = "https://oss.sonatype.org/" 
       if (v.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
       else Some("releases" at nexus + "service/local/staging/deploy/maven2") 

@@ -113,8 +113,6 @@ class KeyOperationsSpec extends RedisSpecBase {
     }
   }
 
-  import com.redis.serialization._
-  import com.redis.serialization.Parse._
   import com.redis.serialization.Parse.Implicits._
 
   describe("sortNStore") {
