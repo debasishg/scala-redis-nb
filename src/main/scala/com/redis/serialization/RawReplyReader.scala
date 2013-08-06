@@ -2,9 +2,10 @@ package com.redis.serialization
 
 import scala.annotation.tailrec
 import scala.collection.mutable.{ArrayBuilder, ListBuffer}
+import akka.util.CompactByteString
 
 
-object ByteStringReader {
+private[serialization] object RawReplyReader {
   import com.redis.protocol._
 
   def readInt(input: RawReply): Int = {
@@ -82,5 +83,61 @@ object ByteStringReader {
     buffer.sizeHint(len)
     inner(len)
     buffer.result
+  }
+
+  class RawReply(val data: CompactByteString, private[this] var cursor: Int = 0) {
+    import com.redis.serialization.Deserializer._
+
+    def ++(other: CompactByteString) = new RawReply((data ++ other).compact, cursor)
+
+    def hasNext = cursor < data.length
+
+    def head =
+      if (!hasNext) throw NotEnoughDataException
+      else data(cursor)
+
+    private[RawReplyReader] def nextByte() =
+      if (!hasNext) throw NotEnoughDataException
+      else {
+        val res = data(cursor)
+        cursor += 1
+        res
+      }
+
+    private[RawReplyReader] def jump(amount: Int) {
+      if (cursor + amount > data.length) throw NotEnoughDataException
+      else cursor += amount
+    }
+
+    private[RawReplyReader] def take(amount: Int) =
+      if (cursor + amount >= data.length) throw NotEnoughDataException
+      else {
+        val res = data.slice(cursor, cursor + amount)
+        cursor += amount
+        res
+      }
+
+    def remaining() = data.drop(cursor).compact
+  }
+
+  class PrefixDeserializer[A](prefix: Byte, read: RawReply => A) extends PartialDeserializer[A] {
+    def isDefinedAt(x: RawReply) = x.head == prefix
+    def apply(r: RawReply) = { r.jump(1); read(r) }
+  }
+
+  object PrefixDeserializer {
+    val _intPD     = new PrefixDeserializer[Int]            (Integer, readInt _)
+    val _longPD    = new PrefixDeserializer[Long]           (Integer, readLong _)
+    val _stringPD  = new PrefixDeserializer[String]         (Bulk,    readString _)
+    val _bulkPD    = new PrefixDeserializer[Option[String]] (Bulk,    readBulk _)
+    val _errorPD   = new PrefixDeserializer[RedisError]     (Err,     readError _)
+
+    val _booleanPD =
+      new PrefixDeserializer[Boolean](Status, (x: RawReply) => {readSingle(x); true }) orElse
+        (_longPD andThen (_ > 0)) orElse
+        (_bulkPD andThen (_.isDefined))
+
+    def _multiBulkPD[A](implicit pd: PartialDeserializer[A]) =
+      new PrefixDeserializer[List[A]](Multi, readMultiBulk(_)(pd))
   }
 }

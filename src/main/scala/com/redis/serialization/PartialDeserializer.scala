@@ -1,20 +1,12 @@
 package com.redis.serialization
 
-import com.redis.protocol._
-import ByteStringReader._
+import RawReplyReader._
 
 
 trait PartialDeserializer[A] extends PartialFunction[RawReply, A] {
   def orElse(pf: PartialFunction[RawReply, A]) = PartialDeserializer(super.orElse(pf))
 
   override def andThen[B](f: A => B) = PartialDeserializer(super.andThen(f))
-}
-
-class PrefixDeserializer[A](prefix: Byte, read: RawReply => A) extends PartialDeserializer[A] {
-
-  def isDefinedAt(x: RawReply) = x.head == prefix
-
-  def apply(r: RawReply) = { r.jump(1); read(r) }
 }
 
 object PartialDeserializer extends LowPriorityPD {
@@ -25,21 +17,16 @@ object PartialDeserializer extends LowPriorityPD {
       def apply(x: RawReply) = pf.apply(x)
     }
 
-  def apply[A](prefix: Byte, f: RawReply => A): PartialDeserializer[A] = new PrefixDeserializer[A](prefix, f)
+  import PrefixDeserializer._
 
-  implicit val intPD     = new PrefixDeserializer[Int]            (Integer, readInt _)
-  implicit val longPD    = new PrefixDeserializer[Long]           (Integer, readLong _)
-  implicit val stringPD  = new PrefixDeserializer[String]         (Bulk,    readString _)
-  implicit val bulkPD    = new PrefixDeserializer[Option[String]] (Bulk,    readBulk _)
-  implicit val booleanPD =
-    new PrefixDeserializer[Boolean](Status, (x: RawReply) => {readSingle(x); true }) orElse
-    (longPD andThen (_ > 0)) orElse
-    (bulkPD andThen (_.isDefined))
+  implicit val intPD     = _intPD
+  implicit val longPD    = _longPD
+  implicit val stringPD  = _stringPD
+  implicit val bulkPD    = _bulkPD
+  implicit val booleanPD = _booleanPD
+  implicit def multiBulkPD[A](implicit pd: PartialDeserializer[A]) = _multiBulkPD(pd)
 
-  implicit def multiBulkPD[A](implicit pd: PartialDeserializer[A]) =
-    new PrefixDeserializer[List[A]](Multi, readMultiBulk(_)(pd))
-
-  private[serialization] val errorPD = new PrefixDeserializer[RedisError](Err, readError _)
+  val errorPD = _errorPD
 }
 
 private[serialization] trait LowPriorityPD extends CommandSpecificPD {

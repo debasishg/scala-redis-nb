@@ -63,7 +63,6 @@ class EvalOperationsSpec extends RedisSpecBase {
 	        """
       val shahash = client.scriptLoad(luaCode).futureValue
       
-      import com.redis.serialization.Parse.Implicits._
       val rs = client.scriptExists(shahash.get).futureValue
       rs should equal (List(1))
     }

@@ -1,13 +1,12 @@
 package com.redis.serialization
 
 import akka.util.CompactByteString
-import scala.annotation.tailrec
-import scala.collection.mutable.{ListBuffer, ArrayBuilder}
 import scala.language.existentials
 
 
 class Deserializer {
   import Deserializer._
+  import RawReplyReader.RawReply
   import PartialDeserializer._
 
   var parse: (CompactByteString, PartialFunction[RawReply, _]) => Result = parseSafe

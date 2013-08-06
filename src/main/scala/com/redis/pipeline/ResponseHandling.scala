@@ -6,7 +6,7 @@ import akka.actor.ActorRef
 import akka.actor.Status.Failure
 import akka.util.CompactByteString
 import com.redis.protocol._
-import com.redis.serialization.{PartialDeserializer, Deserializer}
+import com.redis.serialization.Deserializer
 import com.redis.serialization.Deserializer.Result
 import scala.collection.immutable.Queue
 import scala.annotation.tailrec
