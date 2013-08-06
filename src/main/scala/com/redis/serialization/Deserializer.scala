@@ -16,7 +16,7 @@ class Deserializer {
     try {
       val rawReply = new RawReply(input)
       val result = (deserializerParts orElse errorPD)(rawReply)
-      Result.Ok(result, rawReply.remaining.compact)
+      Result.Ok(result, rawReply.remaining)
     } catch {
       case NotEnoughDataException =>
         parse = (i, d) => parseSafe((input ++ i).compact, d)

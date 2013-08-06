@@ -15,7 +15,7 @@ class RawReply(val data: CompactByteString, private[this] var cursor: Int = 0) {
     if (!hasNext) throw NotEnoughDataException
     else data(cursor)
 
-  def nextByte() =
+  private[serialization] def nextByte() =
     if (!hasNext) throw NotEnoughDataException
     else {
       val res = data(cursor)
@@ -23,12 +23,12 @@ class RawReply(val data: CompactByteString, private[this] var cursor: Int = 0) {
       res
     }
 
-  def jump(amount: Int) {
+  private[serialization] def jump(amount: Int) {
     if (cursor + amount > data.length) throw NotEnoughDataException
     else cursor += amount
   }
 
-  def take(amount: Int) =
+  private[serialization] def take(amount: Int) =
     if (cursor + amount >= data.length) throw NotEnoughDataException
     else {
       val res = data.slice(cursor, cursor + amount)
@@ -36,5 +36,5 @@ class RawReply(val data: CompactByteString, private[this] var cursor: Int = 0) {
       res
     }
 
-  def remaining() = data.drop(cursor)
+  def remaining() = data.drop(cursor).compact
 }
