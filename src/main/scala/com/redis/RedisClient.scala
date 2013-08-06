@@ -25,7 +25,7 @@ object RedisClient {
   private val nameSeq = Iterator from 0
 }
 
-private class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) extends Actor with ActorLogging {
+class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) extends Actor with ActorLogging {
   import Tcp._
   import context.system
 
