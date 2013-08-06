@@ -26,7 +26,7 @@ object ScalaRedisProject extends Build
           "junit"             %   "junit"           % "4.11"          % "test",
           "org.scalatest"     %%  "scalatest"       % "2.0.M6-SNAP36" % "test"),
     parallelExecution in Test := false,
-    fork in Test := true,
+//    fork in Test := true,
     publishTo <<= version { (v: String) => 
       val nexus = "https://oss.sonatype.org/" 
       if (v.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
