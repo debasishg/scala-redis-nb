@@ -35,17 +35,14 @@ object KeyCommands {
 
   case class Expire(key: Any, ttl: Int, millis: Boolean = false)(implicit format: Format) extends RedisCommand[Boolean] {
     def line = multiBulk((if (millis) "PEXPIRE" else "EXPIRE") +: (Seq(key, ttl) map format.apply))
-
   }
 
   case class ExpireAt(key: Any, timestamp: Long, millis: Boolean = false)(implicit format: Format) extends RedisCommand[Boolean] {
     def line = multiBulk((if (millis) "PEXPIREAT" else "EXPIREAT") +: (Seq(key, timestamp) map format.apply))
-
   }
 
   case class TTL(key: Any, millis: Boolean = false)(implicit format: Format) extends RedisCommand[Long] {
     def line = multiBulk((if (millis) "PTTL" else "TTL") +: Seq(format.apply(key)))
-
   }
 
   case class FlushDB(all: Boolean = false) extends RedisCommand[Boolean] {
@@ -102,8 +99,8 @@ object KeyCommands {
       , (if (desc) List("DESC") else Nil)
       , (if (alpha) List("ALPHA") else Nil)
       , by.map(b => List("BY", b)).getOrElse(Nil)
-      , get.map(g => List("GET", g)).flatMap(x=>x)
-    ).flatMap(x=>x)
+      , get.map(g => List("GET", g)).flatten
+    ).flatten
   }
 
   case class Select(index: Int)(implicit format: Format) extends RedisCommand[Boolean] {

@@ -1,6 +1,9 @@
 package com.redis.serialization
 
 import RawReplyReader._
+import scala.collection.generic.CanBuildFrom
+import scala.collection.GenTraversable
+import scala.language.higherKinds
 
 
 trait PartialDeserializer[A] extends PartialFunction[RawReply, A] {
@@ -24,7 +27,9 @@ object PartialDeserializer extends LowPriorityPD {
   implicit val stringPD  = _stringPD
   implicit val bulkPD    = _bulkPD
   implicit val booleanPD = _booleanPD
-  implicit def multiBulkPD[A](implicit pd: PartialDeserializer[A]) = _multiBulkPD(pd)
+
+  implicit def multiBulkPD[A, B[_] <: GenTraversable[_]](implicit cbf: CanBuildFrom[_, A, B[A]], pd: PartialDeserializer[A]) = _multiBulkPD(cbf, pd)
+  implicit def listPD[A](implicit pd: PartialDeserializer[A]) = multiBulkPD[A, List]
 
   val errorPD = _errorPD
 }
@@ -39,10 +44,10 @@ private[serialization] trait LowPriorityPD extends CommandSpecificPD {
     bulkPD andThen (_ map parse)
 
   implicit def setPD[A](implicit parse: Parse[A]): PartialDeserializer[Set[A]] =
-    multiBulkPD[A] andThen (_.toSet)
+    multiBulkPD[A, Set]
 
   implicit def listPairPD[A, B](implicit parseA: Parse[A], parseB: Parse[B]): PartialDeserializer[List[Option[(A, B)]]] =
-    multiBulkPD[Option[String]] andThen (_.grouped(2).flatMap {
+    multiBulkPD[Option[String], List] andThen (_.grouped(2).flatMap {
       case List(Some(a), Some(b)) => Iterator.single(Some((parseA(a), parseB(b))))
       case _ => Iterator.single(None)
     }.toList)
@@ -58,7 +63,7 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
   import PartialDeserializer._
 
   // special deserializer for Eval
-  implicit val intListPD: PartialDeserializer[List[Int]] = multiBulkPD(intPD)
+  implicit val intListPD: PartialDeserializer[List[Int]] = multiBulkPD[Int, List]
 
   // special deserializers for Sorted Set
   import Parse.Implicits._
@@ -68,5 +73,5 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
 
   // special deserializer for Hash
   def hmgetPD[K, V](fields: K*)(implicit parseV: Parse[V]): PartialDeserializer[Map[K, V]] =
-    multiBulkPD[Option[V]] andThen (_.zip(fields).collect { case (Some(value), field) => (field, value) }.toMap)
+    multiBulkPD[Option[V], Iterable] andThen { _.zip(fields).collect { case (Some(value), field) => (field, value) }.toMap }
 }

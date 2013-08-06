@@ -1,8 +1,11 @@
 package com.redis.serialization
 
 import scala.annotation.tailrec
-import scala.collection.mutable.{ArrayBuilder, ListBuffer}
+import scala.collection.mutable.ArrayBuilder
 import akka.util.CompactByteString
+import scala.collection.GenTraversable
+import scala.collection.generic.CanBuildFrom
+import scala.language.higherKinds
 
 
 private[serialization] object RawReplyReader {
@@ -71,18 +74,18 @@ private[serialization] object RawReplyReader {
   def readError(input: RawReply): RedisError =
     new RedisError(readSingle(input))
 
-  def readMultiBulk[A](input: RawReply)(implicit pd: PartialDeserializer[A]): List[A] = {
-    val buffer = new ListBuffer[A]
+  def readMultiBulk[A, B[_] <: GenTraversable[_]](input: RawReply)(implicit cbf: CanBuildFrom[_, A, B[A]], pd: PartialDeserializer[A]): B[A] = {
+    val builder = cbf.apply()
     val len = readInt(input)
 
     @tailrec def inner(i: Int): Unit = if (i > 0) {
-      buffer += pd(input)
+      builder += pd(input)
       inner(i - 1)
     }
 
-    buffer.sizeHint(len)
+    builder.sizeHint(len)
     inner(len)
-    buffer.result
+    builder.result
   }
 
   class RawReply(val data: CompactByteString, private[this] var cursor: Int = 0) {
@@ -137,7 +140,7 @@ private[serialization] object RawReplyReader {
         (_longPD andThen (_ > 0)) orElse
         (_bulkPD andThen (_.isDefined))
 
-    def _multiBulkPD[A](implicit pd: PartialDeserializer[A]) =
-      new PrefixDeserializer[List[A]](Multi, readMultiBulk(_)(pd))
+    def _multiBulkPD[A, B[_] <: GenTraversable[_]](implicit cbf: CanBuildFrom[_, A, B[A]], pd: PartialDeserializer[A]) =
+      new PrefixDeserializer[B[A]](Multi, readMultiBulk(_)(cbf, pd))
   }
 }
