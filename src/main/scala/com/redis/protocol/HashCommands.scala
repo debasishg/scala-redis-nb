@@ -21,12 +21,8 @@ object HashCommands {
     def line = multiBulk("HMSET" +: ((key :: flattenPairs(map)) map format.apply))
   }
   
-  case class HMGet[K,V](key: Any, fields: K*)
-                       (implicit format: Format, parseV: Parse[V]) extends RedisCommand[Map[K, V]]()(
-    PartialDeserializer(PartialDeserializer.listOptPD[V] andThen (_.zip(fields).collect {
-      case (Some(value), field) => (field, value)
-    }.toMap))
-  ) {
+  case class HMGet[K, V](key: Any, fields: K*)(implicit format: Format, parseV: Parse[V])
+      extends RedisCommand[Map[K, V]]()(PartialDeserializer.hmgetPD(fields: _*)) {
     def line = multiBulk("HMGET" +: ((key :: fields.toList) map format.apply))
   }
   
