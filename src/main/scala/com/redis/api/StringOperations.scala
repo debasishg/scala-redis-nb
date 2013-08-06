@@ -63,9 +63,9 @@ trait StringOperations { this: RedisOps =>
 
   // MGET (key, key, key, ...)
   // get the values of all the specified keys.
-  def mget[A](key: Any, keys: Any*)
-    (implicit timeout: Timeout, format: Format, parse: Parse[A]) =
-    clientRef.ask(MGet[A](key, keys:_*)).mapTo[MGet[A]#Ret]
+  def mget[K, V](key: K, keys: K*)
+    (implicit timeout: Timeout, format: Format, parseV: Parse[V]) =
+    clientRef.ask(MGet[K, V](key, keys:_*)).mapTo[MGet[K, V]#Ret]
 
   // MSET (key1 value1 key2 value2 ..)
   // set the respective key value pairs. Overwrite value if key exists

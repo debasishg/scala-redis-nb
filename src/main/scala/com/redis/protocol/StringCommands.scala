@@ -1,6 +1,6 @@
 package com.redis.protocol
 
-import com.redis.serialization.{Parse, Format}
+import com.redis.serialization.{PartialDeserializer, Parse, Format}
 import RedisCommand._
 
 
@@ -64,7 +64,8 @@ object StringCommands {
     )
   }
 
-  case class MGet[A](key: Any, keys: Any*)(implicit format: Format, parse: Parse[A]) extends RedisCommand[List[Option[A]]] {
+  case class MGet[K, V](key: K, keys: K*)(implicit format: Format, parseV: Parse[V])
+      extends RedisCommand[Map[K, V]]()(PartialDeserializer.keyedMapPD(key +: keys)) {
     def line = multiBulk("MGET" +: ((key :: keys.toList) map format.apply))
   }
 

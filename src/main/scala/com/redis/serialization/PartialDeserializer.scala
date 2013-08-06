@@ -77,7 +77,7 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
   implicit def scoredListPD[A](implicit parseA: Parse[A]): PartialDeserializer[List[(A, Double)]] =
     pairIteratorPD[A, Double] andThen (_.toList)
 
-  // special deserializer for Hash
-  def hmgetPD[K, V](fields: K*)(implicit parseV: Parse[V]): PartialDeserializer[Map[K, V]] =
+  // special deserializer for (H)MGET
+  def keyedMapPD[K, V](fields: Seq[K])(implicit parseV: Parse[V]): PartialDeserializer[Map[K, V]] =
     multiBulkPD[Option[V], Iterable] andThen { _.view.zip(fields).collect { case (Some(value), field) => (field, value) }.toMap }
 }

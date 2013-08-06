@@ -24,10 +24,9 @@ object ScalaRedisProject extends Build
           "org.slf4j"         %   "slf4j-api"       % "1.7.5"         % "provided",
           "ch.qos.logback"    %   "logback-classic" % "1.0.13"        % "provided",
           "junit"             %   "junit"           % "4.11"          % "test",
-          "org.scalatest"     %%  "scalatest"       % "2.0.M6-SNAP36" % "test"),
+          "org.scalatest"     %%  "scalatest"       % "2.0.RC1-SNAP1" % "test"),
     parallelExecution in Test := false,
-//    fork in Test := true,
-    publishTo <<= version { (v: String) => 
+    publishTo <<= version { (v: String) =>
       val nexus = "https://oss.sonatype.org/" 
       if (v.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
       else Some("releases" at nexus + "service/local/staging/deploy/maven2") 

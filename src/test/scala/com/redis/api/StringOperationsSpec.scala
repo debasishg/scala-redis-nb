@@ -50,7 +50,7 @@ class StringOperationsSpec extends RedisSpecBase {
       val writes = keys zip values map { case (key, value) => client.set(key, value) }
       val writeResults = Future.sequence(writes).futureValue
 
-      val reads = keys map { key => client.get(key) }
+      val reads = keys map (client.get(_))
       val readResults = Future.sequence(reads).futureValue
 
       readResults zip values foreach { case (result, expectedValue) =>
@@ -61,6 +61,31 @@ class StringOperationsSpec extends RedisSpecBase {
 
     it("should give none for unknown keys") {
       client.get("get_unkown").futureValue should equal (None)
+    }
+  }
+
+  describe("mset") {
+    it("should set multiple keys") {
+      val numKeys = 3
+      val keyvals = (1 to numKeys map { num => ("get" + num, "value" + num) })
+      client.mset(keyvals: _*).futureValue should be (true)
+
+      val (keys, vals) = keyvals.unzip
+      val reads = keys map (client.get(_))
+      val readResults = Future.sequence(reads).futureValue
+      readResults should equal (vals.map(Some.apply))
+    }
+  }
+
+  describe("mget") {
+    it("should get results from existing keys") {
+      val numKeys = 3
+      val keyvals = (1 to numKeys map { num => ("get" + num, "value" + num) })
+      client.mset(keyvals: _*).futureValue
+
+      val (keys, _) = keyvals.unzip
+      val readResult = client.mget("nonExistingKey", keys.take(2): _*).futureValue
+      readResult should equal (keyvals.take(2).toMap)
     }
   }
 
