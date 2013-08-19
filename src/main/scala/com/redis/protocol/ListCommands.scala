@@ -70,13 +70,13 @@ object ListCommands {
   
   case class BLPop[A](timeoutInSeconds: Int, key: String, keys: String*)
                      (implicit reader: Read[A]) extends RedisCommand[Option[(String, A)]] {
-    def line = multiBulk("BLPOP" :: key :: (keys.toList :+ timeoutInSeconds.toString))
+    def line = multiBulk("BLPOP" :: key :: keys.foldRight(timeoutInSeconds.toString :: Nil)(_ :: _))
 
   }
   
   case class BRPop[A](timeoutInSeconds: Int, key: String, keys: String*)
                      (implicit reader: Read[A]) extends RedisCommand[Option[(String, A)]] {
-    def line = multiBulk("BRPOP" :: key :: (keys.toList :+ timeoutInSeconds.toString))
+    def line = multiBulk("BRPOP" :: key :: keys.foldRight(timeoutInSeconds.toString :: Nil)(_ :: _))
 
   }
 }

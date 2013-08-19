@@ -93,11 +93,12 @@ object KeyCommands {
     by: Option[String] = None, 
     get: List[String] = Nil): List[String] = {
 
-    List(List(key), limit.map(l => List("LIMIT", l._1.toString, l._2.toString)).getOrElse(Nil)
-      , (if (desc) List("DESC") else Nil)
-      , (if (alpha) List("ALPHA") else Nil)
-      , by.map(b => List("BY", b)).getOrElse(Nil)
-      , get.map(g => List("GET", g)).flatten
+    List(List(key)
+      , limit.fold(List.empty[String]) { case (from, to) => "LIMIT" :: List(from, to).map(_.toString) }
+      , if (desc) List("DESC") else Nil
+      , if (alpha) List("ALPHA") else Nil
+      , by.fold(List.empty[String])("BY" :: _ :: Nil)
+      , get.map("GET" :: _ :: Nil).flatten
     ).flatten
   }
 

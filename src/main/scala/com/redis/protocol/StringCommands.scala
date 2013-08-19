@@ -91,7 +91,8 @@ object StringCommands {
   }
   
   case class BitCount(key: String, range: Option[(Int, Int)]) extends RedisCommand[Long] {
-    def line = multiBulk("BITCOUNT" :: key :: range.fold(List[String]())(l => List(l._1, l._2).map(_.toString)))
+    def line = multiBulk("BITCOUNT" :: key ::
+      range.fold (List.empty[String]) { case (from, to) => List(from, to).map(_.toString) })
   }
 }
 
