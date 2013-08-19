@@ -6,38 +6,38 @@ import RedisCommand._
 
 object SortedSetCommands {
   case class ZAdd[A](key: String, score: Double, member: A, scoreVals: (Double, A)*)
-                    (implicit write: Write[A]) extends RedisCommand[Long] {
+                    (implicit writer: Write[A]) extends RedisCommand[Long] {
     def line = multiBulk(
-      "ZADD" :: key :: score.toString :: write(member)
-        :: scoreVals.foldRight(List[String]())((x, acc) => x._1.toString :: write(x._2) :: acc)
+      "ZADD" :: key :: score.toString :: writer.write(member)
+        :: scoreVals.foldRight(List[String]())((x, acc) => x._1.toString :: writer.write(x._2) :: acc)
     )
   }
   
-  case class ZRem[A](key: String, member: A, members: A*)(implicit write: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk("ZREM" :: key :: (member :: members.toList).map(write))
+  case class ZRem[A](key: String, member: A, members: A*)(implicit writer: Write[A]) extends RedisCommand[Long] {
+    def line = multiBulk("ZREM" :: key :: (member :: members.toList).map(writer.write))
   }
   
-  case class ZIncrby[A](key: String, incr: Double, member: A)(implicit write: Write[A]) extends RedisCommand[Option[Double]] {
-    def line = multiBulk("ZINCRBY" :: List(key, incr.toString, write(member)))
+  case class ZIncrby[A](key: String, incr: Double, member: A)(implicit writer: Write[A]) extends RedisCommand[Option[Double]] {
+    def line = multiBulk("ZINCRBY" :: List(key, incr.toString, writer.write(member)))
   }
   
   case class ZCard(key: String) extends RedisCommand[Long] {
     def line = multiBulk("ZCARD" :: List(key))
   }
   
-  case class ZScore[A](key: String, element: A)(implicit write: Write[A]) extends RedisCommand[Option[Double]] {
-    def line = multiBulk("ZSCORE" :: List(key, write(element)))
+  case class ZScore[A](key: String, element: A)(implicit writer: Write[A]) extends RedisCommand[Option[Double]] {
+    def line = multiBulk("ZSCORE" :: List(key, writer.write(element)))
   }
 
   case class ZRange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
-                      (implicit read: Read[A]) extends RedisCommand[List[A]] {
+                      (implicit reader: Read[A]) extends RedisCommand[List[A]] {
 
     def line = multiBulk(
       (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE") :: key :: List(start, end).map(_.toString))
   }
 
   case class ZRangeWithScore[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
-                               (implicit read: Read[A]) extends RedisCommand[List[(A, Double)]] {
+                               (implicit reader: Read[A]) extends RedisCommand[List[(A, Double)]] {
     def line = multiBulk(
       (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE") ::
         List(key, start.toString, end.toString, "WITHSCORES")
@@ -50,7 +50,7 @@ object SortedSetCommands {
     max: Double = Double.PositiveInfinity,
     maxInclusive: Boolean = true,
     limit: Option[(Int, Int)],
-    sortAs: SortOrder = ASC)(implicit read: Read[A]) extends RedisCommand[List[A]] {
+    sortAs: SortOrder = ASC)(implicit reader: Read[A]) extends RedisCommand[List[A]] {
 
     val (limitEntries, minParam, maxParam) = 
       zrangebyScoreWithScoreInternal(min, minInclusive, max, maxInclusive, limit)
@@ -67,7 +67,7 @@ object SortedSetCommands {
           max: Double = Double.PositiveInfinity,
           maxInclusive: Boolean = true,
           limit: Option[(Int, Int)],
-          sortAs: SortOrder = ASC)(implicit read: Read[A]) extends RedisCommand[List[(A, Double)]] {
+          sortAs: SortOrder = ASC)(implicit reader: Read[A]) extends RedisCommand[List[(A, Double)]] {
 
     val (limitEntries, minParam, maxParam) = 
       zrangebyScoreWithScoreInternal(min, minInclusive, max, maxInclusive, limit)
@@ -93,8 +93,8 @@ object SortedSetCommands {
   }
 
   case class ZRank[A](key: String, member: A, reverse: Boolean = false)
-                  (implicit write: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk((if (reverse) "ZREVRANK" else "ZRANK") :: List(key, write(member)))
+                  (implicit writer: Write[A]) extends RedisCommand[Long] {
+    def line = multiBulk((if (reverse) "ZREVRANK" else "ZRANK") :: List(key, writer.write(member)))
   }
 
   case class ZRemRangeByRank(key: String, start: Int = 0, end: Int = -1) extends RedisCommand[Long] {

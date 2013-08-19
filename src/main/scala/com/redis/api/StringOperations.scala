@@ -12,33 +12,33 @@ trait StringOperations { this: RedisOps =>
 
   // GET (key)
   // gets the value for the specified key.
-  def get[A](key: String)(implicit timeout: Timeout, parse: Read[A]) =
+  def get[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(Get[A](key)).mapTo[Get[A]#Ret]
 
   // SET KEY (key, value)
   // sets the key with the specified value.
   def set[A](key: String, value: A, exORpx: Option[SetExpiryOption] = None, nxORxx: Option[SetConditionOption] = None)
-         (implicit timeout: Timeout, write: Write[A]) =
+         (implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(Set[A](key, value, exORpx, nxORxx)).mapTo[Set[A]#Ret]
 
   // GETSET (key, value)
   // is an atomic set this value and return the old value command.
-  def getset[A, B](key: String, value: A)(implicit timeout: Timeout, write: Write[A], parse: Read[B]) =
+  def getset[A, B](key: String, value: A)(implicit timeout: Timeout, writer: Write[A], reader: Read[B]) =
     clientRef.ask(GetSet[A, B](key, value)).mapTo[GetSet[A, B]#Ret]
 
   // SETNX (key, value)
   // sets the value for the specified key, only if the key is not there.
-  def setnx[A](key: String, value: A)(implicit timeout: Timeout, write: Write[A]) =
+  def setnx[A](key: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(SetNx[A](key, value)).mapTo[SetNx[A]#Ret]
 
   // SETEX (key, expiry, value)
   // sets the value for the specified key, with an expiry
-  def setex[A](key: String, expiry: Int, value: A)(implicit timeout: Timeout, write: Write[A]) =
+  def setex[A](key: String, expiry: Int, value: A)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(SetEx[A](key, expiry, value)).mapTo[SetEx[A]#Ret]
 
   // SETPX (key, expiry, value)
   // sets the value for the specified key, with an expiry in millis
-  def psetex[A](key: String, expiryInMillis: Int, value: A)(implicit timeout: Timeout, write: Write[A]) =
+  def psetex[A](key: String, expiryInMillis: Int, value: A)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(PSetEx[A](key, expiryInMillis, value)).mapTo[PSetEx[A]#Ret]
 
   // INCR (key)
@@ -64,29 +64,29 @@ trait StringOperations { this: RedisOps =>
   // MGET (key, key, key, ...)
   // get the values of all the specified keys.
   def mget[A](key: String, keys: String*)
-    (implicit timeout: Timeout, read: Read[A]) =
+    (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(MGet[A](key, keys:_*)).mapTo[MGet[A]#Ret]
 
   // MSET (key1 value1 key2 value2 ..)
   // set the respective key value pairs. Overwrite value if key exists
-  def mset[A](kvs: (String, A)*)(implicit timeout: Timeout, write: Write[A]) =
+  def mset[A](kvs: (String, A)*)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(MSet[A](kvs:_*)).mapTo[MSet[A]#Ret]
 
   // MSETNX (key1 value1 key2 value2 ..)
   // set the respective key value pairs. Noop if any key exists
-  def msetnx[A](kvs: (String, A)*)(implicit timeout: Timeout, write: Write[A]) =
+  def msetnx[A](kvs: (String, A)*)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(MSetNx[A](kvs:_*)).mapTo[MSetNx[A]#Ret]
 
   // SETRANGE key offset value
   // Overwrites part of the string stored at key, starting at the specified offset,
   // for the entire length of value.
-  def setrange[A](key: String, offset: Int, value: A)(implicit timeout: Timeout, write: Write[A]) =
+  def setrange[A](key: String, offset: Int, value: A)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(SetRange[A](key, offset, value)).mapTo[SetRange[A]#Ret]
 
   // GETRANGE key start end
   // Returns the substring of the string value stored at key, determined by the offsets
   // start and end (both are inclusive).
-  def getrange[A](key: String, start: Int, end: Int)(implicit timeout: Timeout, parse: Read[A]) =
+  def getrange[A](key: String, start: Int, end: Int)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(GetRange[A](key, start, end)).mapTo[GetRange[A]#Ret]
 
   // STRLEN key
@@ -96,7 +96,7 @@ trait StringOperations { this: RedisOps =>
 
   // APPEND KEY (key, value)
   // appends the key value with the specified value.
-  def append[A](key: String, value: A)(implicit timeout: Timeout, write: Write[A]) =
+  def append[A](key: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(Append[A](key, value)).mapTo[Append[A]#Ret]
 
   // GETBIT key offset

@@ -57,10 +57,10 @@ trait NodeOperations { this: RedisOps =>
   def clientlist()(implicit timeout: Timeout) =
     clientRef.ask(ClientList).mapTo[ClientList.Ret]
 
-  def configget[A](param: String)(implicit timeout: Timeout, read: Read[A]) =
+  def configget[A](param: String)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ConfigGet(param)).mapTo[ConfigGet[A]#Ret]
 
-  def configset[A](param: String, value: A)(implicit timeout: Timeout, write: Write[A]) =
+  def configset[A](param: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(ConfigSet[A](param, value)).mapTo[ConfigSet[A]#Ret]
 
   def configresetstat()(implicit timeout: Timeout) =

@@ -9,22 +9,22 @@ object EvalCommands {
   // @todo: Find a better way to unmarshal various types of arguments
 
   case class EvalMultiBulk[A, B](script: String, keys: Seq[String], args: Seq[A])
-                                (implicit write: Write[A], read: Read[B]) extends RedisCommand[List[B]] {
+                                (implicit writer: Write[A], reader: Read[B]) extends RedisCommand[List[B]] {
     def line = multiBulk("EVAL" +: argsForEval(script, keys, args))
   }
 
   case class EvalBulk[A, B](script: String, keys: Seq[String], args: Seq[A])
-                           (implicit write: Write[A], read: Read[B]) extends RedisCommand[Option[B]] {
+                           (implicit writer: Write[A], reader: Read[B]) extends RedisCommand[Option[B]] {
     def line = multiBulk("EVAL" +: argsForEval(script, keys, args))
   }
 
   case class EvalMultiSHA[A, B](script: String, keys: Seq[String], args: Seq[A])
-                               (implicit write: Write[A], read: Read[B]) extends RedisCommand[List[B]] {
+                               (implicit writer: Write[A], reader: Read[B]) extends RedisCommand[List[B]] {
     def line = multiBulk("EVALSHA" +: argsForEval(script, keys, args))
   }
 
   case class EvalSHA[A, B](script: String, keys: Seq[String], args: Seq[A])
-                          (implicit write: Write[A], read: Read[B]) extends RedisCommand[Option[B]] {
+                          (implicit writer: Write[A], reader: Read[B]) extends RedisCommand[Option[B]] {
     def line = multiBulk("EVALSHA" +: argsForEval(script, keys, args))
   }
 
@@ -40,6 +40,6 @@ object EvalCommands {
     def line = multiBulk("SCRIPT" +: Seq("FLUSH"))
   }
 
-  private def argsForEval[A](luaCode: String, keys: Seq[String], args: Seq[A])(implicit write: Write[A]): Seq[String] =
-    luaCode +: keys.length.toString +: (keys ++ args.map(write))
+  private def argsForEval[A](luaCode: String, keys: Seq[String], args: Seq[A])(implicit writer: Write[A]): Seq[String] =
+    luaCode +: keys.length.toString +: (keys ++ args.map(writer.write))
 }

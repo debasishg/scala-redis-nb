@@ -70,7 +70,7 @@ object KeyCommands {
     desc: Boolean = false, 
     alpha: Boolean = false, 
     by: Option[String] = None, 
-    get: List[String] = Nil)(implicit read: Read[A]) extends RedisCommand[List[A]] {
+    get: List[String] = Nil)(implicit reader: Read[A]) extends RedisCommand[List[A]] {
 
     def line = multiBulk("SORT" :: makeSortArgs(key, limit, desc, alpha, by, get))
   }

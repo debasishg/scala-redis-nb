@@ -12,8 +12,7 @@ import serialization._
 @RunWith(classOf[JUnitRunner])
 class ClientSpec extends RedisSpecBase {
 
-  import Read.Implicits._
-  import Write.Implicits._
+  import DefaultFormats._
 
   describe("non blocking apis using futures") {
     it("get and set should be non blocking") {

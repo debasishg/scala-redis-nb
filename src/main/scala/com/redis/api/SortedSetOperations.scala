@@ -14,17 +14,17 @@ trait SortedSetOperations { this: RedisOps =>
   // ZADD (Variadic: >= 2.4)
   // Add the specified members having the specified score to the sorted set stored at key.
   def zadd[A](key: String, score: Double, member: A, scoreVals: (Double, A)*)
-          (implicit timeout: Timeout, write: Write[A]) =
+          (implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(ZAdd[A](key, score, member, scoreVals:_*)).mapTo[ZAdd[A]#Ret]
 
   // ZREM (Variadic: >= 2.4)
   // Remove the specified members from the sorted set value stored at key.
-  def zrem[A](key: String, member: A, members: A*)(implicit timeout: Timeout, write: Write[A]) =
+  def zrem[A](key: String, member: A, members: A*)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(ZRem[A](key, member, members:_*)).mapTo[ZRem[A]#Ret]
 
   // ZINCRBY
   //
-  def zincrby[A](key: String, incr: Double, member: A)(implicit timeout: Timeout, write: Write[A]) =
+  def zincrby[A](key: String, incr: Double, member: A)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(ZIncrby[A](key, incr, member)).mapTo[ZIncrby[A]#Ret]
 
   // ZCARD
@@ -34,15 +34,15 @@ trait SortedSetOperations { this: RedisOps =>
 
   // ZSCORE
   //
-  def zscore[A](key: String, element: A)(implicit timeout: Timeout, write: Write[A]) =
+  def zscore[A](key: String, element: A)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(ZScore[A](key, element)).mapTo[ZScore[A]#Ret]
 
   // ZRANGE
   //
-  def zrange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit timeout: Timeout, read: Read[A]) =
+  def zrange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ZRange[A](key, start, end, sortAs)).mapTo[ZRange[A]#Ret]
 
-  def zrangeWithScore[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit timeout: Timeout, read: Read[A]) =
+  def zrangeWithScore[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ZRangeWithScore[A](key, start, end, sortAs)).mapTo[ZRangeWithScore[A]#Ret]
 
   // ZRANGEBYSCORE
@@ -53,7 +53,7 @@ trait SortedSetOperations { this: RedisOps =>
     max: Double = Double.PositiveInfinity,
     maxInclusive: Boolean = true,
     limit: Option[(Int, Int)],
-    sortAs: SortOrder = ASC)(implicit timeout: Timeout, read: Read[A]) =
+    sortAs: SortOrder = ASC)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ZRangeByScore[A](key, min, minInclusive, max, maxInclusive, limit, sortAs)).mapTo[ZRangeByScore[A]#Ret]
 
   def zrangeByScoreWithScore[A](key: String,
@@ -62,13 +62,13 @@ trait SortedSetOperations { this: RedisOps =>
           max: Double = Double.PositiveInfinity,
           maxInclusive: Boolean = true,
           limit: Option[(Int, Int)],
-          sortAs: SortOrder = ASC)(implicit timeout: Timeout, read: Read[A]) =
+          sortAs: SortOrder = ASC)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ZRangeByScoreWithScore[A](key, min, minInclusive, max, maxInclusive, limit, sortAs)).mapTo[ZRangeByScoreWithScore[A]#Ret]
 
   // ZRANK
   // ZREVRANK
   //
-  def zrank[A](key: String, member: A, reverse: Boolean = false)(implicit timeout: Timeout, write: Write[A]) =
+  def zrank[A](key: String, member: A, reverse: Boolean = false)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(ZRank[A](key, member, reverse)).mapTo[ZRank[A]#Ret]
 
   // ZREMRANGEBYRANK

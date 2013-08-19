@@ -25,8 +25,8 @@ object RedisCommand {
   case object MIN extends Aggregate
   case object MAX extends Aggregate
 
-  def flattenPairs[A](in: Iterable[Product2[String, A]])(implicit write: Write[A]): List[String] =
-    in.iterator.flatMap(x => Iterator(x._1, write(x._2))).toList
+  def flattenPairs[A](in: Iterable[Product2[String, A]])(implicit writer: Write[A]): List[String] =
+    in.iterator.flatMap(x => Iterator(x._1, writer.write(x._2))).toList
   
   def multiBulk(args: Seq[String]): ByteString = {
     val b = new ByteStringBuilder

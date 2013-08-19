@@ -55,12 +55,12 @@ object NodeCommands {
     def line = multiBulk(List("CLIENT", "LIST"))
   }
 
-  case class ConfigGet[A](globStyleParam: String)(implicit read: Read[A]) extends RedisCommand[Option[A]] {
+  case class ConfigGet[A](globStyleParam: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk(List("CONFIG", "GET", globStyleParam))
   }
 
-  case class ConfigSet[A](param: String, value: A)(implicit write: Write[A]) extends RedisCommand[Boolean] {
-    def line = multiBulk("CONFIG" :: List("SET", param, write(value)))
+  case class ConfigSet[A](param: String, value: A)(implicit writer: Write[A]) extends RedisCommand[Boolean] {
+    def line = multiBulk("CONFIG" :: List("SET", param, writer.write(value)))
   }
 
   case object ConfigResetStat extends RedisCommand[Boolean] {

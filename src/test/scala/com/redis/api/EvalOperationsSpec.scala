@@ -8,7 +8,7 @@ import com.redis.RedisSpecBase
 @RunWith(classOf[JUnitRunner])
 class EvalOperationsSpec extends RedisSpecBase {
 
-  import com.redis.serialization.Write.Implicits._
+  import com.redis.serialization.DefaultFormats._
 
   describe("eval") {
     it("should eval lua code and get a string reply") {
@@ -54,7 +54,7 @@ class EvalOperationsSpec extends RedisSpecBase {
       client.zadd(setname, 12.5, "mma")
       client.zadd(setname, 14, "mem")
       
-      val rs = client.evalMultiSHA(shahash.get, List("records"), List.empty[String]).futureValue
+      val rs = client.evalMultiSHA[String, String](shahash.get, List("records"), Nil).futureValue
       rs should equal (List("mmd", "10", "mma", "12.5", "mem", "14", "mmc", "22"))
     }
     

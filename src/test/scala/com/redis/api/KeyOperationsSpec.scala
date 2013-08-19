@@ -10,7 +10,7 @@ import com.redis.RedisSpecBase
 @RunWith(classOf[JUnitRunner])
 class KeyOperationsSpec extends RedisSpecBase {
 
-  import com.redis.serialization.Write.Implicits._
+  import com.redis.serialization.DefaultFormats._
 
   describe("keys") {
     it("should fetch keys") {
@@ -114,8 +114,6 @@ class KeyOperationsSpec extends RedisSpecBase {
       client.sort("alltest", None, false, false, None, List("hash-*->description", "hash-*->order")).futureValue should equal(List("one", "100", "two", "25", "three", "50"))
     }
   }
-
-  import com.redis.serialization.Read.Implicits._
 
   describe("sortNStore") {
     it("should give") {

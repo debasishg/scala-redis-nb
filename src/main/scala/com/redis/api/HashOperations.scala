@@ -9,19 +9,19 @@ import com.redis.protocol.HashCommands
 trait HashOperations { this: RedisOps =>
   import HashCommands._
 
-  def hset[A](key: String, field: String, value: A)(implicit timeout: Timeout, write: Write[A]) =
+  def hset[A](key: String, field: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(HSet[A](key, field, value)).mapTo[HSet[A]#Ret]
 
-  def hsetnx[A](key: String, field: String, value: A)(implicit timeout: Timeout, write: Write[A]) =
+  def hsetnx[A](key: String, field: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(HSet[A](key, field, value, true)).mapTo[HSet[A]#Ret]
 
-  def hget[A](key: String, field: String)(implicit timeout: Timeout, read: Read[A]) =
+  def hget[A](key: String, field: String)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(HGet[A](key, field)).mapTo[HGet[A]#Ret]
 
-  def hmset[A](key: String, mapLike: Iterable[Product2[String, A]])(implicit timeout: Timeout, write: Write[A]) =
+  def hmset[A](key: String, mapLike: Iterable[Product2[String, A]])(implicit timeout: Timeout, writer: Write[A]) =
     clientRef.ask(HMSet[A](key, mapLike)).mapTo[HMSet[A]#Ret]
 
-  def hmget[A](key: String, fields: String*)(implicit timeout: Timeout, parseV: Read[A]) =
+  def hmget[A](key: String, fields: String*)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(HMGet[A](key, fields:_*)).mapTo[HMGet[A]#Ret]
 
   def hincrby(key: String, field: String, value: Int)(implicit timeout: Timeout) =
@@ -36,12 +36,12 @@ trait HashOperations { this: RedisOps =>
   def hlen(key: String)(implicit timeout: Timeout) =
     clientRef.ask(HLen(key)).mapTo[HLen#Ret]
 
-  def hkeys[A](key: String)(implicit timeout: Timeout, read: Read[A]) =
+  def hkeys[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(HKeys[A](key)).mapTo[HKeys[A]#Ret]
 
-  def hvals[A](key: String)(implicit timeout: Timeout, read: Read[A]) =
+  def hvals[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(HVals(key)).mapTo[HVals[A]#Ret]
 
-  def hgetall[A](key: String)(implicit timeout: Timeout, read: Read[A]) =
+  def hgetall[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(HGetall(key)).mapTo[HGetall[A]#Ret]
 }

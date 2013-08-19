@@ -5,7 +5,7 @@ import RedisCommand._
 
 
 object StringCommands {
-  case class Get[A](key: String)(implicit parse: Read[A]) extends RedisCommand[Option[A]] {
+  case class Get[A](key: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("GET" :: key :: Nil)
   }
 
@@ -20,25 +20,25 @@ object StringCommands {
   case object XX extends SetConditionOption("XX")
 
   case class Set[A](key: String, value: A, exORpx: Option[SetExpiryOption] = None, nxORxx: Option[SetConditionOption] = None)
-                   (implicit write: Write[A]) extends RedisCommand[Boolean] {
+                   (implicit writer: Write[A]) extends RedisCommand[Boolean] {
 
-    def line = multiBulk("SET" :: key :: write(value) :: (exORpx.toList ++ nxORxx.toList).flatMap(_.toList))
+    def line = multiBulk("SET" :: key :: writer.write(value) :: (exORpx.toList ++ nxORxx.toList).flatMap(_.toList))
   }
 
-  case class GetSet[A, B](key: String, value: A)(implicit write: Write[A], parse: Read[B]) extends RedisCommand[Option[B]] {
-    def line = multiBulk("GETSET" :: key :: write(value) :: Nil)
+  case class GetSet[A, B](key: String, value: A)(implicit writer: Write[A], reader: Read[B]) extends RedisCommand[Option[B]] {
+    def line = multiBulk("GETSET" :: key :: writer.write(value) :: Nil)
   }
   
-  case class SetNx[A](key: String, value: A)(implicit write: Write[A]) extends RedisCommand[Boolean] {
-    def line = multiBulk("SETNX" :: key :: write(value) :: Nil)
+  case class SetNx[A](key: String, value: A)(implicit writer: Write[A]) extends RedisCommand[Boolean] {
+    def line = multiBulk("SETNX" :: key :: writer.write(value) :: Nil)
   }
   
-  case class SetEx[A](key: String, expiry: Long, value: A)(implicit write: Write[A]) extends RedisCommand[Boolean] {
-    def line = multiBulk("SETEX" :: key :: expiry.toString :: write(value) :: Nil)
+  case class SetEx[A](key: String, expiry: Long, value: A)(implicit writer: Write[A]) extends RedisCommand[Boolean] {
+    def line = multiBulk("SETEX" :: key :: expiry.toString :: writer.write(value) :: Nil)
   }
   
-  case class PSetEx[A](key: String, expiryInMillis: Long, value: A)(implicit write: Write[A]) extends RedisCommand[Boolean] {
-    def line = multiBulk("PSETEX" :: key :: expiryInMillis.toString :: write(value) :: Nil)
+  case class PSetEx[A](key: String, expiryInMillis: Long, value: A)(implicit writer: Write[A]) extends RedisCommand[Boolean] {
+    def line = multiBulk("PSETEX" :: key :: expiryInMillis.toString :: writer.write(value) :: Nil)
   }
   
   case class Incr(key: String, by: Option[Int] = None) extends RedisCommand[Long] {
@@ -49,24 +49,24 @@ object StringCommands {
     def line = multiBulk(by.fold("DECR" :: key :: Nil)("DECRBY" :: key :: _.toString :: Nil))
   }
 
-  case class MGet[A](key: String, keys: String*)(implicit read: Read[A])
+  case class MGet[A](key: String, keys: String*)(implicit reader: Read[A])
       extends RedisCommand[Map[String, A]]()(PartialDeserializer.keyedMapPD(key :: keys.toList)) {
     def line = multiBulk("MGET" :: key :: keys.toList)
   }
 
-  case class MSet[A](kvs: (String, A)*)(implicit write: Write[A]) extends RedisCommand[Boolean] {
-    def line = multiBulk("MSET" :: kvs.foldRight(List[String]()){ case ((k,v),l) => k :: write(v) :: l })
+  case class MSet[A](kvs: (String, A)*)(implicit writer: Write[A]) extends RedisCommand[Boolean] {
+    def line = multiBulk("MSET" :: kvs.foldRight(List[String]()){ case ((k,v),l) => k :: writer.write(v) :: l })
   }
 
-  case class MSetNx[A](kvs: (String, A)*)(implicit write: Write[A]) extends RedisCommand[Boolean] {
-    def line = multiBulk("MSETNX" :: kvs.foldRight(List[String]()){ case ((k,v),l) => k :: write(v) :: l })
+  case class MSetNx[A](kvs: (String, A)*)(implicit writer: Write[A]) extends RedisCommand[Boolean] {
+    def line = multiBulk("MSETNX" :: kvs.foldRight(List[String]()){ case ((k,v),l) => k :: writer.write(v) :: l })
   }
   
-  case class SetRange[A](key: String, offset: Int, value: A)(implicit write: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk("SETRANGE" :: List(key, offset.toString, write(value)))
+  case class SetRange[A](key: String, offset: Int, value: A)(implicit writer: Write[A]) extends RedisCommand[Long] {
+    def line = multiBulk("SETRANGE" :: List(key, offset.toString, writer.write(value)))
   }
 
-  case class GetRange[A](key: String, start: Int, end: Int)(implicit parse: Read[A]) extends RedisCommand[Option[A]] {
+  case class GetRange[A](key: String, start: Int, end: Int)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("GETRANGE" :: key :: List(start, end).map(_.toString))
   }
   
@@ -74,8 +74,8 @@ object StringCommands {
     def line = multiBulk("STRLEN" :: List(key))
   }
   
-  case class Append[A](key: String, value: A)(implicit write: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk("APPEND" :: List(key, write(value)))
+  case class Append[A](key: String, value: A)(implicit writer: Write[A]) extends RedisCommand[Long] {
+    def line = multiBulk("APPEND" :: List(key, writer.write(value)))
   }
   
   case class GetBit(key: String, offset: Int) extends RedisCommand[Boolean] {

@@ -1,6 +1,6 @@
 package com.redis.serialization
 
-import RawReplyReader._
+import RawReplyParser._
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{Iterator, GenTraversable}
 import scala.language.higherKinds
@@ -37,11 +37,11 @@ object PartialDeserializer extends LowPriorityPD {
 private[serialization] trait LowPriorityPD extends CommandSpecificPD {
   import PartialDeserializer._
 
-  implicit def parsedPD[A](implicit parse: Read[A]): PartialDeserializer[A] =
-    stringPD andThen parse
+  implicit def parsedPD[A](implicit reader: Read[A]): PartialDeserializer[A] =
+    stringPD andThen reader.read
 
-  implicit def parsedOptionPD[A](implicit parse: Read[A]): PartialDeserializer[Option[A]] =
-    bulkPD andThen (_ map parse)
+  implicit def parsedOptionPD[A](implicit reader: Read[A]): PartialDeserializer[Option[A]] =
+    bulkPD andThen (_ map reader.read)
 
   implicit def setPD[A](implicit parse: Read[A]): PartialDeserializer[Set[A]] =
     multiBulkPD[A, Set]
@@ -55,24 +55,24 @@ private[serialization] trait LowPriorityPD extends CommandSpecificPD {
   implicit def mapPD[K, V](implicit parseA: Read[K], parseB: Read[V]): PartialDeserializer[Map[K, V]] =
     pairIteratorPD[K, V] andThen (_.toMap)
 
-  protected def pairIteratorPD[A, B](implicit parseA: Read[A], parseB: Read[B]): PartialDeserializer[Iterator[(A, B)]] =
-    multiBulkPD[String, Iterable] andThen (_.grouped(2).map { case Seq(a, b) => (parseA(a), parseB(b)) })
+  protected def pairIteratorPD[A, B](implicit readA: Read[A], readB: Read[B]): PartialDeserializer[Iterator[(A, B)]] =
+    multiBulkPD[String, Iterable] andThen (_.grouped(2).map { case Seq(a, b) => (readA.read(a), readB.read(b)) })
 
-  protected def pairOptionIteratorPD[A, B](implicit parseA: Read[A], parseB: Read[B]): PartialDeserializer[Iterator[Option[(A, B)]]] =
+  protected def pairOptionIteratorPD[A, B](implicit readA: Read[A], readB: Read[B]): PartialDeserializer[Iterator[Option[(A, B)]]] =
     multiBulkPD[Option[String], Iterable] andThen (_.grouped(2).map {
-      case Seq(Some(a), Some(b)) => Some((parseA(a), parseB(b)))
+      case Seq(Some(a), Some(b)) => Some((readA.read(a), readB.read(b)))
       case _ => None
     })
 }
 
 private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
   import PartialDeserializer._
+  import DefaultFormats._
 
   // special deserializer for Eval
   implicit val intListPD: PartialDeserializer[List[Int]] = multiBulkPD[Int, List]
 
   // special deserializers for Sorted Set
-  import Read.Implicits._
   implicit def doublePD: PartialDeserializer[Option[Double]] = parsedOptionPD[Double]
   implicit def scoredListPD[A](implicit parseA: Read[A]): PartialDeserializer[List[(A, Double)]] =
     pairIteratorPD[A, Double] andThen (_.toList)
