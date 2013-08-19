@@ -17,9 +17,9 @@ trait StringOperations { this: RedisOps =>
 
   // SET KEY (key, value)
   // sets the key with the specified value.
-  def set[A](key: String, value: A, nxORxx: Option[SetConditionOption] = None, exORpx: Option[SetExpiryOption] = None)
+  def set[A](key: String, value: A, exORpx: Option[SetExpiryOption] = None, nxORxx: Option[SetConditionOption] = None)
          (implicit timeout: Timeout, write: Write[A]) =
-    clientRef.ask(Set[A](key, value, nxORxx, exORpx)).mapTo[Set[A]#Ret]
+    clientRef.ask(Set[A](key, value, exORpx, nxORxx)).mapTo[Set[A]#Ret]
 
   // GETSET (key, value)
   // is an atomic set this value and return the old value command.

@@ -19,10 +19,10 @@ object StringCommands {
   case object NX extends SetConditionOption("NX")
   case object XX extends SetConditionOption("XX")
 
-  case class Set[A](key: String, value: A, nxORxx: Option[SetConditionOption] = None, exORpx: Option[SetExpiryOption] = None)
+  case class Set[A](key: String, value: A, exORpx: Option[SetExpiryOption] = None, nxORxx: Option[SetConditionOption] = None)
                    (implicit write: Write[A]) extends RedisCommand[Boolean] {
 
-    def line = multiBulk("SET" :: key :: write(value) :: (nxORxx.toList ++ exORpx.toList).flatMap(_.toList))
+    def line = multiBulk("SET" :: key :: write(value) :: (exORpx.toList ++ nxORxx.toList).flatMap(_.toList))
   }
 
   case class GetSet[A, B](key: String, value: A)(implicit write: Write[A], parse: Read[B]) extends RedisCommand[Option[B]] {
