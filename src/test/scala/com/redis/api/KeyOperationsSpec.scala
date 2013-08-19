@@ -10,6 +10,8 @@ import com.redis.RedisSpecBase
 @RunWith(classOf[JUnitRunner])
 class KeyOperationsSpec extends RedisSpecBase {
 
+  import com.redis.serialization.Write.Implicits._
+
   describe("keys") {
     it("should fetch keys") {
       val prepare = Seq(client.set("anshin-1", "debasish"), client.set("anshin-2", "maulindu"))
@@ -113,7 +115,7 @@ class KeyOperationsSpec extends RedisSpecBase {
     }
   }
 
-  import com.redis.serialization.Parse.Implicits._
+  import com.redis.serialization.Read.Implicits._
 
   describe("sortNStore") {
     it("should give") {
@@ -130,7 +132,7 @@ class KeyOperationsSpec extends RedisSpecBase {
       client.lrange("skey", 0, 10).futureValue should equal(List("1", "3", "10", "30"))
 
       // Long serialization : return Long
-      client.sortNStore[Long]("alltest", storeAt = "skey").futureValue should equal(4)
+      client.sortNStore("alltest", storeAt = "skey").futureValue should equal(4)
       client.lrange[Long]("skey", 0, 10).futureValue should equal(List(1, 3, 10, 30))
     }
   }

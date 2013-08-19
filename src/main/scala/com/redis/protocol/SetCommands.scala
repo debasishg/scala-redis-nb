@@ -1,6 +1,6 @@
 package com.redis.protocol
 
-import com.redis.serialization.{Parse, Format}
+import com.redis.serialization.{Read, Write}
 import RedisCommand._
 
 
@@ -10,24 +10,24 @@ object SetCommands {
   case object add extends Op
   case object rem extends Op
 
-  case class SOp(op: Op, key: Any, value: Any, values: Any*)(implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk((if (op == add) "SADD" else "SREM") +: (key :: value :: values.toList) map format.apply)
+  case class SOp[A](op: Op, key: String, value: A, values: A*)(implicit write: Write[A]) extends RedisCommand[Long] {
+    def line = multiBulk((if (op == add) "SADD" else "SREM") :: key :: (value :: values.toList).map(write))
   }
 
-  case class SPop[A](key: Any)(implicit format: Format, parse: Parse[A]) extends RedisCommand[Option[A]] {
-    def line = multiBulk("SPOP" +: (Seq(key) map format.apply))
+  case class SPop[A](key: String)(implicit read: Read[A]) extends RedisCommand[Option[A]] {
+    def line = multiBulk("SPOP" :: List(key))
   }
   
-  case class SMove(srcKey: Any, destKey: Any, value: Any)(implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk("SMOVE" +: (Seq(srcKey, destKey, value) map format.apply))
+  case class SMove[A](srcKey: String, destKey: String, value: A)(implicit write: Write[A]) extends RedisCommand[Long] {
+    def line = multiBulk("SMOVE" :: List(srcKey, destKey, write(value)))
   }
 
-  case class SCard(key: Any)(implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk("SCARD" +: (Seq(key) map format.apply))
+  case class SCard(key: String) extends RedisCommand[Long] {
+    def line = multiBulk("SCARD" :: List(key))
   }
 
-  case class ∈(key: Any, value: Any)(implicit format: Format) extends RedisCommand[Boolean] {
-    def line = multiBulk("SISMEMBER" +: (Seq(key, value) map format.apply))
+  case class ∈[A](key: String, value: A)(implicit write: Write[A]) extends RedisCommand[Boolean] {
+    def line = multiBulk("SISMEMBER" :: List(key, write(value)))
   }
 
   trait setOp 
@@ -35,25 +35,25 @@ object SetCommands {
   case object inter extends setOp
   case object diff extends setOp
 
-  case class ∩∪∖[A](ux: setOp, key: Any, keys: Any*)(implicit format: Format, parse: Parse[A]) extends RedisCommand[Set[A]] {
+  case class ∩∪∖[A](ux: setOp, key: String, keys: String*)(implicit read: Read[A]) extends RedisCommand[Set[A]] {
     def line = multiBulk(
-      (if (ux == inter) "SINTER" else if (ux == union) "SUNION" else "SDIFF") +: (key :: keys.toList) map format.apply)
+      (if (ux == inter) "SINTER" else if (ux == union) "SUNION" else "SDIFF") :: (key :: keys.toList))
   }
   
-  case class SUXDStore(ux: setOp, destKey: Any, key: Any, keys: Any*)(implicit format: Format) extends RedisCommand[Long] {
+  case class SUXDStore(ux: setOp, destKey: String, key: String, keys: String*) extends RedisCommand[Long] {
     def line = multiBulk(
-      (if (ux == inter) "SINTERSTORE" else if (ux == union) "SUNIONSTORE" else "SDIFFSTORE") +: (destKey :: key :: keys.toList) map format.apply)
+      (if (ux == inter) "SINTERSTORE" else if (ux == union) "SUNIONSTORE" else "SDIFFSTORE") :: (destKey :: key :: keys.toList))
   }
 
-  case class SMembers[A](key: Any)(implicit format: Format, parse: Parse[A]) extends RedisCommand[Set[A]] {
-    def line = multiBulk("SDIFF" +: Seq(key) map format.apply)
+  case class SMembers[A](key: String)(implicit read: Read[A]) extends RedisCommand[Set[A]] {
+    def line = multiBulk("SDIFF" :: List(key))
   }
 
-  case class SRandMember[A](key: Any)(implicit format: Format, parse: Parse[A]) extends RedisCommand[Option[A]] {
-    def line = multiBulk("SRANDMEMBER" +: (Seq(key) map format.apply))
+  case class SRandMember[A](key: String)(implicit read: Read[A]) extends RedisCommand[Option[A]] {
+    def line = multiBulk("SRANDMEMBER" :: (List(key)))
   }
 
-  case class SRandMembers[A](key: Any, count: Int)(implicit format: Format, parse: Parse[A]) extends RedisCommand[List[A]] {
-    def line = multiBulk("SRANDMEMBER" +: (Seq(key, count) map format.apply))
+  case class SRandMembers[A](key: String, count: Int)(implicit read: Read[A]) extends RedisCommand[List[A]] {
+    def line = multiBulk("SRANDMEMBER" :: (List(key, count.toString)))
   }
 }

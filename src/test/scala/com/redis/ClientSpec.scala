@@ -12,7 +12,9 @@ import serialization._
 @RunWith(classOf[JUnitRunner])
 class ClientSpec extends RedisSpecBase {
 
-  import Parse.Implicits._
+  import Read.Implicits._
+  import Write.Implicits._
+
   describe("non blocking apis using futures") {
     it("get and set should be non blocking") {
       @volatile var callbackExecuted = false

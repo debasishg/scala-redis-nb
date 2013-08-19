@@ -42,8 +42,8 @@ trait NodeOperations { this: RedisOps =>
 
   // SLAVEOF
   // The SLAVEOF command can change the replication settings of a slave on the fly.
-  def slaveof(options: Any)(implicit timeout: Timeout) =
-    clientRef.ask(SlaveOf(options)).mapTo[SlaveOf#Ret]
+  def slaveof(node: Option[(String, Int)])(implicit timeout: Timeout) =
+    clientRef.ask(SlaveOf(node)).mapTo[SlaveOf#Ret]
 
   def clientgetname()(implicit timeout: Timeout) =
     clientRef.ask(ClientGetName).mapTo[ClientGetName.Ret]
@@ -57,11 +57,11 @@ trait NodeOperations { this: RedisOps =>
   def clientlist()(implicit timeout: Timeout) =
     clientRef.ask(ClientList).mapTo[ClientList.Ret]
 
-  def configget(param: String)(implicit timeout: Timeout) =
-    clientRef.ask(ConfigGet(param)).mapTo[ConfigGet#Ret]
+  def configget[A](param: String)(implicit timeout: Timeout, read: Read[A]) =
+    clientRef.ask(ConfigGet(param)).mapTo[ConfigGet[A]#Ret]
 
-  def configset(param: String, value: Any)(implicit timeout: Timeout, format: Format) =
-    clientRef.ask(ConfigSet(param, value)).mapTo[ConfigSet#Ret]
+  def configset[A](param: String, value: A)(implicit timeout: Timeout, write: Write[A]) =
+    clientRef.ask(ConfigSet[A](param, value)).mapTo[ConfigSet[A]#Ret]
 
   def configresetstat()(implicit timeout: Timeout) =
     clientRef.ask(ConfigResetStat).mapTo[ConfigResetStat.Ret]

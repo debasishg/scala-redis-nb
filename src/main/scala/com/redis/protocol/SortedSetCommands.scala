@@ -1,141 +1,138 @@
 package com.redis.protocol
 
-import com.redis.serialization.{Parse, Format}
+import com.redis.serialization.{Read, Write}
 import RedisCommand._
 
 
 object SortedSetCommands {
-  case class ZAdd(key: Any, score: Double, member: Any, scoreVals: (Double, Any)*)(implicit format: Format) extends RedisCommand[Long] {
+  case class ZAdd[A](key: String, score: Double, member: A, scoreVals: (Double, A)*)
+                    (implicit write: Write[A]) extends RedisCommand[Long] {
     def line = multiBulk(
-      "ZADD" +:
-      (List(key, score, member) ::: scoreVals.toList.map(x => List(x._1, x._2)).flatten) map format.apply
+      "ZADD" :: key :: score.toString :: write(member)
+        :: scoreVals.foldRight(List[String]())((x, acc) => x._1.toString :: write(x._2) :: acc)
     )
   }
   
-  case class ZRem(key: Any, member: Any, members: Any*)(implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk("ZREM" +: (key :: member :: members.toList) map format.apply)
+  case class ZRem[A](key: String, member: A, members: A*)(implicit write: Write[A]) extends RedisCommand[Long] {
+    def line = multiBulk("ZREM" :: key :: (member :: members.toList).map(write))
   }
   
-  case class ZIncrby(key: Any, incr: Double, member: Any)(implicit format: Format) extends RedisCommand[Option[Double]] {
-    def line = multiBulk("ZINCRBY" +: (Seq(key, incr, member) map format.apply))
+  case class ZIncrby[A](key: String, incr: Double, member: A)(implicit write: Write[A]) extends RedisCommand[Option[Double]] {
+    def line = multiBulk("ZINCRBY" :: List(key, incr.toString, write(member)))
   }
   
-  case class ZCard(key: Any)(implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk("ZCARD" +: (Seq(key) map format.apply))
+  case class ZCard(key: String) extends RedisCommand[Long] {
+    def line = multiBulk("ZCARD" :: List(key))
   }
   
-  case class ZScore(key: Any, element: Any)(implicit format: Format) extends RedisCommand[Option[Double]] {
-    def line = multiBulk("ZSCORE" +: (Seq(key, element) map format.apply))
+  case class ZScore[A](key: String, element: A)(implicit write: Write[A]) extends RedisCommand[Option[Double]] {
+    def line = multiBulk("ZSCORE" :: List(key, write(element)))
   }
 
-  case class ZRange[A](key: Any, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]) 
-    extends RedisCommand[List[A]] {
+  case class ZRange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+                      (implicit read: Read[A]) extends RedisCommand[List[A]] {
 
     def line = multiBulk(
-      (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE") +: (Seq(key, start, end) map format.apply))
+      (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE") :: key :: List(start, end).map(_.toString))
   }
 
-  case class ZRangeWithScore[A](key: Any, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A])
-    extends RedisCommand[List[(A, Double)]] {
-
+  case class ZRangeWithScore[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+                               (implicit read: Read[A]) extends RedisCommand[List[(A, Double)]] {
     def line = multiBulk(
-      (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE") +:
-      (Seq(key, start, end, "WITHSCORES") map format.apply)
+      (if (sortAs == ASC) "ZRANGE" else "ZREVRANGE") ::
+        List(key, start.toString, end.toString, "WITHSCORES")
     )
   }
 
-  case class ZRangeByScore[A](key: Any,
+  case class ZRangeByScore[A](key: String,
     min: Double = Double.NegativeInfinity,
     minInclusive: Boolean = true,
     max: Double = Double.PositiveInfinity,
     maxInclusive: Boolean = true,
     limit: Option[(Int, Int)],
-    sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]) extends RedisCommand[List[A]] {
+    sortAs: SortOrder = ASC)(implicit read: Read[A]) extends RedisCommand[List[A]] {
 
     val (limitEntries, minParam, maxParam) = 
       zrangebyScoreWithScoreInternal(min, minInclusive, max, maxInclusive, limit)
 
     def line = multiBulk(
-      if (sortAs == ASC) "ZRANGEBYSCORE" +: ((Seq(key, minParam, maxParam) ++ limitEntries) map format.apply)
-      else "ZREVRANGEBYSCORE" +: ((Seq(key, maxParam, minParam) ++ limitEntries) map format.apply)
+      if (sortAs == ASC) "ZRANGEBYSCORE" :: key :: minParam :: maxParam :: limitEntries
+      else "ZREVRANGEBYSCORE" :: key :: maxParam :: minParam :: limitEntries
     )
   }
 
-  case class ZRangeByScoreWithScore[A](key: Any,
+  case class ZRangeByScoreWithScore[A](key: String,
           min: Double = Double.NegativeInfinity,
           minInclusive: Boolean = true,
           max: Double = Double.PositiveInfinity,
           maxInclusive: Boolean = true,
           limit: Option[(Int, Int)],
-          sortAs: SortOrder = ASC)(implicit format: Format, parse: Parse[A]) extends RedisCommand[List[(A, Double)]] {
+          sortAs: SortOrder = ASC)(implicit read: Read[A]) extends RedisCommand[List[(A, Double)]] {
 
     val (limitEntries, minParam, maxParam) = 
       zrangebyScoreWithScoreInternal(min, minInclusive, max, maxInclusive, limit)
 
     def line = multiBulk(
-      if (sortAs == ASC) "ZRANGEBYSCORE" +: ((Seq(key, minParam, maxParam, "WITHSCORES") ++ limitEntries) map format.apply)
-      else "ZREVRANGEBYSCORE" +: ((Seq(key, maxParam, minParam, "WITHSCORES") ++ limitEntries) map format.apply))
+      if (sortAs == ASC) "ZRANGEBYSCORE" :: key :: minParam :: maxParam :: "WITHSCORES" :: limitEntries
+      else "ZREVRANGEBYSCORE" :: key :: maxParam :: minParam :: "WITHSCORES" :: limitEntries
+    )
   }
 
-  private def zrangebyScoreWithScoreInternal[A](
+  private def zrangebyScoreWithScoreInternal(
           min: Double = Double.NegativeInfinity,
           minInclusive: Boolean = true,
           max: Double = Double.PositiveInfinity,
           maxInclusive: Boolean = true,
-          limit: Option[(Int, Int)])
-          (implicit format: Format, parse: Parse[A]): (List[Any], String, String) = {
+          limit: Option[(Int, Int)]): (List[String], String, String) = {
 
-    val limitEntries = 
-      if(!limit.isEmpty) { 
-        "LIMIT" :: limit.toList.flatMap(l => List(l._1, l._2))
-      } else { 
-        List()
-      }
+    val limitEntries = limit.fold(List.empty[String])(l => "LIMIT" :: List(l._1, l._2).map(_.toString))
 
-    val minParam = Format.formatDouble(min, minInclusive)
-    val maxParam = Format.formatDouble(max, maxInclusive)
+    val minParam = Write.Internal.formatDouble(min, minInclusive)
+    val maxParam = Write.Internal.formatDouble(max, maxInclusive)
     (limitEntries, minParam, maxParam)
   }
 
-  case class ZRank(key: Any, member: Any, reverse: Boolean = false)
-                  (implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk((if (reverse) "ZREVRANK" else "ZRANK") +: (Seq(key, member) map format.apply))
+  case class ZRank[A](key: String, member: A, reverse: Boolean = false)
+                  (implicit write: Write[A]) extends RedisCommand[Long] {
+    def line = multiBulk((if (reverse) "ZREVRANK" else "ZRANK") :: List(key, write(member)))
   }
 
-  case class ZRemRangeByRank(key: Any, start: Int = 0, end: Int = -1)
-                            (implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk("ZREMRANGEBYRANK" +: (Seq(key, start, end) map format.apply))
+  case class ZRemRangeByRank(key: String, start: Int = 0, end: Int = -1) extends RedisCommand[Long] {
+    def line = multiBulk("ZREMRANGEBYRANK" :: key :: List(start, end).map(_.toString))
   }
 
-  case class ZRemRangeByScore(key: Any, start: Double = Double.NegativeInfinity, end: Double = Double.PositiveInfinity)
-                             (implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk("ZREMRANGEBYSCORE" +: (Seq(key, start, end) map format.apply))
+  case class ZRemRangeByScore(key: String,
+                              start: Double = Double.NegativeInfinity,
+                              end: Double = Double.PositiveInfinity) extends RedisCommand[Long] {
+    def line = multiBulk("ZREMRANGEBYSCORE" :: key :: List(start, end).map(_.toString))
   }
 
   trait setOp 
   case object union extends setOp
   case object inter extends setOp
 
-  case class ZUnionInterStore(ux: setOp, dstKey: Any, keys: Iterable[Any], aggregate: Aggregate = SUM)
-                             (implicit format: Format)  extends RedisCommand[Long] {
+  case class ZUnionInterStore(ux: setOp, dstKey: String, keys: Iterable[String],
+                              aggregate: Aggregate = SUM) extends RedisCommand[Long] {
     def line = multiBulk(
-      (if (ux == union) "ZUNIONSTORE" else "ZINTERSTORE") +:
-      ((Iterator(dstKey, keys.size) ++ keys.iterator ++ Iterator("AGGREGATE", aggregate)).toList) map format.apply
+      (if (ux == union) "ZUNIONSTORE" else "ZINTERSTORE") ::
+      ((Iterator(dstKey, keys.size.toString) ++ keys.iterator ++ Iterator("AGGREGATE", aggregate.toString)).toList)
     )
   }
 
-  case class ZUnionInterStoreWeighted(ux: setOp, dstKey: Any, kws: Iterable[Product2[Any,Double]],
-                                      aggregate: Aggregate = SUM)(implicit format: Format) extends RedisCommand[Long] {
+  case class ZUnionInterStoreWeighted(ux: setOp, dstKey: String, kws: Iterable[Product2[String, Double]],
+                                      aggregate: Aggregate = SUM) extends RedisCommand[Long] {
 
     def line = multiBulk(
-      (if (ux == union) "ZUNIONSTORE" else "ZINTERSTORE") +:
-      ((Iterator(dstKey, kws.size) ++ kws.iterator.map(_._1) ++ Iterator.single("WEIGHTS") ++ kws.iterator.map(_._2) ++ Iterator("AGGREGATE", aggregate)).toList) map format.apply
+      (if (ux == union) "ZUNIONSTORE" else "ZINTERSTORE") ::
+        (Iterator(dstKey, kws.size.toString) ++ kws.iterator.map(_._1) ++ Iterator.single("WEIGHTS") ++
+          kws.iterator.map(_._2.toString) ++ Iterator("AGGREGATE", aggregate.toString)).toList
     )
   }
 
-  case class ZCount(key: Any, min: Double = Double.NegativeInfinity, max: Double = Double.PositiveInfinity,
-                    minInclusive: Boolean = true, maxInclusive: Boolean = true)
-                   (implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk("ZCOUNT" +: (List(key, Format.formatDouble(min, minInclusive), Format.formatDouble(max, maxInclusive)) map format.apply))
+  case class ZCount(key: String, min: Double = Double.NegativeInfinity, max: Double = Double.PositiveInfinity,
+                    minInclusive: Boolean = true, maxInclusive: Boolean = true) extends RedisCommand[Long] {
+    def line =
+      multiBulk("ZCOUNT" :: key ::
+        Write.Internal.formatDouble(min, minInclusive) :: Write.Internal.formatDouble(max, maxInclusive) :: Nil)
   }
 }

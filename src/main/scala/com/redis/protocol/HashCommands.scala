@@ -1,57 +1,56 @@
 package com.redis.protocol
 
-import com.redis.serialization.{PartialDeserializer, Parse, Format}
+import com.redis.serialization.{PartialDeserializer, Read, Write}
 import RedisCommand._
 
 
 object HashCommands {
-  case class HSet(key: Any, field: Any, value: Any, nx: Boolean = false)
-                 (implicit format: Format) extends RedisCommand[Boolean] {
+  case class HSet[A](key: String, field: String, value: A, nx: Boolean = false)
+                    (implicit write: Write[A]) extends RedisCommand[Boolean] {
     def line = multiBulk(
-      (if (nx) "HSETNX" else "HSET") +: (List(key, field, value) map format.apply))
+      (if (nx) "HSETNX" else "HSET") :: List(key, field, write(value)))
   }
   
-  case class HGet[A](key: Any, field: Any)
-                    (implicit format: Format, parse: Parse[A]) extends RedisCommand[Option[A]] {
-    def line = multiBulk("HGET" +: (List(key, field) map format.apply))
+  case class HGet[A](key: String, field: String)
+                    (implicit read: Read[A]) extends RedisCommand[Option[A]] {
+    def line = multiBulk("HGET" :: List(key, field))
   }
   
-  case class HMSet(key: Any, map: Iterable[Product2[Any,Any]])
-                  (implicit format: Format) extends RedisCommand[Boolean] {
-    def line = multiBulk("HMSET" +: ((key :: flattenPairs(map)) map format.apply))
+  case class HMSet[A](key: String, mapLike: Iterable[Product2[String, A]])
+                  (implicit write: Write[A]) extends RedisCommand[Boolean] {
+    def line = multiBulk("HMSET" :: key :: flattenPairs(mapLike))
   }
   
-  case class HMGet[K, V](key: Any, fields: K*)(implicit format: Format, parseV: Parse[V])
-      extends RedisCommand[Map[K, V]]()(PartialDeserializer.keyedMapPD(fields)) {
-    def line = multiBulk("HMGET" +: ((key :: fields.toList) map format.apply))
+  case class HMGet[A](key: String, fields: String*)(implicit read: Read[A])
+      extends RedisCommand[Map[String, A]]()(PartialDeserializer.keyedMapPD(fields)) {
+    def line = multiBulk("HMGET" :: key :: fields.toList)
   }
   
-  case class HIncrby(key: Any, field: Any, value: Int)(implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk("HINCRBY" +: (List(key, field, value) map format.apply))
+  case class HIncrby(key: String, field: String, value: Int) extends RedisCommand[Long] {
+    def line = multiBulk("HINCRBY" :: List(key, field, value.toString))
   }
   
-  case class HExists(key: Any, field: Any)(implicit format: Format) extends RedisCommand[Boolean] {
-    def line = multiBulk("HEXISTS" +: (List(key, field) map format.apply))
+  case class HExists(key: String, field: String) extends RedisCommand[Boolean] {
+    def line = multiBulk("HEXISTS" :: List(key, field))
   }
   
-  case class HDel(key: Any, field: Any, fields: Any*)(implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk("HDEL" +: ((key :: field :: fields.toList) map format.apply))
+  case class HDel(key: String, field: String, fields: String*) extends RedisCommand[Long] {
+    def line = multiBulk("HDEL" :: key :: field :: fields.toList)
   }
   
-  case class HLen(key: Any)(implicit format: Format) extends RedisCommand[Long] {
-    def line = multiBulk("HLEN" +: (List(key) map format.apply))
+  case class HLen(key: String) extends RedisCommand[Long] {
+    def line = multiBulk("HLEN" :: List(key))
   }
   
-  case class HKeys[A](key: Any)(implicit format: Format, parse: Parse[A]) extends RedisCommand[List[A]] {
-    def line = multiBulk("HKEYS" +: (List(key) map format.apply))
+  case class HKeys[A](key: String)(implicit read: Read[A]) extends RedisCommand[List[A]] {
+    def line = multiBulk("HKEYS" :: List(key))
   }
   
-  case class HVals[A](key: Any)(implicit format: Format, parse: Parse[A]) extends RedisCommand[List[A]] {
-    def line = multiBulk("HVALS" +: (List(key) map format.apply))
+  case class HVals[A](key: String)(implicit read: Read[A]) extends RedisCommand[List[A]] {
+    def line = multiBulk("HVALS" :: List(key))
   }
   
-  case class HGetall[K, V](key: Any)
-                         (implicit format: Format, parseK: Parse[K], parseV: Parse[V]) extends RedisCommand[Map[K, V]] {
-    def line = multiBulk("HGETALL" +: (List(key) map format.apply))
+  case class HGetall[A](key: String)(implicit read: Read[A]) extends RedisCommand[Map[String, A]] {
+    def line = multiBulk("HGETALL" :: List(key))
   }
 }
