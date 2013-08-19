@@ -36,8 +36,8 @@ trait HashOperations { this: RedisOps =>
   def hlen(key: String)(implicit timeout: Timeout) =
     clientRef.ask(HLen(key)).mapTo[HLen#Ret]
 
-  def hkeys[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
-    clientRef.ask(HKeys[A](key)).mapTo[HKeys[A]#Ret]
+  def hkeys(key: String)(implicit timeout: Timeout) =
+    clientRef.ask(HKeys(key)).mapTo[HKeys#Ret]
 
   def hvals[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(HVals(key)).mapTo[HVals[A]#Ret]

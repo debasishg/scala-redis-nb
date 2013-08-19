@@ -42,7 +42,7 @@ object HashCommands {
     def line = multiBulk("HLEN" :: List(key))
   }
   
-  case class HKeys[A](key: String)(implicit reader: Read[A]) extends RedisCommand[List[A]] {
+  case class HKeys(key: String) extends RedisCommand[List[String]] {
     def line = multiBulk("HKEYS" :: List(key))
   }
   
