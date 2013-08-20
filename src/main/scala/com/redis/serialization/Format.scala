@@ -1,6 +1,7 @@
 package com.redis.serialization
 
 import scala.annotation.implicitNotFound
+import scala.language.implicitConversions
 
 
 @implicitNotFound(msg = "Cannot find implicit Read or Format type class for ${A}")

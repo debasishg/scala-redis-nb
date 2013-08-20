@@ -1,6 +1,6 @@
 package com.redis.protocol
 
-import com.redis.serialization.{Read, Write}
+import com.redis.serialization._
 import RedisCommand._
 
 
@@ -10,24 +10,24 @@ object SetCommands {
   case object add extends Op
   case object rem extends Op
 
-  case class SOp[A](op: Op, key: String, value: A, values: A*)(implicit writer: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk((if (op == add) "SADD" else "SREM") +: key +: (value +: values).map(writer.write))
+  case class SOp(op: Op, key: String, value: Stringified, values: Stringified*) extends RedisCommand[Long] {
+    def line = multiBulk((if (op == add) "SADD" else "SREM") +: key +: (value +: values).map(_.toString))
   }
 
   case class SPop[A](key: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("SPOP" +: Seq(key))
   }
   
-  case class SMove[A](srcKey: String, destKey: String, value: A)(implicit writer: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk("SMOVE" +: Seq(srcKey, destKey, writer.write(value)))
+  case class SMove(srcKey: String, destKey: String, value: Stringified) extends RedisCommand[Long] {
+    def line = multiBulk("SMOVE" +: Seq(srcKey, destKey, value.toString))
   }
 
   case class SCard(key: String) extends RedisCommand[Long] {
     def line = multiBulk("SCARD" +: Seq(key))
   }
 
-  case class ∈[A](key: String, value: A)(implicit writer: Write[A]) extends RedisCommand[Boolean] {
-    def line = multiBulk("SISMEMBER" +: Seq(key, writer.write(value)))
+  case class ∈(key: String, value: Stringified) extends RedisCommand[Boolean] {
+    def line = multiBulk("SISMEMBER" +: Seq(key, value.toString))
   }
 
   trait setOp 

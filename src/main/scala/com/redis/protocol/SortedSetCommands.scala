@@ -1,32 +1,33 @@
 package com.redis.protocol
 
-import com.redis.serialization.{Read, Write}
+import com.redis.serialization._
 import RedisCommand._
 
 
 object SortedSetCommands {
-  case class ZAdd[A](key: String, score: Double, member: A, scoreVals: (Double, A)*)
-                    (implicit writer: Write[A]) extends RedisCommand[Long] {
+  case class ZAdd(key: String, score: Double, member: Stringified, scoreVals: ScoredValue*)
+      extends RedisCommand[Long] {
+
     def line = multiBulk(
-      "ZADD" +: key +: score.toString +: writer.write(member)
-        +: scoreVals.foldRight(List[String]())((x, acc) => x._1.toString +: writer.write(x._2) +: acc)
+      "ZADD" +: key +: score.toString +: member.toString
+        +: scoreVals.foldRight(List[String]())((x, acc) => x.score.toString +: x.value.toString +: acc)
     )
   }
   
-  case class ZRem[A](key: String, member: A, members: A*)(implicit writer: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk("ZREM" +: key +: (member +: members).map(writer.write))
+  case class ZRem(key: String, member: Stringified, members: Stringified*) extends RedisCommand[Long] {
+    def line = multiBulk("ZREM" +: key +: (member +: members).map(_.toString))
   }
   
-  case class ZIncrby[A](key: String, incr: Double, member: A)(implicit writer: Write[A]) extends RedisCommand[Option[Double]] {
-    def line = multiBulk("ZINCRBY" +: Seq(key, incr.toString, writer.write(member)))
+  case class ZIncrby(key: String, incr: Double, member: Stringified) extends RedisCommand[Option[Double]] {
+    def line = multiBulk("ZINCRBY" +: Seq(key, incr.toString, member.toString))
   }
   
   case class ZCard(key: String) extends RedisCommand[Long] {
     def line = multiBulk("ZCARD" +: Seq(key))
   }
   
-  case class ZScore[A](key: String, element: A)(implicit writer: Write[A]) extends RedisCommand[Option[Double]] {
-    def line = multiBulk("ZSCORE" +: Seq(key, writer.write(element)))
+  case class ZScore(key: String, element: Stringified) extends RedisCommand[Option[Double]] {
+    def line = multiBulk("ZSCORE" +: Seq(key, element.toString))
   }
 
   case class ZRange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
@@ -92,9 +93,9 @@ object SortedSetCommands {
     (limitEntries, minParam, maxParam)
   }
 
-  case class ZRank[A](key: String, member: A, reverse: Boolean = false)
-                  (implicit writer: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk((if (reverse) "ZREVRANK" else "ZRANK") +: Seq(key, writer.write(member)))
+  case class ZRank(key: String, member: Stringified, reverse: Boolean = false)
+                   extends RedisCommand[Long] {
+    def line = multiBulk((if (reverse) "ZREVRANK" else "ZRANK") +: Seq(key, member.toString))
   }
 
   case class ZRemRangeByRank(key: String, start: Int = 0, end: Int = -1) extends RedisCommand[Long] {

@@ -50,7 +50,8 @@ class HashOperationsSpec extends RedisSpecBase {
       client.hexists(key, "field1").futureValue should be (true)
       client.hdel(key, "field1").futureValue should equal (1)
       client.hexists(key, "field1").futureValue should be (false)
-      client.hmset(key, Map("field1" -> "val1", "field2" -> "val2"))
+      val kvs = Map("field1" -> "val1", "field2" -> "val2")
+      client.hmset(key, kvs)
       client.hdel(key, "field1", "field2").futureValue should equal (2)
     }
    }

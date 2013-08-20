@@ -1,7 +1,7 @@
 package com.redis.protocol
 
 import akka.util.{ByteString, ByteStringBuilder}
-import com.redis.serialization.{Write, PartialDeserializer}
+import com.redis.serialization.{KeyValuePair, PartialDeserializer}
 
 
 abstract class RedisCommand[A]()(implicit _des: PartialDeserializer[A]) {
@@ -25,8 +25,8 @@ object RedisCommand {
   case object MIN extends Aggregate
   case object MAX extends Aggregate
 
-  def flattenPairs[A](in: Iterable[Product2[String, A]])(implicit writer: Write[A]): List[String] =
-    in.iterator.flatMap(x => Iterator(x._1, writer.write(x._2))).toList
+  def flattenPairs(in: Iterable[KeyValuePair]) =
+    in.iterator.flatMap(x => Iterator(x.key, x.value.toString)).toList
   
   def multiBulk(args: Seq[String]): ByteString = {
     val b = new ByteStringBuilder

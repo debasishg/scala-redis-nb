@@ -9,17 +9,17 @@ import com.redis.protocol.HashCommands
 trait HashOperations { this: RedisOps =>
   import HashCommands._
 
-  def hset[A](key: String, field: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(HSet[A](key, field, value)).mapTo[HSet[A]#Ret]
+  def hset(key: String, field: String, value: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(HSet(key, field, value)).mapTo[HSet#Ret]
 
-  def hsetnx[A](key: String, field: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(HSet[A](key, field, value, true)).mapTo[HSet[A]#Ret]
+  def hsetnx(key: String, field: String, value: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(HSet(key, field, value, true)).mapTo[HSet#Ret]
 
   def hget[A](key: String, field: String)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(HGet[A](key, field)).mapTo[HGet[A]#Ret]
 
-  def hmset[A](key: String, mapLike: Iterable[Product2[String, A]])(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(HMSet[A](key, mapLike)).mapTo[HMSet[A]#Ret]
+  def hmset(key: String, mapLike: Iterable[KeyValuePair])(implicit timeout: Timeout) =
+    clientRef.ask(HMSet(key, mapLike)).mapTo[HMSet#Ret]
 
   def hmget[A](key: String, fields: String*)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(HMGet[A](key, fields:_*)).mapTo[HMGet[A]#Ret]

@@ -11,23 +11,23 @@ trait ListOperations { this: RedisOps =>
 
   // LPUSH (Variadic: >= 2.4)
   // add values to the head of the list stored at key
-  def lpush[A](key: String, value: A, values: A*)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(LPush(key, value, values:_*)).mapTo[LPush[A]#Ret]
+  def lpush(key: String, value: Stringified, values: Stringified*)(implicit timeout: Timeout) =
+    clientRef.ask(LPush(key, value, values:_*)).mapTo[LPush#Ret]
 
   // LPUSHX (Variadic: >= 2.4)
   // add value to the tail of the list stored at key
-  def lpushx[A](key: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(LPushX[A](key, value)).mapTo[LPushX[A]#Ret]
+  def lpushx(key: String, value: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(LPushX(key, value)).mapTo[LPushX#Ret]
 
   // RPUSH (Variadic: >= 2.4)
   // add values to the head of the list stored at key
-  def rpush[A](key: String, value: A, values: A*)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(RPush(key, value, values:_*)).mapTo[RPush[A]#Ret]
+  def rpush(key: String, value: Stringified, values: Stringified*)(implicit timeout: Timeout) =
+    clientRef.ask(RPush(key, value, values:_*)).mapTo[RPush#Ret]
 
   // RPUSHX (Variadic: >= 2.4)
   // add value to the tail of the list stored at key
-  def rpushx[A](key: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(RPushX(key, value)).mapTo[RPushX[A]#Ret]
+  def rpushx(key: String, value: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(RPushX(key, value)).mapTo[RPushX#Ret]
 
   // LLEN
   // return the length of the list stored at the specified key.
@@ -55,13 +55,13 @@ trait ListOperations { this: RedisOps =>
 
   // LSET
   // set the list element at index with the new value. Out of range indexes will generate an error
-  def lset[A](key: String, index: Int, value: A)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(LSet[A](key, index, value)).mapTo[LSet[A]#Ret]
+  def lset(key: String, index: Int, value: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(LSet(key, index, value)).mapTo[LSet#Ret]
 
   // LREM
   // Remove the first count occurrences of the value element from the list.
-  def lrem[A](key: String, count: Int, value: A)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(LRem[A](key, count, value)).mapTo[LRem[A]#Ret]
+  def lrem(key: String, count: Int, value: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(LRem(key, count, value)).mapTo[LRem#Ret]
 
   // LPOP
   // atomically return and remove the first (LPOP) or last (RPOP) element of the list
@@ -84,7 +84,7 @@ trait ListOperations { this: RedisOps =>
     clientRef.ask(BRPopLPush[A](srcKey, dstKey, timeoutInSeconds)).mapTo[BRPopLPush[A]#Ret]
 
   def blpop[A](timeoutInSeconds: Int, key: String, keys: String*)
-                (implicit timeout: Timeout, writer: Write[A], reader: Read[A]) =
+                (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(BLPop[A](timeoutInSeconds, key, keys:_*)).mapTo[BLPop[A]#Ret]
 
   def brpop[A](timeoutInSeconds: Int, key: String, keys: String*)

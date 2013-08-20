@@ -13,7 +13,8 @@ class SortedSetOperationsSpec extends RedisSpecBase {
 
   private def add = {
     val add1 = client.zadd("hackers", 1965, "yukihiro matsumoto")
-    val add2 = client.zadd("hackers", 1953, "richard stallman", (1916, "claude shannon"), (1969, "linus torvalds"), (1940, "alan kay"), (1912, "alan turing"))
+    val rest = Seq((1916, "claude shannon"), (1969, "linus torvalds"), (1940, "alan kay"), (1912, "alan turing"))
+    val add2 = client.zadd("hackers", 1953, "richard stallman", rest: _*)
     add1.futureValue should equal (1)
     add2.futureValue should equal (5)
   }

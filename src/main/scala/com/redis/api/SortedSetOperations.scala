@@ -13,19 +13,19 @@ trait SortedSetOperations { this: RedisOps =>
 
   // ZADD (Variadic: >= 2.4)
   // Add the specified members having the specified score to the sorted set stored at key.
-  def zadd[A](key: String, score: Double, member: A, scoreVals: (Double, A)*)
-          (implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(ZAdd[A](key, score, member, scoreVals:_*)).mapTo[ZAdd[A]#Ret]
+  def zadd(key: String, score: Double, member: Stringified, scoreVals: ScoredValue*)
+          (implicit timeout: Timeout) =
+    clientRef.ask(ZAdd(key, score, member, scoreVals:_*)).mapTo[ZAdd#Ret]
 
   // ZREM (Variadic: >= 2.4)
   // Remove the specified members from the sorted set value stored at key.
-  def zrem[A](key: String, member: A, members: A*)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(ZRem[A](key, member, members:_*)).mapTo[ZRem[A]#Ret]
+  def zrem(key: String, member: Stringified, members: Stringified*)(implicit timeout: Timeout) =
+    clientRef.ask(ZRem(key, member, members:_*)).mapTo[ZRem#Ret]
 
   // ZINCRBY
   //
-  def zincrby[A](key: String, incr: Double, member: A)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(ZIncrby[A](key, incr, member)).mapTo[ZIncrby[A]#Ret]
+  def zincrby(key: String, incr: Double, member: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(ZIncrby(key, incr, member)).mapTo[ZIncrby#Ret]
 
   // ZCARD
   //
@@ -34,15 +34,17 @@ trait SortedSetOperations { this: RedisOps =>
 
   // ZSCORE
   //
-  def zscore[A](key: String, element: A)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(ZScore[A](key, element)).mapTo[ZScore[A]#Ret]
+  def zscore(key: String, element: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(ZScore(key, element)).mapTo[ZScore#Ret]
 
   // ZRANGE
   //
-  def zrange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit timeout: Timeout, reader: Read[A]) =
+  def zrange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+               (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ZRange[A](key, start, end, sortAs)).mapTo[ZRange[A]#Ret]
 
-  def zrangeWithScore[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)(implicit timeout: Timeout, reader: Read[A]) =
+  def zrangeWithScore[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+                        (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ZRangeWithScore[A](key, start, end, sortAs)).mapTo[ZRangeWithScore[A]#Ret]
 
   // ZRANGEBYSCORE
@@ -54,7 +56,9 @@ trait SortedSetOperations { this: RedisOps =>
     maxInclusive: Boolean = true,
     limit: Option[(Int, Int)],
     sortAs: SortOrder = ASC)(implicit timeout: Timeout, reader: Read[A]) =
-    clientRef.ask(ZRangeByScore[A](key, min, minInclusive, max, maxInclusive, limit, sortAs)).mapTo[ZRangeByScore[A]#Ret]
+    clientRef
+      .ask(ZRangeByScore[A](key, min, minInclusive, max, maxInclusive, limit, sortAs))
+      .mapTo[ZRangeByScore[A]#Ret]
 
   def zrangeByScoreWithScore[A](key: String,
           min: Double = Double.NegativeInfinity,
@@ -63,13 +67,15 @@ trait SortedSetOperations { this: RedisOps =>
           maxInclusive: Boolean = true,
           limit: Option[(Int, Int)],
           sortAs: SortOrder = ASC)(implicit timeout: Timeout, reader: Read[A]) =
-    clientRef.ask(ZRangeByScoreWithScore[A](key, min, minInclusive, max, maxInclusive, limit, sortAs)).mapTo[ZRangeByScoreWithScore[A]#Ret]
+    clientRef
+      .ask(ZRangeByScoreWithScore[A](key, min, minInclusive, max, maxInclusive, limit, sortAs))
+      .mapTo[ZRangeByScoreWithScore[A]#Ret]
 
   // ZRANK
   // ZREVRANK
   //
-  def zrank[A](key: String, member: A, reverse: Boolean = false)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(ZRank[A](key, member, reverse)).mapTo[ZRank[A]#Ret]
+  def zrank(key: String, member: Stringified, reverse: Boolean = false)(implicit timeout: Timeout) =
+    clientRef.ask(ZRank(key, member, reverse)).mapTo[ZRank#Ret]
 
   // ZREMRANGEBYRANK
   //

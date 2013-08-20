@@ -11,13 +11,13 @@ trait SetOperations { this: RedisOps =>
 
   // SADD (VARIADIC: >= 2.4)
   // Add the specified members to the set value stored at key.
-  def sadd[A](key: String, value: A, values: A*)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(SOp[A](add, key, value, values:_*)).mapTo[SOp[A]#Ret]
+  def sadd(key: String, value: Stringified, values: Stringified*)(implicit timeout: Timeout) =
+    clientRef.ask(SOp(add, key, value, values:_*)).mapTo[SOp#Ret]
 
   // SREM (VARIADIC: >= 2.4)
   // Remove the specified members from the set value stored at key.
-  def srem[A](key: String, value: A, values: A*)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(SOp[A](rem, key, value, values:_*)).mapTo[SOp[A]#Ret]
+  def srem(key: String, value: Stringified, values: Stringified*)(implicit timeout: Timeout) =
+    clientRef.ask(SOp(rem, key, value, values:_*)).mapTo[SOp#Ret]
 
   // SPOP
   // Remove and return (pop) a random element from the Set value at key.
@@ -26,8 +26,8 @@ trait SetOperations { this: RedisOps =>
 
   // SMOVE
   // Move the specified member from one Set to another atomically.
-  def smove[A](sourceKey: String, destKey: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(SMove[A](sourceKey, destKey, value)).mapTo[SMove[A]#Ret]
+  def smove(sourceKey: String, destKey: String, value: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(SMove(sourceKey, destKey, value)).mapTo[SMove#Ret]
 
   // SCARD
   // Return the number of elements (the cardinality) of the Set at key.
@@ -36,8 +36,8 @@ trait SetOperations { this: RedisOps =>
 
   // SISMEMBER
   // Test if the specified value is a member of the Set at key.
-  def sismember[A](key: String, value: A)(implicit timeout: Timeout, writer: Write[A]) =
-    clientRef.ask(∈[A](key, value)).mapTo[(∈[A])#Ret]
+  def sismember(key: String, value: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(∈(key, value)).mapTo[(∈)#Ret]
 
   // SINTER
   // Return the intersection between the Sets stored at key1, key2, ..., keyN.

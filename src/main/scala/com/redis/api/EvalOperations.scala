@@ -9,17 +9,17 @@ import com.redis.protocol.EvalCommands
 trait EvalOperations { this: RedisOps =>
   import EvalCommands._
 
-  def evalMultiBulk[A, B](script: String, keys: Seq[String], args: Seq[A])(implicit timeout: Timeout, writer: Write[A], reader: Read[B]) =
-    clientRef.ask(EvalMultiBulk[A, B](script, keys, args)).mapTo[EvalMultiBulk[A, B]#Ret]
+  def evalMultiBulk[A](script: String, keys: Seq[String], args: Seq[Stringified])(implicit timeout: Timeout, reader: Read[A]) =
+    clientRef.ask(EvalMultiBulk[A](script, keys, args)).mapTo[EvalMultiBulk[A]#Ret]
 
-  def evalBulk[A, B](script: String, keys: Seq[String], args: Seq[A])(implicit timeout: Timeout, writer: Write[A], reader: Read[B]) =
-    clientRef.ask(EvalBulk[A, B](script, keys, args)).mapTo[EvalBulk[A, B]#Ret]
+  def evalBulk[A](script: String, keys: Seq[String], args: Seq[Stringified])(implicit timeout: Timeout, reader: Read[A]) =
+    clientRef.ask(EvalBulk[A](script, keys, args)).mapTo[EvalBulk[A]#Ret]
 
-  def evalMultiSHA[A, B](script: String, keys: Seq[String], args: Seq[A])(implicit timeout: Timeout, writer: Write[A], reader: Read[B]) =
-    clientRef.ask(EvalMultiSHA[A, B](script, keys, args)).mapTo[EvalMultiSHA[A, B]#Ret]
+  def evalMultiSHA[A](script: String, keys: Seq[String], args: Seq[Stringified])(implicit timeout: Timeout, reader: Read[A]) =
+    clientRef.ask(EvalMultiSHA[A](script, keys, args)).mapTo[EvalMultiSHA[A]#Ret]
 
-  def evalSHA[A, B](script: String, keys: Seq[String], args: Seq[A])(implicit timeout: Timeout, writer: Write[A], reader: Read[B]) =
-    clientRef.ask(EvalSHA[A, B](script, keys, args)).mapTo[EvalSHA[A, B]#Ret]
+  def evalSHA[A](script: String, keys: Seq[String], args: Seq[Stringified])(implicit timeout: Timeout, reader: Read[A]) =
+    clientRef.ask(EvalSHA[A](script, keys, args)).mapTo[EvalSHA[A]#Ret]
 
   def scriptLoad(script: String)(implicit timeout: Timeout) =
     clientRef.ask(ScriptLoad(script)).mapTo[ScriptLoad#Ret]

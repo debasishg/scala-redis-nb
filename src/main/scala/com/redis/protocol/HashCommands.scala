@@ -1,23 +1,19 @@
 package com.redis.protocol
 
-import com.redis.serialization.{PartialDeserializer, Read, Write}
+import com.redis.serialization._
 import RedisCommand._
 
 
 object HashCommands {
-  case class HSet[A](key: String, field: String, value: A, nx: Boolean = false)
-                    (implicit writer: Write[A]) extends RedisCommand[Boolean] {
-    def line = multiBulk(
-      (if (nx) "HSETNX" else "HSET") +: Seq(key, field, writer.write(value)))
+  case class HSet(key: String, field: String, value: Stringified, nx: Boolean = false) extends RedisCommand[Boolean] {
+    def line = multiBulk((if (nx) "HSETNX" else "HSET") +: Seq(key, field, value.toString))
   }
   
-  case class HGet[A](key: String, field: String)
-                    (implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+  case class HGet[A](key: String, field: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("HGET" +: Seq(key, field))
   }
   
-  case class HMSet[A](key: String, mapLike: Iterable[Product2[String, A]])
-                  (implicit writer: Write[A]) extends RedisCommand[Boolean] {
+  case class HMSet(key: String, mapLike: Iterable[KeyValuePair]) extends RedisCommand[Boolean] {
     def line = multiBulk("HMSET" +: key +: flattenPairs(mapLike))
   }
   

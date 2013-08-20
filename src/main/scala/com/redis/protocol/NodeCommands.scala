@@ -1,7 +1,7 @@
 package com.redis.protocol
 
+import com.redis.serialization._
 import RedisCommand._
-import com.redis.serialization.{Read, Write}
 
 
 object NodeCommands {
@@ -59,8 +59,8 @@ object NodeCommands {
     def line = multiBulk(Seq("CONFIG", "GET", globStyleParam))
   }
 
-  case class ConfigSet[A](param: String, value: A)(implicit writer: Write[A]) extends RedisCommand[Boolean] {
-    def line = multiBulk("CONFIG" +: Seq("SET", param, writer.write(value)))
+  case class ConfigSet(param: String, value: Stringified) extends RedisCommand[Boolean] {
+    def line = multiBulk("CONFIG" +: Seq("SET", param, value.toString))
   }
 
   case object ConfigResetStat extends RedisCommand[Boolean] {

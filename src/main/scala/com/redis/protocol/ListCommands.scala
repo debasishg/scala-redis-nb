@@ -1,27 +1,28 @@
 package com.redis.protocol
 
-import com.redis.serialization.{Read, Write}
+import com.redis.serialization._
 import RedisCommand._
 
 
 object ListCommands {
-  case class LPush[A](key: String, value: A, values: A*)(implicit writer: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk("LPUSH" +: key +: (value +: values).map(writer.write))
+  case class LPush(key: String, value: Stringified, values: Stringified*) extends RedisCommand[Long] {
+    def line = multiBulk("LPUSH" +: key +: (value +: values).map(_.toString))
   }
 
-  case class LPushX[A](key: String, value: A)(implicit writer: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk("LPUSHX" +: key +: writer.write(value) +: Nil)
+  case class LPushX(key: String, value: Stringified) extends RedisCommand[Long] {
+    def line = multiBulk("LPUSHX" +: key +: value.toString +: Nil)
   }
   
-  case class RPush[A](key: String, value: A, values: A*)(implicit writer: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk("RPUSH" +: key +: (value +: values).map(writer.write))
+  case class RPush(key: String, value: Stringified, values: Stringified*) extends RedisCommand[Long] {
+    def line = multiBulk("RPUSH" +: key +: (value +: values).map(_.toString))
   }
 
-  case class RPushX[A](key: String, value: A)(implicit writer: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk("RPUSHX" +: Seq(key, writer.write(value)))
+  case class RPushX(key: String, value: Stringified) extends RedisCommand[Long] {
+    def line = multiBulk("RPUSHX" +: Seq(key, value.toString))
   }
   
-  case class LRange[A](key: String, start: Int, stop: Int)(implicit reader: Read[A]) extends RedisCommand[List[A]] {
+  case class LRange[A](key: String, start: Int, stop: Int)
+                      (implicit reader: Read[A]) extends RedisCommand[List[A]] {
     def line = multiBulk("LRANGE" +: key +: Seq(start, stop).map(_.toString))
   }
 
@@ -38,13 +39,13 @@ object ListCommands {
 
   }
 
-  case class LSet[A](key: String, index: Int, value: A)(implicit writer: Write[A]) extends RedisCommand[Boolean] {
-    def line = multiBulk("LSET" +: Seq(key, index.toString, writer.write(value)))
+  case class LSet(key: String, index: Int, value: Stringified) extends RedisCommand[Boolean] {
+    def line = multiBulk("LSET" +: Seq(key, index.toString, value.toString))
 
   }
 
-  case class LRem[A](key: String, count: Int, value: A)(implicit writer: Write[A]) extends RedisCommand[Long] {
-    def line = multiBulk("LREM" +: Seq(key, count.toString, writer.write(value)))
+  case class LRem(key: String, count: Int, value: Stringified) extends RedisCommand[Long] {
+    def line = multiBulk("LREM" +: Seq(key, count.toString, value.toString))
 
   }
   
@@ -58,12 +59,14 @@ object ListCommands {
 
   }
   
-  case class RPopLPush[A](srcKey: String, dstKey: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+  case class RPopLPush[A](srcKey: String, dstKey: String)
+                         (implicit reader: Read[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("RPOPLPUSH" +: Seq(srcKey, dstKey))
 
   }
   
-  case class BRPopLPush[A](srcKey: String, dstKey: String, timeoutInSeconds: Int)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+  case class BRPopLPush[A](srcKey: String, dstKey: String, timeoutInSeconds: Int)
+                          (implicit reader: Read[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("BRPOPLPUSH" +: Seq(srcKey, dstKey, timeoutInSeconds.toString))
 
   }
