@@ -75,6 +75,18 @@ class StringOperationsSpec extends RedisSpecBase {
       val readResults = Future.sequence(reads).futureValue
       readResults should equal (vals.map(Some.apply))
     }
+
+    it("should support various value types in a single command") {
+      import com.redis.serialization.DefaultFormats._
+
+      client
+        .mset(("int" -> 1), ("long" -> 2L), ("pi" -> 3.14), ("string" -> "string"))
+        .futureValue should be (true)
+
+      client
+        .mget("int", "long", "pi", "string")
+        .futureValue should equal (Map("int" -> "1", "long" -> "2", "pi" -> "3.14", "string" -> "string"))
+    }
   }
 
   describe("mget") {
