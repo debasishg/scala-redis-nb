@@ -5,7 +5,6 @@ import scala.concurrent.Future
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
-import com.redis.serialization.Parse
 import com.redis.RedisSpecBase
 
 
@@ -45,7 +44,8 @@ class ListOperationsSpec extends RedisSpecBase {
     }
   }
 
-  import Parse.Implicits._
+  import com.redis.serialization.DefaultFormats._
+
   describe("lrange") {
     it("should get the elements at specified offsets") {
       val key = "listlr1"

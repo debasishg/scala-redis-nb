@@ -1,7 +1,7 @@
 package com.redis.protocol
 
+import com.redis.serialization._
 import RedisCommand._
-import com.redis.serialization.Format
 
 
 object NodeCommands {
@@ -30,10 +30,10 @@ object NodeCommands {
     def line = multiBulk(Seq("MONITOR"))
   }
 
-  case class SlaveOf(options: Any)(implicit format: Format) extends RedisCommand[Boolean] {
+  case class SlaveOf(node: Option[(String, Int)]) extends RedisCommand[Boolean] {
     def line = multiBulk(
-      options match {
-        case (h: String, p: Int) => "SLAVEOF" +: (Seq(h, p) map format.apply)
+      node match {
+        case Some((h: String, p: Int)) => "SLAVEOF" +: Seq(h, p.toString)
         case _ => Seq("SLAVEOF", "NO", "ONE")
       }
     )
@@ -55,12 +55,12 @@ object NodeCommands {
     def line = multiBulk(Seq("CLIENT", "LIST"))
   }
 
-  case class ConfigGet(globStyleParam: String) extends RedisCommand[Option[String]] {
+  case class ConfigGet[A](globStyleParam: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk(Seq("CONFIG", "GET", globStyleParam))
   }
 
-  case class ConfigSet(param: String, value: Any)(implicit format: Format) extends RedisCommand[Boolean] {
-    def line = multiBulk("CONFIG" +: (Seq("SET", param, value) map format.apply))
+  case class ConfigSet(param: String, value: Stringified) extends RedisCommand[Boolean] {
+    def line = multiBulk("CONFIG" +: Seq("SET", param, value.toString))
   }
 
   case object ConfigResetStat extends RedisCommand[Boolean] {
