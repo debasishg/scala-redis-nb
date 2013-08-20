@@ -12,7 +12,7 @@ trait Read[A] {
 object Read {
   def apply[A](f: String => A) = new Read[A] { def read(in: String) = f(in) }
 
-  implicit def default = DefaultFormats.stringFormat
+  implicit def default: Read[String] = DefaultFormats.stringFormat
 }
 
 
@@ -24,7 +24,7 @@ trait Write[A] {
 object Write {
   def apply[A](f: A => String) = new Write[A] { def write(in: A) = f(in) }
 
-  implicit def default = DefaultFormats.stringFormat
+  implicit def default: Write[String] = DefaultFormats.stringFormat
 
   private[redis] object Internal {
     def formatBoolean(b: Boolean) = if (b) "1" else "0"
@@ -54,16 +54,18 @@ object Format {
   implicit def default = DefaultFormats.stringFormat
 }
 
-
-trait DefaultFormats {
+private[serialization] trait LowPriorityFormats {
   import java.{lang => J}
-  implicit val stringFormat = Format[String](identity, identity)
   implicit val byteArrayFormat = Format[Array[Byte]](_.getBytes("UTF-8"), new String(_))
   implicit val intFormat = Format[Int](J.Integer.parseInt, _.toString)
   implicit val shortFormat = Format[Short](J.Short.parseShort, _.toString)
   implicit val longFormat = Format[Long](J.Long.parseLong, _.toString)
   implicit val floatFormat = Format[Float](J.Float.parseFloat, _.toString)
   implicit val doubleFormat = Format[Double](J.Double.parseDouble, _.toString)
+}
+
+trait DefaultFormats extends LowPriorityFormats {
+  implicit val stringFormat = Format[String](identity, identity)
 }
 
 object DefaultFormats extends DefaultFormats

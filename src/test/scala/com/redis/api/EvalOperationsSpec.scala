@@ -54,7 +54,7 @@ class EvalOperationsSpec extends RedisSpecBase {
       client.zadd(setname, 12.5, "mma")
       client.zadd(setname, 14, "mem")
       
-      val rs = client.evalMultiSHA[String](shahash.get, List("records"), Nil).futureValue
+      val rs = client.evalMultiSHA(shahash.get, List("records"), Nil).futureValue
       rs should equal (List("mmd", "10", "mma", "12.5", "mem", "14", "mmc", "22"))
     }
     
