@@ -4,8 +4,10 @@ import RawReplyParser._
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{Iterator, GenTraversable}
 import scala.language.higherKinds
+import scala.annotation.implicitNotFound
 
 
+@implicitNotFound(msg = "Cannot find implicit PartialDeserializer for ${A}")
 trait PartialDeserializer[A] extends PartialFunction[RawReply, A] {
   def orElse(pf: PartialFunction[RawReply, A]) = PartialDeserializer(super.orElse(pf))
 
