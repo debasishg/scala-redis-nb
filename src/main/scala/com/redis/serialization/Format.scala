@@ -1,30 +1,71 @@
 package com.redis.serialization
 
+import scala.annotation.implicitNotFound
+import scala.language.implicitConversions
+
+
+@implicitNotFound(msg = "Cannot find implicit Read or Format type class for ${A}")
+trait Read[A] {
+  def read(in: String): A
+}
+
+object Read {
+  def apply[A](f: String => A) = new Read[A] { def read(in: String) = f(in) }
+
+  implicit def default: Read[String] = DefaultFormats.stringFormat
+}
+
+
+@implicitNotFound(msg = "Cannot find implicit Write or Format type class for ${A}")
+trait Write[A] {
+  def write(in: A): String
+}
+
+object Write {
+  def apply[A](f: A => String) = new Write[A] { def write(in: A) = f(in) }
+
+  implicit def default: Write[String] = DefaultFormats.stringFormat
+
+  private[redis] object Internal {
+    def formatBoolean(b: Boolean) = if (b) "1" else "0"
+
+    def formatDouble(d: Double, inclusive: Boolean = true) =
+      (if (inclusive) ("") else ("(")) + {
+        if (d.isInfinity) {
+          if (d > 0.0) "+inf" else "-inf"
+        } else {
+          d.toString
+        }
+      }
+  }
+}
+
+
+trait Format[A] extends Read[A] with Write[A]
 
 object Format {
-  def apply(f: PartialFunction[Any, Any]): Format = new Format(f)
 
-  implicit val default: Format = new Format(Map.empty)
+  def apply[A](_read: String => A, _write: A => String) = new Format[A] {
+    def read(str: String) = _read(str)
 
-  def formatDouble(d: Double, inclusive: Boolean = true) =
-    (if (inclusive) ("") else ("(")) + {
-      if (d.isInfinity) {
-        if (d > 0.0) "+inf" else "-inf"
-      } else {
-        d.toString
-      }
-    }
+    def write(obj: A) = _write(obj)
+  }
+
+  implicit def default = DefaultFormats.stringFormat
 }
 
-class Format(val format: PartialFunction[Any, Any]) {
-  def apply(in: Any): String =
-    (if (format.isDefinedAt(in)) (format(in)) else (in)) match {
-      case d: Double => Format.formatDouble(d, true)
-      case x => x.toString
-    }
-
-  def orElse(that: Format): Format = Format(format orElse that.format)
-
-  def orElse(that: PartialFunction[Any, Any]): Format = Format(format orElse that)
+private[serialization] trait LowPriorityFormats {
+  import java.{lang => J}
+  implicit val byteArrayFormat = Format[Array[Byte]](_.getBytes("UTF-8"), new String(_))
+  implicit val intFormat = Format[Int](J.Integer.parseInt, _.toString)
+  implicit val shortFormat = Format[Short](J.Short.parseShort, _.toString)
+  implicit val longFormat = Format[Long](J.Long.parseLong, _.toString)
+  implicit val floatFormat = Format[Float](J.Float.parseFloat, _.toString)
+  implicit val doubleFormat = Format[Double](J.Double.parseDouble, _.toString)
 }
 
+trait DefaultFormats extends LowPriorityFormats {
+  implicit val stringFormat = Format[String](identity, identity)
+}
+
+object DefaultFormats extends DefaultFormats

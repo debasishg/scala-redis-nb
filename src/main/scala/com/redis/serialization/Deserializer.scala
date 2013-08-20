@@ -6,7 +6,7 @@ import scala.language.existentials
 
 class Deserializer {
   import Deserializer._
-  import RawReplyReader.RawReply
+  import RawReplyParser.RawReply
   import PartialDeserializer._
 
   var parse: (CompactByteString, PartialFunction[RawReply, _]) => Result = parseSafe

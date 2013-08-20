@@ -26,7 +26,7 @@ class StringOperationsSpec extends RedisSpecBase {
       val key = "key100"
       client.set(key, "value100").futureValue should be (true)
 
-      val v = client.set(key, "value200", Some(NX))
+      val v = client.set(key, "value200", None, Some(NX))
       v.futureValue match {
         case true => fail("an existing key with an value should not be set with NX option")
         case false => client.get(key).futureValue should equal (Some("value100"))
@@ -35,7 +35,7 @@ class StringOperationsSpec extends RedisSpecBase {
 
     it("should not set values to non-existing keys with option XX") {
       val key = "value200"
-      val v = client.set(key, "value200", Some(XX))
+      val v = client.set(key, "value200", None, Some(XX))
       v.futureValue match {
         case true => fail("set on a non existing key with XX will fail")
         case false => client.get(key).futureValue should equal (None)
@@ -74,6 +74,18 @@ class StringOperationsSpec extends RedisSpecBase {
       val reads = keys map (client.get(_))
       val readResults = Future.sequence(reads).futureValue
       readResults should equal (vals.map(Some.apply))
+    }
+
+    it("should support various value types in a single command") {
+      import com.redis.serialization.DefaultFormats._
+
+      client
+        .mset(("int" -> 1), ("long" -> 2L), ("pi" -> 3.14), ("string" -> "string"))
+        .futureValue should be (true)
+
+      client
+        .mget("int", "long", "pi", "string")
+        .futureValue should equal (Map("int" -> "1", "long" -> "2", "pi" -> "3.14", "string" -> "string"))
     }
   }
 
