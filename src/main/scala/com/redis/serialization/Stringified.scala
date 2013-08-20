@@ -3,9 +3,7 @@ package com.redis.serialization
 import scala.language.implicitConversions
 
 
-class Stringified(val string: String) extends AnyVal {
-  @inline override def toString = string
-}
+class Stringified(override val toString: String) extends AnyVal
 
 object Stringified {
   implicit def apply[A](v: A)(implicit writer: Write[A]) = new Stringified(writer.write(v))
