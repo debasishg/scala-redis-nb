@@ -26,8 +26,17 @@ class StringOperationsSpec extends RedisSpecBase {
       val key = "key100"
       client.set(key, "value100").futureValue should be (true)
 
-      val v = client.set(key, "value200", None, Some(NX))
-      v.futureValue match {
+      client
+        .set(key, "value200", None, Some(NX))
+        .futureValue match {
+          case true => fail("an existing key with an value should not be set with NX option")
+          case false => client.get(key).futureValue should equal (Some("value100"))
+        }
+
+      // convenient alternative
+      client
+        .set(key, "value200", NX)
+        .futureValue match {
         case true => fail("an existing key with an value should not be set with NX option")
         case false => client.get(key).futureValue should equal (Some("value100"))
       }
@@ -35,11 +44,20 @@ class StringOperationsSpec extends RedisSpecBase {
 
     it("should not set values to non-existing keys with option XX") {
       val key = "value200"
-      val v = client.set(key, "value200", None, Some(XX))
-      v.futureValue match {
-        case true => fail("set on a non existing key with XX will fail")
-        case false => client.get(key).futureValue should equal (None)
-      }
+      client
+        .set(key, "value200", None, Some(XX))
+        .futureValue match {
+          case true => fail("set on a non existing key with XX will fail")
+          case false => client.get(key).futureValue should equal (None)
+        }
+
+      // convenient alternative
+      client
+        .set(key, "value200", XX)
+        .futureValue match {
+          case true => fail("set on a non existing key with XX will fail")
+          case false => client.get(key).futureValue should equal (None)
+        }
     }
   }
 

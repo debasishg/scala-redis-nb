@@ -27,6 +27,19 @@ object StringCommands {
     def line = multiBulk("SET" +: key +: value.toString +: (exORpx.toSeq ++ nxORxx.toSeq).flatMap(_.toSeq))
   }
 
+  object Set {
+
+    def apply(key: String, value: Stringified, setOption: SetOption): Set =
+      setOption match {
+        case e: SetExpiryOption => Set(key, value, exORpx = Some(e))
+        case c: SetConditionOption => Set(key, value, nxORxx = Some(c))
+      }
+
+    def apply(key: String, value: Stringified, exORpx: SetExpiryOption, nxORxx: SetConditionOption): Set =
+      Set(key, value, Some(exORpx), Some(nxORxx))
+  }
+
+
   case class GetSet[A](key: String, value: Stringified)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("GETSET" +: key +: value.toString +: Nil)
   }

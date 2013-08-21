@@ -22,6 +22,13 @@ trait StringOperations { this: RedisOps =>
          (implicit timeout: Timeout) =
     clientRef.ask(Set(key, value, exORpx, nxORxx)).mapTo[Set#Ret]
 
+  def set(key: String, value: Stringified, setOption: SetOption)(implicit timeout: Timeout) =
+    clientRef.ask(Set(key, value, setOption)).mapTo[Set#Ret]
+
+  def set(key: String, value: Stringified, exORpx: SetExpiryOption, nxORxx: SetConditionOption)
+         (implicit timeout: Timeout) =
+    clientRef.ask(Set(key, value, exORpx, nxORxx)).mapTo[Set#Ret]
+
 
   // GETSET (key, value)
   // is an atomic set this value and return the old value command.
