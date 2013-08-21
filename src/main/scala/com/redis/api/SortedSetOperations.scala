@@ -4,8 +4,7 @@ package api
 import serialization._
 import akka.pattern.ask
 import akka.util.Timeout
-import com.redis.protocol.{RedisCommand, SortedSetCommands}
-import RedisCommand._
+import com.redis.protocol.SortedSetCommands
 
 
 trait SortedSetOperations { this: RedisOps =>
@@ -52,19 +51,19 @@ trait SortedSetOperations { this: RedisOps =>
 
   // ZRANGE
   //
-  def zrange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+  def zrange[A](key: String, start: Int = 0, end: Int = -1)
                (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ZRange[A](key, start, end)).mapTo[ZRange[A]#Ret]
 
-  def zrevrange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+  def zrevrange[A](key: String, start: Int = 0, end: Int = -1)
                (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ZRevRange[A](key, start, end)).mapTo[ZRevRange[A]#Ret]
 
-  def zrangeWithScores[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+  def zrangeWithScores[A](key: String, start: Int = 0, end: Int = -1)
                         (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ZRangeWithScores[A](key, start, end)).mapTo[ZRangeWithScores[A]#Ret]
 
-  def zrevrangeWithScores[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+  def zrevrangeWithScores[A](key: String, start: Int = 0, end: Int = -1)
                           (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(ZRevRangeWithScores[A](key, start, end)).mapTo[ZRevRangeWithScores[A]#Ret]
 

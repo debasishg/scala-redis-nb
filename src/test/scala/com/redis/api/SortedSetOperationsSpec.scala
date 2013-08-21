@@ -3,13 +3,11 @@ package com.redis.api
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
-import com.redis.protocol.RedisCommand
 import com.redis.RedisSpecBase
 
 
 @RunWith(classOf[JUnitRunner])
 class SortedSetOperationsSpec extends RedisSpecBase {
-  import RedisCommand._
 
   private def add = {
     val add1 = client.zadd("hackers", 1965, "yukihiro matsumoto")

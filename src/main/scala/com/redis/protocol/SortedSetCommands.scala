@@ -158,6 +158,12 @@ object SortedSetCommands {
     def line = multiBulk("ZREMRANGEBYSCORE" +: key +: start.toString +: end.toString +: Nil)
   }
 
+
+  sealed trait Aggregate
+  case object SUM extends Aggregate
+  case object MIN extends Aggregate
+  case object MAX extends Aggregate
+
   case class ZInterStore(dstKey: String, keys: Iterable[String],
                          aggregate: Aggregate = SUM) extends RedisCommand[Long] {
 

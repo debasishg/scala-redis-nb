@@ -11,7 +11,7 @@ object StringCommands {
   }
 
   sealed trait SetOption { def toSeq: Seq[String] }
-  
+
   sealed abstract class SetExpiryOption(label: String, n: Long) extends SetOption { def toSeq = Seq(label, n.toString) }
   case class EX(expiryInSeconds: Long) extends SetExpiryOption("EX", expiryInSeconds)
   case class PX(expiryInMillis: Long) extends SetExpiryOption("PX", expiryInMillis)
