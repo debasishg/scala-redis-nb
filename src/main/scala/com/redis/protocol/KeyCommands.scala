@@ -25,11 +25,18 @@ object KeyCommands {
     def line = multiBulk("EXISTS" +: Seq(key))
   }
 
-  case class Del(key: String, keys: String*) extends RedisCommand[Long] {
-    def line = multiBulk("DEL" +: key +: keys)
+
+  case class Del(keys: Seq[String]) extends RedisCommand[Long] {
+    require(keys.nonEmpty)
+    def line = multiBulk("DEL" +: keys)
   }
 
-  case class GetType(key: String) extends RedisCommand[String] {
+  object Del {
+    def apply(key: String, keys: String*): Del = Del(key +: keys)
+  }
+
+
+  case class Type(key: String) extends RedisCommand[String] {
     def line = multiBulk("TYPE" +: Seq(key))
   }
 

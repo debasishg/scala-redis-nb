@@ -30,8 +30,13 @@ trait HashOperations { this: RedisOps =>
   def hexists(key: String, field: String)(implicit timeout: Timeout) =
     clientRef.ask(HExists(key, field)).mapTo[HExists#Ret]
 
+
+  def hdel(key: String, fields: Seq[String])(implicit timeout: Timeout) =
+    clientRef.ask(HDel(key, fields)).mapTo[HDel#Ret]
+
   def hdel(key: String, field: String, fields: String*)(implicit timeout: Timeout) =
     clientRef.ask(HDel(key, field, fields:_*)).mapTo[HDel#Ret]
+
 
   def hlen(key: String)(implicit timeout: Timeout) =
     clientRef.ask(HLen(key)).mapTo[HLen#Ret]

@@ -39,35 +39,45 @@ object NodeCommands {
     )
   }
 
-  case object ClientGetName extends RedisCommand[Option[String]] {
-    def line = multiBulk(Seq("CLIENT", "GETNAME"))
+
+  object Client {
+
+    case object GetName extends RedisCommand[Option[String]] {
+      def line = multiBulk(Seq("CLIENT", "GETNAME"))
+    }
+
+    case class SetName(name: String) extends RedisCommand[Boolean] {
+      def line = multiBulk(Seq("CLIENT", "SETNAME", name))
+    }
+
+    case class Kill(ipPort: String) extends RedisCommand[Boolean] {
+      def line = multiBulk(Seq("CLIENT", "KILL", ipPort))
+    }
+
+    case object List extends RedisCommand[Option[String]] {
+      def line = multiBulk(Seq("CLIENT", "LIST"))
+    }
+
   }
 
-  case class ClientSetName(name: String) extends RedisCommand[Boolean] {
-    def line = multiBulk(Seq("CLIENT", "SETNAME", name))
-  }
 
-  case class ClientKill(ipPort: String) extends RedisCommand[Boolean] {
-    def line = multiBulk(Seq("CLIENT", "KILL", ipPort))
-  }
+  object Config {
 
-  case object ClientList extends RedisCommand[Option[String]] {
-    def line = multiBulk(Seq("CLIENT", "LIST"))
-  }
+    case class Get[A](globStyleParam: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+      def line = multiBulk(Seq("CONFIG", "GET", globStyleParam))
+    }
 
-  case class ConfigGet[A](globStyleParam: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
-    def line = multiBulk(Seq("CONFIG", "GET", globStyleParam))
-  }
+    case class Set(param: String, value: Stringified) extends RedisCommand[Boolean] {
+      def line = multiBulk("CONFIG" +: Seq("SET", param, value.toString))
+    }
 
-  case class ConfigSet(param: String, value: Stringified) extends RedisCommand[Boolean] {
-    def line = multiBulk("CONFIG" +: Seq("SET", param, value.toString))
-  }
+    case object ResetStat extends RedisCommand[Boolean] {
+      def line = multiBulk(Seq("CONFIG", "RESETSTAT"))
+    }
 
-  case object ConfigResetStat extends RedisCommand[Boolean] {
-    def line = multiBulk(Seq("CONFIG", "RESETSTAT"))
-  }
+    case object Rewrite extends RedisCommand[Boolean] {
+      def line = multiBulk(Seq("CONFIG", "REWRITE"))
+    }
 
-  case object ConfigRewrite extends RedisCommand[Boolean] {
-    def line = multiBulk(Seq("CONFIG", "REWRITE"))
   }
 }

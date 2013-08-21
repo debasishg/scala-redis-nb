@@ -44,15 +44,23 @@ trait KeyOperations { this: RedisOps =>
   def exists(key: String)(implicit timeout: Timeout) =
     clientRef.ask(Exists(key)).mapTo[Exists#Ret]
 
+
   // DELETE (key1 key2 ..)
   // deletes the specified keys.
+  def del(keys: Seq[String])(implicit timeout: Timeout) =
+    clientRef.ask(Del(keys)).mapTo[Del#Ret]
+
   def del(key: String, keys: String*)(implicit timeout: Timeout) =
     clientRef.ask(Del(key, keys:_*)).mapTo[Del#Ret]
 
+
   // TYPE (key)
   // return the type of the value stored at key in form of a string.
-  def getType(key: String)(implicit timeout: Timeout) =
-    clientRef.ask(GetType(key)).mapTo[GetType#Ret]
+  def `type`(key: String)(implicit timeout: Timeout) =
+    clientRef.ask(Type(key)).mapTo[Type#Ret]
+
+  def tpe(key: String)(implicit timeout: Timeout) = `type`(key)
+
 
   // EXPIRE (key, expiry)
   // sets the expire time (in sec.) for the specified key.
