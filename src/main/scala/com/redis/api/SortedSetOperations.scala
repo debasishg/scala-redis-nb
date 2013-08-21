@@ -70,37 +70,36 @@ trait SortedSetOperations { this: RedisOps =>
   // ZRANGEBYSCORE
   //
   def zrangeByScore[A](key: String,
-                       min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
-                       max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
-                       limit: Option[(Int, Int)])
+                       min: Double = `-Inf`, minInclusive: Boolean = true,
+                       max: Double = `+Inf`, maxInclusive: Boolean = true,
+                       limit: Option[(Int, Int)] = None)
                       (implicit timeout: Timeout, reader: Read[A]) =
     clientRef
       .ask(ZRangeByScore[A](key, min, minInclusive, max, maxInclusive, limit))
       .mapTo[ZRangeByScore[A]#Ret]
 
   def zrevrangeByScore[A](key: String,
-                          max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
-                          min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
-                          limit: Option[(Int, Int)])
+                          max: Double = `+Inf`, maxInclusive: Boolean = true,
+                          min: Double = `-Inf`, minInclusive: Boolean = true,
+                          limit: Option[(Int, Int)] = None)
                          (implicit timeout: Timeout, reader: Read[A]) =
     clientRef
       .ask(ZRevRangeByScore[A](key, min, minInclusive, max, maxInclusive, limit))
       .mapTo[ZRevRangeByScore[A]#Ret]
 
-
   def zrangeByScoreWithScores[A](key: String,
-                                 min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
-                                 max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
-                                 limit: Option[(Int, Int)])
+                                 min: Double = `-Inf`, minInclusive: Boolean = true,
+                                 max: Double = `+Inf`, maxInclusive: Boolean = true,
+                                 limit: Option[(Int, Int)] = None)
                                 (implicit timeout: Timeout, reader: Read[A]) =
     clientRef
       .ask(ZRangeByScoreWithScores[A](key, min, minInclusive, max, maxInclusive, limit))
       .mapTo[ZRangeByScoreWithScores[A]#Ret]
 
   def zrevrangeByScoreWithScores[A](key: String,
-                                    max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
-                                    min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
-                                    limit: Option[(Int, Int)])
+                                    max: Double = `+Inf`, maxInclusive: Boolean = true,
+                                    min: Double = `-Inf`, minInclusive: Boolean = true,
+                                    limit: Option[(Int, Int)] = None)
                                    (implicit timeout: Timeout, reader: Read[A]) =
     clientRef
       .ask(ZRevRangeByScoreWithScores[A](key, min, minInclusive, max, maxInclusive, limit))
@@ -123,7 +122,7 @@ trait SortedSetOperations { this: RedisOps =>
 
   // ZREMRANGEBYSCORE
   //
-  def zremrangebyscore(key: String, start: Double = Double.NegativeInfinity, end: Double = Double.PositiveInfinity)
+  def zremrangebyscore(key: String, start: Double = `-Inf`, end: Double = `+Inf`)
                       (implicit timeout: Timeout) =
     clientRef.ask(ZRemRangeByScore(key, start, end)).mapTo[ZRemRangeByScore#Ret]
 
@@ -147,7 +146,9 @@ trait SortedSetOperations { this: RedisOps =>
 
   // ZCOUNT
   //
-  def zcount(key: String, min: Double = Double.NegativeInfinity, max: Double = Double.PositiveInfinity,
-             minInclusive: Boolean = true, maxInclusive: Boolean = true)(implicit timeout: Timeout) =
-    clientRef.ask(ZCount(key, min, max, minInclusive, maxInclusive)).mapTo[ZCount#Ret]
+  def zcount(key: String,
+             min: Double = `-Inf`, minInclusive: Boolean = true,
+             max: Double = `+Inf`, maxInclusive: Boolean = true)
+            (implicit timeout: Timeout) =
+    clientRef.ask(ZCount(key, min, minInclusive, max, maxInclusive)).mapTo[ZCount#Ret]
 }

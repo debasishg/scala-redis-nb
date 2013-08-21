@@ -6,6 +6,10 @@ import RedisCommand._
 
 object SortedSetCommands {
 
+  val `+Inf` = Double.PositiveInfinity
+  val `-Inf` = Double.NegativeInfinity
+
+
   case class ZAdd(key: String, scoreMembers: Seq[ScoredValue]) extends RedisCommand[Long] {
     require(scoreMembers.nonEmpty)
     def line = multiBulk(
@@ -76,9 +80,9 @@ object SortedSetCommands {
 
 
   case class ZRangeByScore[A](key: String,
-                              min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
-                              max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
-                              limit: Option[(Int, Int)])
+                              min: Double = `-Inf`, minInclusive: Boolean = true,
+                              max: Double = `+Inf`, maxInclusive: Boolean = true,
+                              limit: Option[(Int, Int)] = None)
                              (implicit reader: Read[A]) extends RedisCommand[List[A]] {
 
     def line = multiBulk("ZRANGEBYSCORE" +: key +: scoreParams(min, minInclusive, max, maxInclusive, limit, false))
@@ -89,9 +93,9 @@ object SortedSetCommands {
   }
 
   case class ZRangeByScoreWithScores[A](key: String,
-                                        min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
-                                        max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
-                                        limit: Option[(Int, Int)])
+                                        min: Double = `-Inf`, minInclusive: Boolean = true,
+                                        max: Double = `+Inf`, maxInclusive: Boolean = true,
+                                        limit: Option[(Int, Int)] = None)
                                        (implicit reader: Read[A]) extends RedisCommand[List[(A, Double)]] {
 
     def line = multiBulk("ZRANGEBYSCORE" +: key +: scoreParams(min, minInclusive, max, maxInclusive, limit, true))
@@ -99,11 +103,10 @@ object SortedSetCommands {
     def reverse = ZRevRangeByScoreWithScores(key, min, minInclusive, max, maxInclusive, limit)
   }
 
-
   case class ZRevRangeByScore[A](key: String,
-                                 max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
-                                 min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
-                                 limit: Option[(Int, Int)])
+                                 max: Double = `+Inf`, maxInclusive: Boolean = true,
+                                 min: Double = `-Inf`, minInclusive: Boolean = true,
+                                 limit: Option[(Int, Int)] = None)
                                 (implicit reader: Read[A]) extends RedisCommand[List[A]] {
 
     def line = multiBulk("ZREVRANGEBYSCORE" +: key +: scoreParams(max, maxInclusive, min, minInclusive, limit, false))
@@ -112,16 +115,15 @@ object SortedSetCommands {
   }
 
   case class ZRevRangeByScoreWithScores[A](key: String,
-                                           max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
-                                           min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
-                                           limit: Option[(Int, Int)])
+                                           max: Double = `+Inf`, maxInclusive: Boolean = true,
+                                           min: Double = `-Inf`, minInclusive: Boolean = true,
+                                           limit: Option[(Int, Int)] = None)
                                           (implicit reader: Read[A]) extends RedisCommand[List[(A, Double)]] {
 
     def line = multiBulk("ZREVRANGEBYSCORE" +: key +: scoreParams(max, maxInclusive, min, minInclusive, limit, true))
   }
 
-  private def scoreParams(from: Double = Double.NegativeInfinity, fromInclusive: Boolean = true,
-                          to: Double = Double.PositiveInfinity, toInclusive: Boolean = true,
+  private def scoreParams(from: Double, fromInclusive: Boolean, to: Double, toInclusive: Boolean,
                           limit: Option[(Int, Int)], withScores: Boolean): Seq[String] = {
 
     import Write.Internal.formatDouble
@@ -134,6 +136,7 @@ object SortedSetCommands {
       })
     )
   }
+
 
   case class ZRank(key: String, member: Stringified)
                    extends RedisCommand[Long] {
@@ -152,9 +155,7 @@ object SortedSetCommands {
     def line = multiBulk("ZREMRANGEBYRANK" +: key +: start.toString +: end.toString +: Nil)
   }
 
-  case class ZRemRangeByScore(key: String,
-                              start: Double = Double.NegativeInfinity,
-                              end: Double = Double.PositiveInfinity) extends RedisCommand[Long] {
+  case class ZRemRangeByScore(key: String, start: Double = `-Inf`, end: Double = `+Inf`) extends RedisCommand[Long] {
     def line = multiBulk("ZREMRANGEBYSCORE" +: key +: start.toString +: end.toString +: Nil)
   }
 
@@ -196,10 +197,12 @@ object SortedSetCommands {
     )
   }
 
-  case class ZCount(key: String, min: Double = Double.NegativeInfinity, max: Double = Double.PositiveInfinity,
-                    minInclusive: Boolean = true, maxInclusive: Boolean = true) extends RedisCommand[Long] {
+  case class ZCount(key: String,
+                    min: Double = `-Inf`, minInclusive: Boolean = true,
+                    max: Double = `+Inf`, maxInclusive: Boolean = true) extends RedisCommand[Long] {
+    import Write.Internal.formatDouble
+
     def line =
-      multiBulk("ZCOUNT" +: key +:
-        Write.Internal.formatDouble(min, minInclusive) +: Write.Internal.formatDouble(max, maxInclusive) +: Nil)
+      multiBulk("ZCOUNT" +: key +: formatDouble(min, minInclusive) +: formatDouble(max, maxInclusive) +: Nil)
   }
 }
