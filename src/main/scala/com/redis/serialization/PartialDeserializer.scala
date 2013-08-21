@@ -11,7 +11,7 @@ import scala.annotation.implicitNotFound
 trait PartialDeserializer[A] extends PartialFunction[RawReply, A] {
   def orElse(pf: PartialFunction[RawReply, A]) = PartialDeserializer(super.orElse(pf))
 
-  override def andThen[B](f: A => B) = PartialDeserializer(super.andThen(f))
+  override def andThen[B](f: A => B): PartialDeserializer[B] = PartialDeserializer(super.andThen(f))
 }
 
 object PartialDeserializer extends LowPriorityPD {
@@ -76,10 +76,14 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
 
   // special deserializers for Sorted Set
   implicit def doublePD: PartialDeserializer[Option[Double]] = parsedOptionPD[Double]
-  implicit def scoredListPD[A](implicit parseA: Read[A]): PartialDeserializer[List[(A, Double)]] =
+  implicit def scoredListPD[A](implicit reader: Read[A]): PartialDeserializer[List[(A, Double)]] =
     pairIteratorPD[A, Double] andThen (_.toList)
 
   // special deserializer for (H)MGET
-  def keyedMapPD[A](fields: Seq[String])(implicit parseV: Read[A]): PartialDeserializer[Map[String, A]] =
+  def keyedMapPD[A](fields: Seq[String])(implicit reader: Read[A]): PartialDeserializer[Map[String, A]] =
     multiBulkPD[Option[A], Iterable] andThen { _.view.zip(fields).collect { case (Some(value), field) => (field, value) }.toMap }
+
+  // sepecial deserializer for EVAL(SHA)
+  def ensureListPD[A](implicit reader: Read[A]): PartialDeserializer[List[A]] =
+    multiBulkPD[A, List].orElse(parsedOptionPD[A].andThen(_.toList))
 }

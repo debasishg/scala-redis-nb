@@ -13,14 +13,27 @@ trait SortedSetOperations { this: RedisOps =>
 
   // ZADD (Variadic: >= 2.4)
   // Add the specified members having the specified score to the sorted set stored at key.
-  def zadd(key: String, score: Double, member: Stringified, scoreVals: ScoredValue*)
+  def zadd(key: String, scoreMembers: Seq[ScoredValue])
           (implicit timeout: Timeout) =
-    clientRef.ask(ZAdd(key, score, member, scoreVals:_*)).mapTo[ZAdd#Ret]
+    clientRef.ask(ZAdd(key, scoreMembers)).mapTo[ZAdd#Ret]
+
+  def zadd(key: String, score: Double, member: Stringified)
+          (implicit timeout: Timeout) =
+    clientRef.ask(ZAdd(key, score, member)).mapTo[ZAdd#Ret]
+
+  def zadd(key: String, scoreMember: ScoredValue, scoreMembers: ScoredValue*)
+          (implicit timeout: Timeout) =
+    clientRef.ask(ZAdd(key, scoreMember +: scoreMembers)).mapTo[ZAdd#Ret]
+
 
   // ZREM (Variadic: >= 2.4)
   // Remove the specified members from the sorted set value stored at key.
+  def zrem(key: String, members: Seq[Stringified])(implicit timeout: Timeout) =
+    clientRef.ask(ZRem(key, members)).mapTo[ZRem#Ret]
+
   def zrem(key: String, member: Stringified, members: Stringified*)(implicit timeout: Timeout) =
     clientRef.ask(ZRem(key, member, members:_*)).mapTo[ZRem#Ret]
+
 
   // ZINCRBY
   //
@@ -41,41 +54,68 @@ trait SortedSetOperations { this: RedisOps =>
   //
   def zrange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
                (implicit timeout: Timeout, reader: Read[A]) =
-    clientRef.ask(ZRange[A](key, start, end, sortAs)).mapTo[ZRange[A]#Ret]
+    clientRef.ask(ZRange[A](key, start, end)).mapTo[ZRange[A]#Ret]
 
-  def zrangeWithScore[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+  def zrevrange[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+               (implicit timeout: Timeout, reader: Read[A]) =
+    clientRef.ask(ZRevRange[A](key, start, end)).mapTo[ZRevRange[A]#Ret]
+
+  def zrangeWithScores[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
                         (implicit timeout: Timeout, reader: Read[A]) =
-    clientRef.ask(ZRangeWithScore[A](key, start, end, sortAs)).mapTo[ZRangeWithScore[A]#Ret]
+    clientRef.ask(ZRangeWithScores[A](key, start, end)).mapTo[ZRangeWithScores[A]#Ret]
+
+  def zrevrangeWithScores[A](key: String, start: Int = 0, end: Int = -1, sortAs: SortOrder = ASC)
+                          (implicit timeout: Timeout, reader: Read[A]) =
+    clientRef.ask(ZRevRangeWithScores[A](key, start, end)).mapTo[ZRevRangeWithScores[A]#Ret]
 
   // ZRANGEBYSCORE
   //
   def zrangeByScore[A](key: String,
-    min: Double = Double.NegativeInfinity,
-    minInclusive: Boolean = true,
-    max: Double = Double.PositiveInfinity,
-    maxInclusive: Boolean = true,
-    limit: Option[(Int, Int)],
-    sortAs: SortOrder = ASC)(implicit timeout: Timeout, reader: Read[A]) =
+                       min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
+                       max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
+                       limit: Option[(Int, Int)])
+                      (implicit timeout: Timeout, reader: Read[A]) =
     clientRef
-      .ask(ZRangeByScore[A](key, min, minInclusive, max, maxInclusive, limit, sortAs))
+      .ask(ZRangeByScore[A](key, min, minInclusive, max, maxInclusive, limit))
       .mapTo[ZRangeByScore[A]#Ret]
 
-  def zrangeByScoreWithScore[A](key: String,
-          min: Double = Double.NegativeInfinity,
-          minInclusive: Boolean = true,
-          max: Double = Double.PositiveInfinity,
-          maxInclusive: Boolean = true,
-          limit: Option[(Int, Int)],
-          sortAs: SortOrder = ASC)(implicit timeout: Timeout, reader: Read[A]) =
+  def zrevrangeByScore[A](key: String,
+                          max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
+                          min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
+                          limit: Option[(Int, Int)])
+                         (implicit timeout: Timeout, reader: Read[A]) =
     clientRef
-      .ask(ZRangeByScoreWithScore[A](key, min, minInclusive, max, maxInclusive, limit, sortAs))
-      .mapTo[ZRangeByScoreWithScore[A]#Ret]
+      .ask(ZRevRangeByScore[A](key, min, minInclusive, max, maxInclusive, limit))
+      .mapTo[ZRevRangeByScore[A]#Ret]
+
+
+  def zrangeByScoreWithScores[A](key: String,
+                                 min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
+                                 max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
+                                 limit: Option[(Int, Int)])
+                                (implicit timeout: Timeout, reader: Read[A]) =
+    clientRef
+      .ask(ZRangeByScoreWithScores[A](key, min, minInclusive, max, maxInclusive, limit))
+      .mapTo[ZRangeByScoreWithScores[A]#Ret]
+
+  def zrevrangeByScoreWithScores[A](key: String,
+                                    max: Double = Double.PositiveInfinity, maxInclusive: Boolean = true,
+                                    min: Double = Double.NegativeInfinity, minInclusive: Boolean = true,
+                                    limit: Option[(Int, Int)])
+                                   (implicit timeout: Timeout, reader: Read[A]) =
+    clientRef
+      .ask(ZRevRangeByScoreWithScores[A](key, min, minInclusive, max, maxInclusive, limit))
+      .mapTo[ZRevRangeByScoreWithScores[A]#Ret]
 
   // ZRANK
   // ZREVRANK
   //
-  def zrank(key: String, member: Stringified, reverse: Boolean = false)(implicit timeout: Timeout) =
-    clientRef.ask(ZRank(key, member, reverse)).mapTo[ZRank#Ret]
+  def zrank(key: String, member: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(ZRank(key, member)).mapTo[ZRank#Ret]
+
+  def zrevrank(key: String, member: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(ZRevRank(key, member)).mapTo[ZRank#Ret]
+
 
   // ZREMRANGEBYRANK
   //
@@ -91,20 +131,20 @@ trait SortedSetOperations { this: RedisOps =>
   // ZUNION
   //
   def zunionstore(dstKey: String, keys: Iterable[String], aggregate: Aggregate = SUM)(implicit timeout: Timeout) =
-    clientRef.ask(ZUnionInterStore(union, dstKey, keys, aggregate)).mapTo[ZUnionInterStore#Ret]
+    clientRef.ask(ZUnionStore(dstKey, keys, aggregate)).mapTo[ZInterStore#Ret]
 
   // ZINTERSTORE
   //
   def zinterstore(dstKey: String, keys: Iterable[String], aggregate: Aggregate = SUM)(implicit timeout: Timeout) =
-    clientRef.ask(ZUnionInterStore(inter, dstKey, keys, aggregate)).mapTo[ZUnionInterStore#Ret]
+    clientRef.ask(ZInterStore(dstKey, keys, aggregate)).mapTo[ZInterStore#Ret]
 
   def zunionstoreweighted(dstKey: String, kws: Iterable[Product2[String, Double]], aggregate: Aggregate = SUM)
                          (implicit timeout: Timeout) =
-    clientRef.ask(ZUnionInterStoreWeighted(union, dstKey, kws, aggregate)).mapTo[ZUnionInterStoreWeighted#Ret]
+    clientRef.ask(ZUnionStoreWeighted(dstKey, kws, aggregate)).mapTo[ZUnionStoreWeighted#Ret]
 
   def zinterstoreweighted(dstKey: String, kws: Iterable[Product2[String, Double]], aggregate: Aggregate = SUM)
                          (implicit timeout: Timeout) =
-    clientRef.ask(ZUnionInterStoreWeighted(inter, dstKey, kws, aggregate)).mapTo[ZUnionInterStoreWeighted#Ret]
+    clientRef.ask(ZInterStoreWeighted(dstKey, kws, aggregate)).mapTo[ZInterStoreWeighted#Ret]
 
   // ZCOUNT
   //

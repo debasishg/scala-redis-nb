@@ -13,10 +13,13 @@ class SortedSetOperationsSpec extends RedisSpecBase {
 
   private def add = {
     val add1 = client.zadd("hackers", 1965, "yukihiro matsumoto")
-    val rest = Seq((1916, "claude shannon"), (1969, "linus torvalds"), (1940, "alan kay"), (1912, "alan turing"))
-    val add2 = client.zadd("hackers", 1953, "richard stallman", rest: _*)
+    val add2 = client.zadd("hackers", 1953, "richard stallman")
+    val add3 = client.zadd("hackers", (1916, "claude shannon"), (1969, "linus torvalds"))
+    val add4 = client.zadd("hackers", Seq((1940, "alan kay"), (1912, "alan turing")))
     add1.futureValue should equal (1)
-    add2.futureValue should equal (5)
+    add2.futureValue should equal (1)
+    add3.futureValue should equal (2)
+    add4.futureValue should equal (2)
   }
 
   describe("zadd") {
@@ -40,7 +43,7 @@ class SortedSetOperationsSpec extends RedisSpecBase {
     it("should get the proper range") {
       add
       client.zrange("hackers").futureValue should have size (6)
-      client.zrangeWithScore("hackers").futureValue should have size (6)
+      client.zrangeWithScores("hackers").futureValue should have size (6)
     }
   }
 
@@ -48,7 +51,7 @@ class SortedSetOperationsSpec extends RedisSpecBase {
     it ("should give proper rank") {
       add
       client.zrank("hackers", "yukihiro matsumoto").futureValue should equal (4)
-      client.zrank("hackers", "yukihiro matsumoto", reverse = true).futureValue should equal (1)
+      client.zrevrank("hackers", "yukihiro matsumoto").futureValue should equal (1)
     }
   }
 
@@ -80,11 +83,11 @@ class SortedSetOperationsSpec extends RedisSpecBase {
       client.zunionstore("hackers", List("hackers 1", "hackers 2", "hackers 3", "hackers 4")).futureValue should equal (6)
       client.zcard("hackers").futureValue should equal (6)
 
-      client.zrangeWithScore("hackers").futureValue.map(_._2) should equal (List(1912, 1916, 1940, 1953, 1965, 1969))
+      client.zrangeWithScores("hackers").futureValue.map(_._2) should equal (List(1912, 1916, 1940, 1953, 1965, 1969))
 
       // union with modified weights
       client.zunionstoreweighted("hackers weighted", Map("hackers 1" -> 1.0, "hackers 2" -> 2.0, "hackers 3" -> 3.0, "hackers 4" -> 4.0)).futureValue should equal (6)
-      client.zrangeWithScore("hackers weighted").futureValue.map(_._2.toInt) should equal (List(1953, 1965, 3832, 3938, 5820, 7648))
+      client.zrangeWithScores("hackers weighted").futureValue.map(_._2.toInt) should equal (List(1953, 1965, 3832, 3938, 5820, 7648))
     }
   }
 
@@ -118,7 +121,7 @@ class SortedSetOperationsSpec extends RedisSpecBase {
 
       // intersection with modified weights
       client.zinterstoreweighted("baby boomer hackers weighted", Map("hackers" -> 0.5, "baby boomers" -> 0.5)).futureValue should equal (5)
-      client.zrangeWithScore("baby boomer hackers weighted").futureValue.map(_._2.toInt) should equal (List(1953, 1954, 1956, 1965, 1965))
+      client.zrangeWithScores("baby boomer hackers weighted").futureValue.map(_._2.toInt) should equal (List(1953, 1954, 1956, 1965, 1965))
     }
   }
 
@@ -130,14 +133,14 @@ class SortedSetOperationsSpec extends RedisSpecBase {
     }
   }
 
-  describe("zrangeByScore") {
+  describe("z(rev)rangeByScore") {
     it ("should return the elements between min and max") {
       add
 
       client.zrangeByScore("hackers", 1940, true, 1969, true, None).futureValue should equal (
         List("alan kay", "richard stallman", "yukihiro matsumoto", "linus torvalds"))
 
-      client.zrangeByScore("hackers", 1940, true, 1969, true, None, DESC).futureValue should equal (
+      client.zrevrangeByScore("hackers", 1940, true, 1969, true, None).futureValue should equal (
         List("linus torvalds", "yukihiro matsumoto", "richard stallman","alan kay"))
     }
 
@@ -147,37 +150,37 @@ class SortedSetOperationsSpec extends RedisSpecBase {
       client.zrangeByScore("hackers", 1940, true, 1969, true, Some(0, 2)).futureValue should equal (
         List("alan kay", "richard stallman"))
 
-      client.zrangeByScore("hackers", 1940, true, 1969, true, Some(0, 2), DESC).futureValue should equal (
+      client.zrevrangeByScore("hackers", 1940, true, 1969, true, Some(0, 2)).futureValue should equal (
         List("linus torvalds", "yukihiro matsumoto"))
 
       client.zrangeByScore("hackers", 1940, true, 1969, true, Some(3, 1)).futureValue should equal (
         List("linus torvalds"))
 
-      client.zrangeByScore("hackers", 1940, true, 1969, true, Some(3, 1), DESC).futureValue should equal (
+      client.zrevrangeByScore("hackers", 1940, true, 1969, true, Some(3, 1)).futureValue should equal (
         List("alan kay"))
 
       client.zrangeByScore("hackers", 1940, false, 1969, true, Some(0, 2)).futureValue should equal (
         List("richard stallman", "yukihiro matsumoto"))
 
-      client.zrangeByScore("hackers", 1940, true, 1969, false, Some(0, 2), DESC).futureValue should equal (
+      client.zrevrangeByScore("hackers", 1940, true, 1969, false, Some(0, 2)).futureValue should equal (
         List("yukihiro matsumoto", "richard stallman"))
     }
   }
 
-  describe("zrangeByScoreWithScore") {
+  describe("z(rev)rangeByScoreWithScore") {
     it ("should return the elements between min and max") {
       add
 
-      client.zrangeByScoreWithScore("hackers", 1940, true, 1969, true, None).futureValue should equal (
+      client.zrangeByScoreWithScores("hackers", 1940, true, 1969, true, None).futureValue should equal (
         List(("alan kay", 1940.0), ("richard stallman", 1953.0), ("yukihiro matsumoto", 1965.0), ("linus torvalds", 1969.0)))
 
-      client.zrangeByScoreWithScore("hackers", 1940, true, 1969, true, None, DESC).futureValue should equal (
+      client.zrevrangeByScoreWithScores("hackers", 1940, true, 1969, true, None).futureValue should equal (
         List(("linus torvalds", 1969.0), ("yukihiro matsumoto", 1965.0), ("richard stallman", 1953.0),("alan kay", 1940.0)))
 
-      client.zrangeByScoreWithScore("hackers", 1940, true, 1969, true, Some(3, 1)).futureValue should equal (
+      client.zrangeByScoreWithScores("hackers", 1940, true, 1969, true, Some(3, 1)).futureValue should equal (
         List(("linus torvalds", 1969.0)))
 
-      client.zrangeByScoreWithScore("hackers", 1940, true, 1969, true, Some(3, 1), DESC).futureValue should equal (
+      client.zrevrangeByScoreWithScores("hackers", 1940, true, 1969, true, Some(3, 1)).futureValue should equal (
         List(("alan kay", 1940.0)))
     }
   }

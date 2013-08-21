@@ -42,19 +42,36 @@ object StringCommands {
   case class PSetEx(key: String, expiryInMillis: Long, value: Stringified) extends RedisCommand[Boolean] {
     def line = multiBulk("PSETEX" +: key +: expiryInMillis.toString +: value.toString +: Nil)
   }
+
   
-  case class Incr(key: String, by: Option[Int] = None) extends RedisCommand[Long] {
-    def line = multiBulk(by.fold("INCR" +: key +: Nil)("INCRBY" +: key +: _.toString +: Nil))
-  }
-  
-  case class Decr(key: String, by: Option[Int] = None) extends RedisCommand[Long] {
-    def line = multiBulk(by.fold("DECR" +: key +: Nil)("DECRBY" +: key +: _.toString +: Nil))
+  case class Incr(key: String) extends RedisCommand[Long] {
+    def line = multiBulk("INCR" +: key +: Nil)
   }
 
-  case class MGet[A](key: String, keys: String*)(implicit reader: Read[A])
-      extends RedisCommand[Map[String, A]]()(PartialDeserializer.keyedMapPD(key +: keys)) {
-    def line = multiBulk("MGET" +: key +: keys)
+  case class IncrBy(key: String, amount: Int) extends RedisCommand[Long] {
+    def line = multiBulk("INCRBY" +: key +: amount.toString +: Nil)
   }
+
+
+  case class Decr(key: String) extends RedisCommand[Long] {
+    def line = multiBulk("DECR" +: key +: Nil)
+  }
+
+  case class DecrBy(key: String, amount: Int) extends RedisCommand[Long] {
+    def line = multiBulk("DECRBY" +: key +: amount.toString +: Nil)
+  }
+
+
+  case class MGet[A](keys: Seq[String])(implicit reader: Read[A])
+      extends RedisCommand[Map[String, A]]()(PartialDeserializer.keyedMapPD(keys)) {
+    require(keys.nonEmpty)
+    def line = multiBulk("MGET" +: keys)
+  }
+
+  object MGet {
+    def apply[A](key: String, keys: String*)(implicit reader: Read[A]): MGet[A] = MGet(key +: keys)
+  }
+
 
   case class MSet(kvs: KeyValuePair*) extends RedisCommand[Boolean] {
     def line = multiBulk("MSET" +: kvs.foldRight(Seq[String]()){ case (KeyValuePair(k,v),l) => k +: v.toString +: l })

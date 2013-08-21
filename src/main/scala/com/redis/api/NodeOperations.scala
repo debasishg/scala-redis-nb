@@ -45,27 +45,38 @@ trait NodeOperations { this: RedisOps =>
   def slaveof(node: Option[(String, Int)])(implicit timeout: Timeout) =
     clientRef.ask(SlaveOf(node)).mapTo[SlaveOf#Ret]
 
-  def clientgetname()(implicit timeout: Timeout) =
-    clientRef.ask(ClientGetName).mapTo[ClientGetName.Ret]
 
-  def clientsetname(name: String)(implicit timeout: Timeout) =
-    clientRef.ask(ClientSetName(name)).mapTo[ClientSetName#Ret]
+  object client {
+    import Client._
 
-  def clientkill(ipPort: String)(implicit timeout: Timeout) =
-    clientRef.ask(ClientKill(ipPort)).mapTo[ClientKill#Ret]
+    def getname()(implicit timeout: Timeout) =
+      clientRef.ask(GetName).mapTo[GetName.Ret]
 
-  def clientlist()(implicit timeout: Timeout) =
-    clientRef.ask(ClientList).mapTo[ClientList.Ret]
+    def setname(name: String)(implicit timeout: Timeout) =
+      clientRef.ask(SetName(name)).mapTo[SetName#Ret]
 
-  def configget[A](param: String)(implicit timeout: Timeout, reader: Read[A]) =
-    clientRef.ask(ConfigGet(param)).mapTo[ConfigGet[A]#Ret]
+    def kill(ipPort: String)(implicit timeout: Timeout) =
+      clientRef.ask(Kill(ipPort)).mapTo[Kill#Ret]
 
-  def configset(param: String, value: Stringified)(implicit timeout: Timeout) =
-    clientRef.ask(ConfigSet(param, value)).mapTo[ConfigSet#Ret]
+    def list()(implicit timeout: Timeout) =
+      clientRef.ask(List).mapTo[List.Ret]
+  }
 
-  def configresetstat()(implicit timeout: Timeout) =
-    clientRef.ask(ConfigResetStat).mapTo[ConfigResetStat.Ret]
 
-  def configrewrite()(implicit timeout: Timeout) =
-    clientRef.ask(ConfigRewrite).mapTo[ConfigRewrite.Ret]
+  object config {
+    import Config._
+
+    def get[A](param: String)(implicit timeout: Timeout, reader: Read[A]) =
+      clientRef.ask(Get(param)).mapTo[Get[A]#Ret]
+
+    def set(param: String, value: Stringified)(implicit timeout: Timeout) =
+      clientRef.ask(Set(param, value)).mapTo[Set#Ret]
+
+    def resetstat()(implicit timeout: Timeout) =
+      clientRef.ask(ResetStat).mapTo[ResetStat.Ret]
+
+    def rewrite()(implicit timeout: Timeout) =
+      clientRef.ask(Rewrite).mapTo[Rewrite.Ret]
+  }
+
 }

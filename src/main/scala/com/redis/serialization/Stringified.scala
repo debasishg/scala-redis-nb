@@ -19,6 +19,9 @@ class KeyValuePair(val pair: Product2[String, Stringified]) extends AnyVal {
 
 object KeyValuePair {
 
+  implicit def apply(pair: Product2[String, Stringified]): KeyValuePair =
+    new KeyValuePair(pair)
+
   implicit def apply[A](pair: Product2[String, A])(implicit writer: Write[A]): KeyValuePair =
     new KeyValuePair((pair._1, Stringified(pair._2)))
 
@@ -38,6 +41,9 @@ class ScoredValue(val pair: Product2[Double, Stringified]) extends AnyVal {
 }
 
 object ScoredValue {
+
+  implicit def apply(pair: Product2[Double, Stringified]): ScoredValue =
+    new ScoredValue(pair)
 
   implicit def apply[A, B](pair: Product2[A, B])(implicit num: Numeric[A], writer: Write[B]): ScoredValue =
     new ScoredValue((num.toDouble(pair._1), Stringified(pair._2)))

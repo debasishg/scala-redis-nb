@@ -22,6 +22,7 @@ trait StringOperations { this: RedisOps =>
          (implicit timeout: Timeout) =
     clientRef.ask(Set(key, value, exORpx, nxORxx)).mapTo[Set#Ret]
 
+
   // GETSET (key, value)
   // is an atomic set this value and return the old value command.
   def getset[A](key: String, value: Stringified)(implicit timeout: Timeout, reader: Read[A]) =
@@ -49,8 +50,8 @@ trait StringOperations { this: RedisOps =>
 
   // INCRBY (key, by)
   // increments the specified key by increment
-  def incrby(key: String, by: Int)(implicit timeout: Timeout) =
-    clientRef.ask(Incr(key, Some(by))).mapTo[Incr#Ret]
+  def incrby(key: String, amount: Int)(implicit timeout: Timeout) =
+    clientRef.ask(IncrBy(key, amount)).mapTo[IncrBy#Ret]
 
   // DECR (key)
   // decrements the specified key by 1
@@ -59,13 +60,18 @@ trait StringOperations { this: RedisOps =>
 
   // DECR (key, by)
   // decrements the specified key by increment
-  def decrby(key: String, by: Int)(implicit timeout: Timeout) =
-    clientRef.ask(Decr(key, Some(by))).mapTo[Decr#Ret]
+  def decrby(key: String, amount: Int)(implicit timeout: Timeout) =
+    clientRef.ask(DecrBy(key, amount)).mapTo[DecrBy#Ret]
+
 
   // MGET (key, key, key, ...)
   // get the values of all the specified keys.
+  def mget[A](keys: Seq[String])(implicit timeout: Timeout, reader: Read[A]) =
+    clientRef.ask(MGet[A](keys)).mapTo[MGet[A]#Ret]
+
   def mget[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(MGet[A](key, keys:_*)).mapTo[MGet[A]#Ret]
+
 
   // MSET (key1 value1 key2 value2 ..)
   // set the respective key value pairs. Overwrite value if key exists
