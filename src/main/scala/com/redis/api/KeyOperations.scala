@@ -59,8 +59,7 @@ trait KeyOperations { this: RedisOps =>
   def `type`(key: String)(implicit timeout: Timeout) =
     clientRef.ask(Type(key)).mapTo[Type#Ret]
 
-  def tpe(key: String)(implicit timeout: Timeout) =
-    clientRef.ask(Type(key)).mapTo[Type#Ret]
+  def tpe(key: String)(implicit timeout: Timeout) = `type`(key)
 
 
   // EXPIRE (key, expiry)
