@@ -6,36 +6,30 @@ import RedisCommand._
 
 object EvalCommands {
 
-  case class EvalMultiBulk[A](script: String, keys: Seq[String], args: Seq[Stringified])
-                             (implicit reader: Read[A]) extends RedisCommand[List[A]] {
+  case class Eval[A](script: String, keys: Seq[String], args: Seq[Stringified])
+                        (implicit reader: Read[A]) extends RedisCommand[List[A]]()(PartialDeserializer.ensureListPD) {
     def line = multiBulk("EVAL" +: argsForEval(script, keys, args))
   }
 
-  case class EvalBulk[A](script: String, keys: Seq[String], args: Seq[Stringified])
-                        (implicit reader: Read[A]) extends RedisCommand[Option[A]] {
-    def line = multiBulk("EVAL" +: argsForEval(script, keys, args))
+  case class EvalSHA[A](shaHash: String, keys: Seq[String], args: Seq[Stringified])
+                       (implicit reader: Read[A]) extends RedisCommand[List[A]]()(PartialDeserializer.ensureListPD) {
+    def line = multiBulk("EVALSHA" +: argsForEval(shaHash, keys, args))
   }
 
-  case class EvalMultiSHA[A](script: String, keys: Seq[String], args: Seq[Stringified])
-                            (implicit reader: Read[A]) extends RedisCommand[List[A]] {
-    def line = multiBulk("EVALSHA" +: argsForEval(script, keys, args))
-  }
+  object Script {
 
-  case class EvalSHA[A](script: String, keys: Seq[String], args: Seq[Stringified])
-                       (implicit reader: Read[A]) extends RedisCommand[Option[A]] {
-    def line = multiBulk("EVALSHA" +: argsForEval(script, keys, args))
-  }
+    case class Load(script: String) extends RedisCommand[Option[String]] {
+      def line = multiBulk("SCRIPT" +: Seq("LOAD", script))
+    }
 
-  case class ScriptLoad(script: String) extends RedisCommand[Option[String]] {
-    def line = multiBulk("SCRIPT" +: Seq("LOAD", script))
-  }
+    case class Exists(shaHash: String) extends RedisCommand[List[Int]] {
+      def line = multiBulk("SCRIPT" +: Seq("EXISTS", shaHash))
+    }
 
-  case class ScriptExists(shaHash: String) extends RedisCommand[List[Int]] {
-    def line = multiBulk("SCRIPT" +: Seq("EXISTS", shaHash))
-  }
+    case object Flush extends RedisCommand[Boolean] {
+      def line = multiBulk("SCRIPT" +: Seq("FLUSH"))
+    }
 
-  case object ScriptFlush extends RedisCommand[Boolean] {
-    def line = multiBulk("SCRIPT" +: Seq("FLUSH"))
   }
 
   private def argsForEval[A](luaCode: String, keys: Seq[String], args: Seq[Stringified]): Seq[String] =

@@ -11,18 +11,27 @@ trait ListOperations { this: RedisOps =>
 
   // LPUSH (Variadic: >= 2.4)
   // add values to the head of the list stored at key
+  def lpush(key: String, values: Seq[Stringified])(implicit timeout: Timeout) =
+    clientRef.ask(LPush(key, values)).mapTo[LPush#Ret]
+
   def lpush(key: String, value: Stringified, values: Stringified*)(implicit timeout: Timeout) =
     clientRef.ask(LPush(key, value, values:_*)).mapTo[LPush#Ret]
+
 
   // LPUSHX (Variadic: >= 2.4)
   // add value to the tail of the list stored at key
   def lpushx(key: String, value: Stringified)(implicit timeout: Timeout) =
     clientRef.ask(LPushX(key, value)).mapTo[LPushX#Ret]
 
+
   // RPUSH (Variadic: >= 2.4)
   // add values to the head of the list stored at key
+  def rpush(key: String, values: Stringified)(implicit timeout: Timeout) =
+    clientRef.ask(RPush(key, values)).mapTo[RPush#Ret]
+
   def rpush(key: String, value: Stringified, values: Stringified*)(implicit timeout: Timeout) =
     clientRef.ask(RPush(key, value, values:_*)).mapTo[RPush#Ret]
+
 
   // RPUSHX (Variadic: >= 2.4)
   // add value to the tail of the list stored at key
@@ -83,9 +92,19 @@ trait ListOperations { this: RedisOps =>
                    (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(BRPopLPush[A](srcKey, dstKey, timeoutInSeconds)).mapTo[BRPopLPush[A]#Ret]
 
+
+  def blpop[A](timeoutInSeconds: Int, keys: Seq[String])
+              (implicit timeout: Timeout, reader: Read[A]) =
+    clientRef.ask(BLPop[A](timeoutInSeconds, keys)).mapTo[BLPop[A]#Ret]
+
   def blpop[A](timeoutInSeconds: Int, key: String, keys: String*)
                 (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(BLPop[A](timeoutInSeconds, key, keys:_*)).mapTo[BLPop[A]#Ret]
+
+
+  def brpop[A](timeoutInSeconds: Int, keys: Seq[String])
+              (implicit timeout: Timeout, reader: Read[A]) =
+    clientRef.ask(BRPop[A](timeoutInSeconds, keys)).mapTo[BRPop[A]#Ret]
 
   def brpop[A](timeoutInSeconds: Int, key: String, keys: String*)
                 (implicit timeout: Timeout, reader: Read[A]) =

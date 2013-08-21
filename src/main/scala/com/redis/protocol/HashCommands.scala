@@ -19,9 +19,10 @@ object HashCommands {
   
   case class HMGet[A](key: String, fields: String*)(implicit reader: Read[A])
       extends RedisCommand[Map[String, A]]()(PartialDeserializer.keyedMapPD(fields)) {
+    require(fields.nonEmpty)
     def line = multiBulk("HMGET" +: key +: fields)
   }
-  
+
   case class HIncrby(key: String, field: String, value: Int) extends RedisCommand[Long] {
     def line = multiBulk("HINCRBY" +: Seq(key, field, value.toString))
   }
@@ -29,11 +30,18 @@ object HashCommands {
   case class HExists(key: String, field: String) extends RedisCommand[Boolean] {
     def line = multiBulk("HEXISTS" +: Seq(key, field))
   }
-  
-  case class HDel(key: String, field: String, fields: String*) extends RedisCommand[Long] {
-    def line = multiBulk("HDEL" +: key +: field +: fields)
+
+
+  case class HDel(key: String, fields: Seq[String]) extends RedisCommand[Long] {
+    require(fields.nonEmpty)
+    def line = multiBulk("HDEL" +: key +: fields)
   }
-  
+
+  object HDel {
+    def apply(key: String, field: String, fields: String*): HDel = HDel(key, field +: fields)
+  }
+
+
   case class HLen(key: String) extends RedisCommand[Long] {
     def line = multiBulk("HLEN" +: Seq(key))
   }
