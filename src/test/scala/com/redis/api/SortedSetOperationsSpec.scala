@@ -127,7 +127,7 @@ class SortedSetOperationsSpec extends RedisSpecBase {
     it ("should return the number of elements between min and max") {
       add
 
-      client.zcount("hackers", 1912, 1920).futureValue should equal (2)
+      client.zcount("hackers", 1912, true, 1920).futureValue should equal (2)
     }
   }
 
