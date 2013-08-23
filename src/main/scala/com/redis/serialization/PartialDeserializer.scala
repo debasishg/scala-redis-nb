@@ -26,7 +26,7 @@ object PartialDeserializer extends LowPriorityPD {
 
   implicit val intPD     = _intPD
   implicit val longPD    = _longPD
-  implicit val stringPD  = _stringPD
+  implicit val stringPD  = _stringPD orElse _statusStringPD
   implicit val bulkPD    = _bulkPD
   implicit val booleanPD = _booleanPD
 
@@ -83,7 +83,7 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
   def keyedMapPD[A](fields: Seq[String])(implicit reader: Read[A]): PartialDeserializer[Map[String, A]] =
     multiBulkPD[Option[A], Iterable] andThen { _.view.zip(fields).collect { case (Some(value), field) => (field, value) }.toMap }
 
-  // sepecial deserializer for EVAL(SHA)
+  // special deserializer for EVAL(SHA)
   def ensureListPD[A](implicit reader: Read[A]): PartialDeserializer[List[A]] =
     multiBulkPD[A, List].orElse(parsedOptionPD[A].andThen(_.toList))
 }

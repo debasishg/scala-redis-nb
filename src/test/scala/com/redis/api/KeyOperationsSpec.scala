@@ -91,6 +91,30 @@ class KeyOperationsSpec extends RedisSpecBase {
     }
   }
 
+  describe("type") {
+    it("should return data type") {
+      // prepare
+      val _ = Future.sequence(
+        client.set("string", "value") ::
+        client.lpush("list", "value") ::
+        client.sadd("set", "value") ::
+        client.hset("hash", "field", "value") ::
+        client.zadd("zset", 1, "field") ::
+        Nil
+      ).futureValue
+
+      // escaped api
+      client.`type`("string").futureValue should equal ("string")
+      client.`type`("list").futureValue should equal ("list")
+      client.`type`("set").futureValue should equal("set")
+
+      // alternative for convenience
+      client.tpe("hash").futureValue should equal ("hash")
+      client.tpe("zset").futureValue should equal ("zset")
+      client.tpe("notexist").futureValue should equal ("none")
+    }
+  }
+
   describe("sort") {
     it("should give") {
       val prepare = Seq(
