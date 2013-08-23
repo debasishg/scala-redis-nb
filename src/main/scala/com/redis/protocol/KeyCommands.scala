@@ -1,6 +1,6 @@
 package com.redis.protocol
 
-import com.redis.serialization.Read
+import com.redis.serialization.{PartialDeserializer, Read}
 import RedisCommand._
 
 

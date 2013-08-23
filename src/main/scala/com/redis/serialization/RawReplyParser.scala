@@ -129,11 +129,12 @@ private[serialization] object RawReplyParser {
   }
 
   object PrefixDeserializer {
-    val _intPD     = new PrefixDeserializer[Int]            (Integer, parseInt _)
-    val _longPD    = new PrefixDeserializer[Long]           (Integer, parseLong _)
-    val _stringPD  = new PrefixDeserializer[String]         (Bulk,    parseString _)
-    val _bulkPD    = new PrefixDeserializer[Option[String]] (Bulk,    parseBulk _)
-    val _errorPD   = new PrefixDeserializer[RedisError]     (Err,     parseError _)
+    val _intPD           = new PrefixDeserializer[Int]            (Integer, parseInt _)
+    val _longPD          = new PrefixDeserializer[Long]           (Integer, parseLong _)
+    val _stringPD        = new PrefixDeserializer[String]         (Bulk,    parseString _)
+    val _statusStringPD  = new PrefixDeserializer[String]         (Status,  parseSingle _)
+    val _bulkPD          = new PrefixDeserializer[Option[String]] (Bulk,    parseBulk _)
+    val _errorPD         = new PrefixDeserializer[RedisError]     (Err,     parseError _)
 
     val _booleanPD =
       new PrefixDeserializer[Boolean](Status, (x: RawReply) => {parseSingle(x); true }) orElse
