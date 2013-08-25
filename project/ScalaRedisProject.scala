@@ -11,7 +11,7 @@ object ScalaRedisProject extends Build
     version := "2.11-SNAPSHOT",
     scalaVersion := "2.10.2",
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
-    resolvers ++= Seq(akkaRelease, akkaSnapshot)
+    resolvers ++= Seq(akkaRelease, akkaSnapshot, sprayJson)
   )
 
   lazy val coreSettings = commonSettings ++ Seq(
@@ -69,4 +69,5 @@ object ScalaRedisProject extends Build
 object Resolvers {
   val akkaRelease = "typesafe release repo" at "http://repo.typesafe.com/typesafe/releases/"
   val akkaSnapshot = "typesafe snapshot repo" at "http://repo.typesafe.com/typesafe/snapshots/"
+  val sprayJson = "spray" at "http://repo.spray.io/"
 }
