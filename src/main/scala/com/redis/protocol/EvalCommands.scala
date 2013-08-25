@@ -6,12 +6,12 @@ import RedisCommand._
 
 object EvalCommands {
 
-  case class Eval[A](script: String, keys: Seq[String], args: Seq[Stringified])
+  case class Eval[A](script: String, keys: Seq[String] = Nil, args: Seq[Stringified] = Nil)
                         (implicit reader: Read[A]) extends RedisCommand[List[A]]()(PartialDeserializer.ensureListPD) {
     def line = multiBulk("EVAL" +: argsForEval(script, keys, args))
   }
 
-  case class EvalSHA[A](shaHash: String, keys: Seq[String], args: Seq[Stringified])
+  case class EvalSHA[A](shaHash: String, keys: Seq[String] = Nil, args: Seq[Stringified] = Nil)
                        (implicit reader: Read[A]) extends RedisCommand[List[A]]()(PartialDeserializer.ensureListPD) {
     def line = multiBulk("EVALSHA" +: argsForEval(shaHash, keys, args))
   }
