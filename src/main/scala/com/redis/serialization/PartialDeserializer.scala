@@ -5,6 +5,7 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.{Iterator, GenTraversable}
 import scala.language.higherKinds
 import scala.annotation.implicitNotFound
+import com.redis.protocol.Err
 
 
 @implicitNotFound(msg = "Cannot find implicit PartialDeserializer for ${A}")
@@ -75,9 +76,15 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
   implicit val intListPD: PartialDeserializer[List[Int]] = multiBulkPD[Int, List]
 
   // special deserializers for Sorted Set
-  implicit def doublePD: PartialDeserializer[Option[Double]] = parsedOptionPD[Double]
+  implicit def doubleOptionPD: PartialDeserializer[Option[Double]] = parsedOptionPD[Double]
+
   implicit def scoredListPD[A](implicit reader: Read[A]): PartialDeserializer[List[(A, Double)]] =
     pairIteratorPD[A, Double] andThen (_.toList)
+
+  // lift non-bulk reply to `Option`
+  def liftOptionPD[A](implicit pd: PartialDeserializer[A]): PartialDeserializer[Option[A]] =
+    pd.andThen(Option(_)) orElse { case x: RawReply if x.head != Err => None }
+
 
   // special deserializer for (H)MGET
   def keyedMapPD[A](fields: Seq[String])(implicit reader: Read[A]): PartialDeserializer[Map[String, A]] =
