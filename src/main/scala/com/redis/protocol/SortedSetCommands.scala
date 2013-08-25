@@ -139,14 +139,14 @@ object SortedSetCommands {
 
 
   case class ZRank(key: String, member: Stringified)
-                   extends RedisCommand[Long] {
+      extends RedisCommand[Option[Long]]()(PartialDeserializer.liftOptionPD[Long]) {
     def line = multiBulk("ZRANK" +: key +: member.toString +: Nil)
 
     def reverse = ZRevRank(key, member)
   }
 
   case class ZRevRank(key: String, member: Stringified)
-    extends RedisCommand[Long] {
+      extends RedisCommand[Option[Long]]()(PartialDeserializer.liftOptionPD[Long]) {
     def line = multiBulk("ZREVRANK" +: key +: member.toString +: Nil)
   }
 
