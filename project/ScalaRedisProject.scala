@@ -4,18 +4,18 @@ import Keys._
 object ScalaRedisProject extends Build
 {
   import Resolvers._
-  lazy val root = Project("RedisClient", file(".")) settings(coreSettings : _*)
+  lazy val root = Project("RedisReact", file(".")) settings(coreSettings : _*)
 
   lazy val commonSettings: Seq[Setting[_]] = Seq(
     organization := "net.debasishg",
-    version := "2.11-SNAPSHOT",
+    version := "0.1",
     scalaVersion := "2.10.2",
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
     resolvers ++= Seq(akkaRelease, akkaSnapshot, sprayJson)
   )
 
   lazy val coreSettings = commonSettings ++ Seq(
-    name := "RedisClient",
+    name := "RedisReact",
     libraryDependencies :=
         Seq(
           "com.typesafe.akka" %%  "akka-actor"      % "2.2.0",
@@ -43,7 +43,7 @@ object ScalaRedisProject extends Build
     publishArtifact in Test := false,
     pomIncludeRepository := { repo => false },
     pomExtra := (
-      <url>https://github.com/debasishg/scala-redis</url>
+      <url>https://github.com/debasishg/scala-redis-nb</url>
       <licenses>
         <license>
           <name>Apache 2.0 License</name>
@@ -52,14 +52,18 @@ object ScalaRedisProject extends Build
         </license>
       </licenses>
       <scm>
-        <url>git@github.com:debasishg/scala-redis.git</url>
-        <connection>scm:git:git@github.com:debasishg/scala-redis.git</connection>
+        <url>git@github.com:debasishg/scala-redis-nb.git</url>
+        <connection>scm:git:git@github.com:debasishg/scala-redis-nb.git</connection>
       </scm>
       <developers>
         <developer>
           <id>debasishg</id>
           <name>Debasish Ghosh</name>
           <url>http://debasishg.blogspot.com</url>
+        </developer>
+        <developer>
+          <id>guersam</id>
+          <name>Jisoo Park</name>
         </developer>
       </developers>),
     unmanagedResources in Compile <+= baseDirectory map { _ / "LICENSE" }

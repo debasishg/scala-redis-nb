@@ -1,11 +1,29 @@
-## Redis Scala client (Non blocking based on Akka IO)
+## redisreact
+
+A non blocking Redis client based on Akka I/O
 
 ### Key features of the library
 
-- Native Scala types Set and List responses.
-- Transparent serialization
 - Non blocking
+- Full set of Redis commands
+- Scripting support
+- Transparent typeclass based serialization
+- Out of the box integration support with Json serialization libraries
 - Composable with Futures
+
+### Project Dependencies
+
+```scala
+libraryDependencies ++= Seq(
+  "net.debasishg.redisreact" %% "redisreact" % "0.1"
+)
+```
+
+### Coming up
+
+- Transcations
+- Publish-Subscribe
+- Clustering
 
 ### Sample usage
 
@@ -18,6 +36,8 @@ implicit val timeout = AkkaTimeout(5 seconds)
 // Redis client setup
 val client = RedisClient("localhost", 6379)
 ```
+
+#### Non Blocking Compositional Gets and Sets
 
 ```scala
 describe("set") {
@@ -54,6 +74,8 @@ describe("get") {
 }
 ```
 
+#### List Operations
+
 ```scala
 describe("lpush") {
   it("should do an lpush and retrieve the values using lrange") {
@@ -75,7 +97,10 @@ describe("lpush") {
 }
 ```
 
+#### Other Data Structure support as per Redis
+
 ```scala
+// Hash
 describe("hmget") {
  it("should set and get maps") {
    val key = "hmget1"
@@ -85,7 +110,44 @@ describe("hmget") {
    client.hmget(key, "field1", "field2", "field3").futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
  }
 }
+
+// Set
+describe("spop") {
+  it("should pop a random element") {
+    val key = "spop1"
+    client.sadd(key, "foo").futureValue should equal (1)
+    client.sadd(key, "bar").futureValue should equal (1)
+    client.sadd(key, "baz").futureValue should equal (1)
+    client.spop(key).futureValue should (equal (Some("foo")) or equal (Some("bar")) or equal (Some("baz")))
+  }
+
+  it("should return nil if the key does not exist") {
+    val key = "spop2"
+    client.spop(key).futureValue should equal (None)
+  }
+}
+
+// Sorted Set
+describe("z(rev)rangeByScoreWithScore") {
+  it ("should return the elements between min and max") {
+    add
+
+    client.zrangeByScoreWithScores("hackers", 1940, true, 1969, true, None).futureValue should equal (
+      List(("alan kay", 1940.0), ("richard stallman", 1953.0), ("yukihiro matsumoto", 1965.0), ("linus torvalds", 1969.0)))
+
+    client.zrevrangeByScoreWithScores("hackers", 1940, true, 1969, true, None).futureValue should equal (
+      List(("linus torvalds", 1969.0), ("yukihiro matsumoto", 1965.0), ("richard stallman", 1953.0),("alan kay", 1940.0)))
+
+    client.zrangeByScoreWithScores("hackers", 1940, true, 1969, true, Some(3, 1)).futureValue should equal (
+      List(("linus torvalds", 1969.0)))
+
+    client.zrevrangeByScoreWithScores("hackers", 1940, true, 1969, true, Some(3, 1)).futureValue should equal (
+      List(("alan kay", 1940.0)))
+  }
+}
  ```
+
+#### With Operations that compose
 
 ```scala
 describe("non blocking apis using futures") {
@@ -152,6 +214,175 @@ describe("error handling using promise failure") {
   }
 }
 ```
+
+#### Scripting support
+
+```scala
+import com.redis.serialization.DefaultFormats._
+
+describe("eval") {
+  it("should eval lua code and get a string reply") {
+    client
+      .eval("return 'val1';")
+      .futureValue should equal (List("val1"))
+  }
+
+  it("should eval lua code and get a string array reply") {
+    client
+      .eval("return { 'val1','val2' };")
+      .futureValue should equal (List("val1", "val2"))
+  }
+
+  it("should eval lua code and get a string array reply from its arguments") {
+    client
+      .eval("return { ARGV[1],ARGV[2] };", args = List("a", "b"))
+      .futureValue should equal (List("a", "b"))
+  }
+
+  it("should eval lua code and get a string array reply from its arguments & keys") {
+    client
+      .eval("return { KEYS[1],KEYS[2],ARGV[1],ARGV[2] };", List("a", "b"), List("a", "b"))
+      .futureValue should equal (List("a", "b", "a", "b"))
+  }
+
+  it("should eval lua code and get a string reply when passing keys") {
+    client.set("a", "b")
+
+    client
+      .eval("return redis.call('get', KEYS[1]);", List("a"))
+      .futureValue should equal (List("b"))
+  }
+
+  it("should eval lua code and get a string array reply when passing keys") {
+    client.lpush("z", "a")
+    client.lpush("z", "b")
+
+    client
+      .eval("return redis.call('lrange', KEYS[1], 0, 1);", keys = List("z"))
+      .futureValue should equal (List("b", "a"))
+  }
+
+  it("should evalsha lua code hash and execute script when passing keys") {
+    val setname = "records";
+
+    val luaCode = """
+          local res = redis.call('ZRANGEBYSCORE', KEYS[1], 0, 100, 'WITHSCORES')
+          return res
+          """
+    val shahash = client.script.load(luaCode).futureValue
+
+    client.zadd(setname, 10, "mmd")
+    client.zadd(setname, 22, "mmc")
+    client.zadd(setname, 12.5, "mma")
+    client.zadd(setname, 14, "mem")
+
+    val rs = client.evalsha(shahash.get, List("records")).futureValue
+    rs should equal (List("mmd", "10", "mma", "12.5", "mem", "14", "mmc", "22"))
+  }
+
+  it("should check if script exists when passing its sha hash code") {
+    val luaCode = """
+          local res = redis.call('ZRANGEBYSCORE', KEYS[1], 0, 100, 'WITHSCORES')
+          return res
+          """
+    val shahash = client.script.load(luaCode).futureValue
+
+    val rs = client.script.exists(shahash.get).futureValue
+    rs should equal (List(1))
+  }
+
+  it("should remove script cache") {
+    val luaCode = """
+          local res = redis.call('ZRANGEBYSCORE', KEYS[1], 0, 100, 'WITHSCORES')
+          return res
+          """
+    val shahash = client.script.load(luaCode).futureValue
+
+    client.script.flush.futureValue should be (true)
+
+    client.script.exists(shahash.get).futureValue should equal (List(0))
+  }
+}
+```
+
+#### Typeclass based transparent serialization
+
+###### Using built in Format typeclass for read and write
+
+```scala
+import DefaultFormats._
+
+client.hmset("hash", Map("field1" -> "1", "field2" -> 2)).futureValue should be (true)
+client.hmget[String]("hash", "field1", "field2").futureValue should be(Map("field1" -> "1", "field2" -> "2"))
+client.hmget[Int]("hash", "field1", "field2").futureValue should be(Map("field1" -> 1, "field2" -> 2))
+client.hmget[Int]("hash", "field1", "field2", "field3").futureValue should be(Map("field1" -> 1, "field2" -> 2))
+```
+
+###### Should use a provided implicit Format typeclass
+
+```scala
+import DefaultFormats._
+
+client.hmset("hash", Map("field1" -> "1", "field2" -> 2)).futureValue should be (true)
+client.hmget("hash", "field1", "field2").futureValue should be(Map("field1" -> "1", "field2" -> "2"))
+
+implicit val intFormat = Format[Int](java.lang.Integer.parseInt, _.toString)
+
+client.hmget[Int]("hash", "field1", "field2").futureValue should be(Map("field1" -> 1, "field2" -> 2))
+client.hmget[String]("hash", "field1", "field2").futureValue should be(Map("field1" -> "1", "field2" -> "2"))
+client.hmget[Int]("hash", "field1", "field2", "field3").futureValue should be(Map("field1" -> 1, "field2" -> 2))
+```
+
+###### Easy to have custom Format for case classes
+
+```scala
+case class Person(id: Int, name: String)
+
+val debasish = Person(1, "Debasish Gosh")
+val jisoo = Person(2, "Jisoo Park")
+val people = List(debasish, jisoo)
+
+implicit val customPersonFormat =
+  new Format[Person] {
+    def read(str: String) = {
+      val head :: rest = str.split('|').toList
+      val id = head.toInt
+      val name = rest.mkString("|")
+
+      Person(id, name)
+    }
+
+    def write(person: Person) = {
+      import person._
+      s"$id|$name"
+    }
+  }
+
+val write = implicitly[Write[Person]].write _
+val read = implicitly[Read[Person]].read _
+
+read(write(debasish)) should equal (debasish)
+```
+
+###### Integration support with Json Serializing libraries
+
+```scala
+import spray.json.DefaultJsonProtocol._
+import SprayJsonSupport._
+
+implicit val personFormat = jsonFormat2(Person)
+
+val write = implicitly[Write[Person]].write _
+val read = implicitly[Read[Person]].read _
+
+val writeL = implicitly[Write[List[Person]]].write _
+val readL = implicitly[Read[List[Person]]].read _
+
+read(write(debasish)) should equal (debasish)
+readL(writeL(people)) should equal (people)
+```
+
+For more examples on serialization, have a look at the test cases.
 
 ### License
 
