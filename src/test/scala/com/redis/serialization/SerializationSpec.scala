@@ -12,6 +12,36 @@ case class Person(id: Int, name: String)
 @RunWith(classOf[JUnitRunner])
 class SerializationSpec extends FunSpec with Matchers {
 
+  val debasish = Person(1, "Debasish Gosh")
+  val jisoo = Person(2, "Jisoo Park")
+  val people = List(debasish, jisoo)
+
+  describe("Format") {
+    it("should be easy to customize") {
+
+      implicit val customPersonFormat =
+        new Format[Person] {
+          def read(str: String) = {
+            val head :: rest = str.split('|').toList
+            val id = head.toInt
+            val name = rest.mkString("|")
+
+            Person(id, name)
+          }
+
+          def write(person: Person) = {
+            import person._
+            s"$id|$name"
+          }
+        }
+
+      val write = implicitly[Write[Person]].write _
+      val read = implicitly[Read[Person]].read _
+
+      read(write(debasish)) should equal (debasish)
+    }
+  }
+
 
   describe("Stringified") {
 
@@ -39,10 +69,6 @@ class SerializationSpec extends FunSpec with Matchers {
 
 
   describe("Integration") {
-
-    val debasish = Person(1, "Debasish Gosh")
-    val jisoo = Person(2, "Jisoo Park")
-    val people = List(debasish, jisoo)
 
     describe("SprayJsonSupport") {
       it("should encode/decode json objects") {
