@@ -9,10 +9,12 @@ import com.redis.protocol.EvalCommands
 trait EvalOperations { this: RedisOps =>
   import EvalCommands._
 
-  def eval[A](script: String, keys: Seq[String], args: Seq[Stringified])(implicit timeout: Timeout, reader: Read[A]) =
+  def eval[A](script: String, keys: Seq[String] = Nil, args: Seq[Stringified] = Nil)
+             (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(Eval[A](script, keys, args)).mapTo[Eval[A]#Ret]
 
-  def evalsha[A](shaHash: String, keys: Seq[String], args: Seq[Stringified])(implicit timeout: Timeout, reader: Read[A]) =
+  def evalsha[A](shaHash: String, keys: Seq[String] = Nil, args: Seq[Stringified] = Nil)
+                (implicit timeout: Timeout, reader: Read[A]) =
     clientRef.ask(EvalSHA[A](shaHash, keys, args)).mapTo[EvalSHA[A]#Ret]
 
   // Sub-commands of SCRIPT
