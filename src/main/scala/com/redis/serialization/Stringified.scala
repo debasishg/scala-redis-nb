@@ -6,7 +6,12 @@ import scala.language.implicitConversions
 class Stringified(override val toString: String) extends AnyVal
 
 object Stringified {
-  implicit def apply[A](v: A)(implicit writer: Write[A]) = new Stringified(writer.write(v))
+
+  // default writer for Stringified which just toString s
+  implicit val stringifiedWrite = Write[Stringified](_.toString)
+
+  // also has a default writer for A which just toString s
+  implicit def apply[A](v: A)(implicit writer: Write[A] = Write[A](_.toString)) = new Stringified(writer.write(v))
 
   implicit def applySeq[A](vs: Seq[A])(implicit writer: Write[A]): Seq[Stringified] = vs.map(apply[A])
 }
