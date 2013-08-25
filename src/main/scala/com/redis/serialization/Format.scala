@@ -6,10 +6,20 @@ import scala.language.implicitConversions
 
 @implicitNotFound(msg = "Cannot find implicit Read or Format type class for ${A}")
 trait Read[A] {
+  val forByteArray: Boolean = false
+
   def read(in: String): A
 }
 
-object Read {
+trait LowPriorityDefaultReader {
+  implicit object byteArrayReader extends Read[Array[Byte]] {
+    override val forByteArray = true
+
+    def read(in: String): Array[Byte] = throw new Error("Not intended to use directly")
+  }
+}
+
+object Read extends LowPriorityDefaultReader {
   def apply[A](f: String => A) = new Read[A] { def read(in: String) = f(in) }
 
   implicit def default: Read[String] = DefaultFormats.stringFormat
@@ -54,9 +64,12 @@ object Format {
   implicit def default = DefaultFormats.stringFormat
 }
 
-private[serialization] trait LowPriorityFormats {
-  import java.{lang => J}
+private[serialization] trait LowPriorityDefaultFormats {
   implicit val byteArrayFormat = Format[Array[Byte]](_.getBytes("UTF-8"), new String(_))
+}
+
+private[serialization] trait LowPriorityFormats extends LowPriorityDefaultFormats {
+  import java.{lang => J}
   implicit val intFormat = Format[Int](J.Integer.parseInt, _.toString)
   implicit val shortFormat = Format[Short](J.Short.parseShort, _.toString)
   implicit val longFormat = Format[Long](J.Long.parseLong, _.toString)

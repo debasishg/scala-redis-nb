@@ -27,9 +27,12 @@ object PartialDeserializer extends LowPriorityPD {
 
   implicit val intPD     = _intPD
   implicit val longPD    = _longPD
-  implicit val stringPD  = _stringPD orElse _statusStringPD
-  implicit val bulkPD    = _bulkPD
+  implicit val rawBulkPD = _rawBulkPD
+  implicit val bulkPD    = _rawBulkPD andThen (_ map (new String(_, "UTF-8")))
   implicit val booleanPD = _booleanPD
+  implicit val stringPD  = bulkPD.andThen {
+    _.getOrElse { throw new Error("Non-empty bulk reply expected, but got nil") }
+  } orElse _statusStringPD
 
   implicit def multiBulkPD[A, B[_] <: GenTraversable[_]](implicit cbf: CanBuildFrom[_, A, B[A]], pd: PartialDeserializer[A]) = _multiBulkPD(cbf, pd)
   implicit def listPD[A](implicit pd: PartialDeserializer[A]) = multiBulkPD[A, List]
@@ -44,7 +47,10 @@ private[serialization] trait LowPriorityPD extends CommandSpecificPD {
     stringPD andThen reader.read
 
   implicit def parsedOptionPD[A](implicit reader: Read[A]): PartialDeserializer[Option[A]] =
-    bulkPD andThen (_ map reader.read)
+    if (reader.forByteArray)
+      rawBulkPD.asInstanceOf[PartialDeserializer[Option[A]]]
+    else
+      bulkPD andThen (_ map reader.read)
 
   implicit def setPD[A](implicit parse: Read[A]): PartialDeserializer[Set[A]] =
     multiBulkPD[A, Set]
