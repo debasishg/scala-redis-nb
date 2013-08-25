@@ -24,7 +24,14 @@ object ScalaRedisProject extends Build
           "org.slf4j"         %   "slf4j-api"       % "1.7.5"         % "provided",
           "ch.qos.logback"    %   "logback-classic" % "1.0.13"        % "provided",
           "junit"             %   "junit"           % "4.11"          % "test",
-          "org.scalatest"     %%  "scalatest"       % "2.0.RC1-SNAP4" % "test"),
+          "org.scalatest"     %%  "scalatest"       % "2.0.RC1-SNAP4" % "test",
+
+        // Third-party serialization libraries
+          "net.liftweb" %%  "lift-json"      % "2.5.1" % "provided, test",
+          "org.json4s"  %%  "json4s-native"  % "3.2.5" % "provided, test",
+          "org.json4s"  %%  "json4s-jackson" % "3.2.5" % "provided, test",
+          "io.spray"    %%  "spray-json"     % "1.2.5" % "provided, test"
+        ),
     parallelExecution in Test := false,
     publishTo <<= version { (v: String) =>
       val nexus = "https://oss.sonatype.org/" 
