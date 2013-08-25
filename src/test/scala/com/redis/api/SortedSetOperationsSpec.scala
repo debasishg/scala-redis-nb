@@ -48,8 +48,9 @@ class SortedSetOperationsSpec extends RedisSpecBase {
   describe("zrank") {
     it ("should give proper rank") {
       add
-      client.zrank("hackers", "yukihiro matsumoto").futureValue should equal (4)
-      client.zrevrank("hackers", "yukihiro matsumoto").futureValue should equal (1)
+      client.zrank("hackers", "yukihiro matsumoto").futureValue should equal (Some(4))
+      client.zrevrank("hackers", "yukihiro matsumoto").futureValue should equal (Some(1))
+      client.zrank("hackers", "michael jackson").futureValue should equal (None)
     }
   }
 
