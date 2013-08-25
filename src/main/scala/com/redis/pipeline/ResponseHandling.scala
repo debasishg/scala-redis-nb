@@ -43,7 +43,8 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
             case Result.NeedMoreData => ctx.singleEvent(RequestQueueEmpty)
 
             case Result.Failed(err, data) =>
-              log.error(err, "Failed to parse response: {}", data.utf8String.replace("\r\n", "\\r\\n"))
+              log.error(err, "Response parsing failed: {}", data.utf8String.replace("\r\n", "\\r\\n"))
+              commander.tell(Failure(err), redisClientRef)
               ctx.singleCommand(Close)
           }
         }

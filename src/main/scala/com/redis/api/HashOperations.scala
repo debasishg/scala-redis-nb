@@ -13,16 +13,21 @@ trait HashOperations { this: RedisOps =>
     clientRef.ask(HSet(key, field, value)).mapTo[HSet#Ret]
 
   def hsetnx(key: String, field: String, value: Stringified)(implicit timeout: Timeout) =
-    clientRef.ask(HSet(key, field, value, true)).mapTo[HSet#Ret]
+    clientRef.ask(HSetNx(key, field, value)).mapTo[HSetNx#Ret]
 
-  def hget[A](key: String, field: String)(implicit timeout: Timeout, reader: Read[A]) =
+  def hget[A](key: String, field: String)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(HGet[A](key, field)).mapTo[HGet[A]#Ret]
 
   def hmset(key: String, mapLike: Iterable[KeyValuePair])(implicit timeout: Timeout) =
     clientRef.ask(HMSet(key, mapLike)).mapTo[HMSet#Ret]
 
-  def hmget[A](key: String, fields: String*)(implicit timeout: Timeout, reader: Read[A]) =
-    clientRef.ask(HMGet[A](key, fields:_*)).mapTo[HMGet[A]#Ret]
+
+  def hmget[A](key: String, fields: Seq[String])(implicit timeout: Timeout, reader: Reader[A]) =
+    clientRef.ask(HMGet[A](key, fields)).mapTo[HMGet[A]#Ret]
+
+  def hmget[A](key: String, field: String, fields: String*)(implicit timeout: Timeout, reader: Reader[A]) =
+    clientRef.ask(HMGet[A](key, field, fields:_*)).mapTo[HMGet[A]#Ret]
+
 
   def hincrby(key: String, field: String, value: Int)(implicit timeout: Timeout) =
     clientRef.ask(HIncrby(key, field, value)).mapTo[HIncrby#Ret]
@@ -44,9 +49,9 @@ trait HashOperations { this: RedisOps =>
   def hkeys(key: String)(implicit timeout: Timeout) =
     clientRef.ask(HKeys(key)).mapTo[HKeys#Ret]
 
-  def hvals[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
+  def hvals[A](key: String)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(HVals(key)).mapTo[HVals[A]#Ret]
 
-  def hgetall[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
+  def hgetall[A](key: String)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(HGetall(key)).mapTo[HGetall[A]#Ret]
 }

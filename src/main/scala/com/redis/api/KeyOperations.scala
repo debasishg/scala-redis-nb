@@ -32,7 +32,7 @@ trait KeyOperations { this: RedisOps =>
   // RENAMENX (oldkey, newkey)
   // rename oldkey into newkey but fails if the destination key newkey already exists.
   def renamenx(oldkey: String, newkey: String)(implicit timeout: Timeout) =
-    clientRef.ask(Rename(oldkey, newkey, nx = true)).mapTo[Rename#Ret]
+    clientRef.ask(RenameNx(oldkey, newkey)).mapTo[RenameNx#Ret]
 
   // DBSIZE
   // return the size of the db.
@@ -70,7 +70,7 @@ trait KeyOperations { this: RedisOps =>
   // PEXPIRE (key, expiry)
   // sets the expire time (in milli sec.) for the specified key.
   def pexpire(key: String, ttlInMillis: Int)(implicit timeout: Timeout) =
-    clientRef.ask(Expire(key, ttlInMillis, millis = true)).mapTo[Expire#Ret]
+    clientRef.ask(PExpire(key, ttlInMillis)).mapTo[PExpire#Ret]
 
   // EXPIREAT (key, unix timestamp)
   // sets the expire time for the specified key.
@@ -80,7 +80,7 @@ trait KeyOperations { this: RedisOps =>
   // PEXPIREAT (key, unix timestamp)
   // sets the expire timestamp in millis for the specified key.
   def pexpireat(key: String, timestampInMillis: Long)(implicit timeout: Timeout) =
-    clientRef.ask(ExpireAt(key, timestampInMillis, millis = true)).mapTo[ExpireAt#Ret]
+    clientRef.ask(PExpireAt(key, timestampInMillis)).mapTo[PExpireAt#Ret]
 
   // TTL (key)
   // returns the remaining time to live of a key that has a timeout
@@ -90,17 +90,17 @@ trait KeyOperations { this: RedisOps =>
   // PTTL (key)
   // returns the remaining time to live of a key that has a timeout in millis
   def pttl(key: String)(implicit timeout: Timeout) =
-    clientRef.ask(TTL(key, millis = true)).mapTo[TTL#Ret]
+    clientRef.ask(PTTL(key)).mapTo[PTTL#Ret]
 
   // FLUSHDB the DB
   // removes all the DB data.
   def flushdb()(implicit timeout: Timeout) =
-    clientRef.ask(FlushDB(all = false)).mapTo[FlushDB#Ret]
+    clientRef.ask(FlushDB).mapTo[FlushDB.Ret]
 
   // FLUSHALL the DB's
   // removes data from all the DB's.
   def flushall()(implicit timeout: Timeout) =
-    clientRef.ask(FlushDB(all = true)).mapTo[FlushDB#Ret]
+    clientRef.ask(FlushAll).mapTo[FlushAll.Ret]
 
   // MOVE
   // Move the specified key from the currently selected DB to the specified destination DB.
@@ -132,7 +132,7 @@ trait KeyOperations { this: RedisOps =>
     desc: Boolean = false, 
     alpha: Boolean = false, 
     by: Option[String] = None, 
-    get: Seq[String] = Nil)(implicit timeout: Timeout, reader: Read[A]) =
+    get: Seq[String] = Nil)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(Sort(key, limit, desc, alpha, by, get)).mapTo[Sort[A]#Ret]
 
   // SORT with STORE

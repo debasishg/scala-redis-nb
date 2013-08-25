@@ -48,7 +48,7 @@ trait ListOperations { this: RedisOps =>
   // LRANGE
   // return the specified elements of the list stored at the specified key.
   // Start and end are zero-based indexes.
-  def lrange[A](key: String, start: Int, end: Int)(implicit timeout: Timeout, reader: Read[A]) =
+  def lrange[A](key: String, start: Int, end: Int)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(LRange(key, start, end)).mapTo[LRange[A]#Ret]
 
   // LTRIM
@@ -59,7 +59,7 @@ trait ListOperations { this: RedisOps =>
   // LINDEX
   // return the especified element of the list stored at the specified key.
   // Negative indexes are supported, for example -1 is the last element, -2 the penultimate and so on.
-  def lindex[A](key: String, index: Int)(implicit timeout: Timeout, reader: Read[A]) =
+  def lindex[A](key: String, index: Int)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(LIndex[A](key, index)).mapTo[LIndex[A]#Ret]
 
   // LSET
@@ -74,39 +74,39 @@ trait ListOperations { this: RedisOps =>
 
   // LPOP
   // atomically return and remove the first (LPOP) or last (RPOP) element of the list
-  def lpop[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
+  def lpop[A](key: String)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(LPop[A](key)).mapTo[LPop[A]#Ret]
 
   // RPOP
   // atomically return and remove the first (LPOP) or last (RPOP) element of the list
-  def rpop[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
+  def rpop[A](key: String)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(RPop[A](key)).mapTo[RPop[A]#Ret]
 
   // RPOPLPUSH
   // Remove the first count occurrences of the value element from the list.
   def rpoplpush[A](srcKey: String, dstKey: String)
-                  (implicit timeout: Timeout, reader: Read[A]) =
+                  (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(RPopLPush[A](srcKey, dstKey)).mapTo[RPopLPush[A]#Ret]
 
   def brpoplpush[A](srcKey: String, dstKey: String, timeoutInSeconds: Int)
-                   (implicit timeout: Timeout, reader: Read[A]) =
+                   (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(BRPopLPush[A](srcKey, dstKey, timeoutInSeconds)).mapTo[BRPopLPush[A]#Ret]
 
 
   def blpop[A](timeoutInSeconds: Int, keys: Seq[String])
-              (implicit timeout: Timeout, reader: Read[A]) =
+              (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(BLPop[A](timeoutInSeconds, keys)).mapTo[BLPop[A]#Ret]
 
   def blpop[A](timeoutInSeconds: Int, key: String, keys: String*)
-                (implicit timeout: Timeout, reader: Read[A]) =
+                (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(BLPop[A](timeoutInSeconds, key, keys:_*)).mapTo[BLPop[A]#Ret]
 
 
   def brpop[A](timeoutInSeconds: Int, keys: Seq[String])
-              (implicit timeout: Timeout, reader: Read[A]) =
+              (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(BRPop[A](timeoutInSeconds, keys)).mapTo[BRPop[A]#Ret]
 
   def brpop[A](timeoutInSeconds: Int, key: String, keys: String*)
-                (implicit timeout: Timeout, reader: Read[A]) =
+                (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(BRPop[A](timeoutInSeconds, key, keys:_*)).mapTo[BRPop[A]#Ret]
 }

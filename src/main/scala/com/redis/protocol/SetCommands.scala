@@ -1,14 +1,14 @@
 package com.redis.protocol
 
 import com.redis.serialization._
-import RedisCommand._
 
 
 object SetCommands {
+  import DefaultWriters._
 
-  case class SAdd(key: String, values: Seq[Stringified]) extends RedisCommand[Long] {
+  case class SAdd(key: String, values: Seq[Stringified]) extends RedisCommand[Long]("SADD") {
     require(values.nonEmpty)
-    def line = multiBulk("SADD" +: key +: values.map(_.toString))
+    def params = key +: values.toArgs
   }
 
   object SAdd {
@@ -16,9 +16,9 @@ object SetCommands {
   }
 
 
-  case class SRem(key: String, values: Seq[Stringified]) extends RedisCommand[Long] {
+  case class SRem(key: String, values: Seq[Stringified]) extends RedisCommand[Long]("SREM") {
     require(values.nonEmpty)
-    def line = multiBulk("SREM" +: key +: values.map(_.toString))
+    def params = key +: values.toArgs
   }
 
   object SRem {
@@ -26,56 +26,56 @@ object SetCommands {
   }
 
 
-  case class SPop[A](key: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
-    def line = multiBulk("SPOP" +: Seq(key))
+  case class SPop[A: Reader](key: String) extends RedisCommand[Option[A]]("SPOP") {
+    def params = key +: ANil
   }
   
-  case class SMove(srcKey: String, destKey: String, value: Stringified) extends RedisCommand[Long] {
-    def line = multiBulk("SMOVE" +: Seq(srcKey, destKey, value.toString))
+  case class SMove(srcKey: String, destKey: String, value: Stringified) extends RedisCommand[Long]("SMOVE") {
+    def params = srcKey +: destKey +: value +: ANil
   }
 
-  case class SCard(key: String) extends RedisCommand[Long] {
-    def line = multiBulk("SCARD" +: Seq(key))
+  case class SCard(key: String) extends RedisCommand[Long]("SCARD") {
+    def params = key +: ANil
   }
 
-  case class SIsMember(key: String, value: Stringified) extends RedisCommand[Boolean] {
-    def line = multiBulk("SISMEMBER" +: Seq(key, value.toString))
+  case class SIsMember(key: String, value: Stringified) extends RedisCommand[Boolean]("SISMEMBER") {
+    def params = key +: value +: ANil
   }
 
 
-  case class SInter[A](keys: Seq[String])(implicit reader: Read[A]) extends RedisCommand[Set[A]] {
+  case class SInter[A: Reader](keys: Seq[String]) extends RedisCommand[Set[A]]("SINTER") {
     require(keys.nonEmpty)
-    def line = multiBulk("SINTER" +: keys)
+    def params = keys.toArgs
   }
 
   object SInter {
-    def apply[A](key: String, keys: String*)(implicit reader: Read[A]): SInter[A] = SInter(key +: keys)
+    def apply[A: Reader](key: String, keys: String*): SInter[A] = SInter(key +: keys)
   }
 
   
-  case class SUnion[A](keys: Seq[String])(implicit reader: Read[A]) extends RedisCommand[Set[A]] {
+  case class SUnion[A: Reader](keys: Seq[String]) extends RedisCommand[Set[A]]("SUNION") {
     require(keys.nonEmpty)
-    def line = multiBulk("SUNION" +: keys)
+    def params = keys.toArgs
   }
 
   object SUnion {
-    def apply[A](key: String, keys: String*)(implicit reader: Read[A]): SUnion[A] = SUnion(key +: keys)
+    def apply[A: Reader](key: String, keys: String*): SUnion[A] = SUnion(key +: keys)
   }
 
 
-  case class SDiff[A](keys: Seq[String])(implicit reader: Read[A]) extends RedisCommand[Set[A]] {
+  case class SDiff[A: Reader](keys: Seq[String]) extends RedisCommand[Set[A]]("SDIFF") {
     require(keys.nonEmpty)
-    def line = multiBulk("SDIFF" +: keys)
+    def params = keys.toArgs
   }
 
   object SDiff {
-    def apply[A](key: String, keys: String*)(implicit reader: Read[A]): SDiff[A] = SDiff(key +: keys)
+    def apply[A: Reader](key: String, keys: String*): SDiff[A] = SDiff(key +: keys)
   }
 
 
-  case class SInterStore(destKey: String, keys: Seq[String]) extends RedisCommand[Long] {
+  case class SInterStore(destKey: String, keys: Seq[String]) extends RedisCommand[Long]("SINTERSTORE") {
     require(keys.nonEmpty)
-    def line = multiBulk("SINTERSTORE" +: destKey +: keys)
+    def params = destKey +: keys.toArgs
   }
 
   object SInterStore {
@@ -84,9 +84,9 @@ object SetCommands {
   }
 
 
-  case class SUnionStore(destKey: String, keys: Seq[String]) extends RedisCommand[Long] {
+  case class SUnionStore(destKey: String, keys: Seq[String]) extends RedisCommand[Long]("SUNIONSTORE") {
     require(keys.nonEmpty)
-    def line = multiBulk("SUNIONSTORE" +: destKey +: keys)
+    def params = destKey +: keys.toArgs
   }
 
   object SUnionStore {
@@ -95,9 +95,9 @@ object SetCommands {
   }
 
 
-  case class SDiffStore(destKey: String, keys: Seq[String]) extends RedisCommand[Long] {
+  case class SDiffStore(destKey: String, keys: Seq[String]) extends RedisCommand[Long]("SDIFFSTORE") {
     require(keys.nonEmpty)
-    def line = multiBulk("SDIFFSTORE" +: destKey +: keys)
+    def params = destKey +: keys.toArgs
   }
 
   object SDiffStore {
@@ -106,15 +106,16 @@ object SetCommands {
   }
 
 
-  case class SMembers[A](key: String)(implicit reader: Read[A]) extends RedisCommand[Set[A]] {
-    def line = multiBulk("SMEMBERS" +: Seq(key))
+  case class SMembers[A: Reader](key: String) extends RedisCommand[Set[A]]("SMEMBERS") {
+    def params = key +: ANil
   }
 
-  case class SRandMember[A](key: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
-    def line = multiBulk("SRANDMEMBER" +: Seq(key))
+  case class SRandMember[A: Reader](key: String) extends RedisCommand[Option[A]]("SRANDMEMBER") {
+    def params = key +: ANil
   }
 
-  case class SRandMembers[A](key: String, count: Int)(implicit reader: Read[A]) extends RedisCommand[List[A]] {
-    def line = multiBulk("SRANDMEMBER" +: (Seq(key, count.toString)))
+  case class SRandMembers[A: Reader](key: String, count: Int) extends RedisCommand[List[A]]("SRANDMEMBER") {
+    def params = key +: count +: ANil
   }
+
 }

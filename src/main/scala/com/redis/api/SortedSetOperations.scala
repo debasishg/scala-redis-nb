@@ -52,19 +52,19 @@ trait SortedSetOperations { this: RedisOps =>
   // ZRANGE
   //
   def zrange[A](key: String, start: Int = 0, end: Int = -1)
-               (implicit timeout: Timeout, reader: Read[A]) =
+               (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(ZRange[A](key, start, end)).mapTo[ZRange[A]#Ret]
 
   def zrevrange[A](key: String, start: Int = 0, end: Int = -1)
-               (implicit timeout: Timeout, reader: Read[A]) =
+               (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(ZRevRange[A](key, start, end)).mapTo[ZRevRange[A]#Ret]
 
   def zrangeWithScores[A](key: String, start: Int = 0, end: Int = -1)
-                        (implicit timeout: Timeout, reader: Read[A]) =
+                        (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(ZRangeWithScores[A](key, start, end)).mapTo[ZRangeWithScores[A]#Ret]
 
   def zrevrangeWithScores[A](key: String, start: Int = 0, end: Int = -1)
-                          (implicit timeout: Timeout, reader: Read[A]) =
+                          (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(ZRevRangeWithScores[A](key, start, end)).mapTo[ZRevRangeWithScores[A]#Ret]
 
   // ZRANGEBYSCORE
@@ -73,7 +73,7 @@ trait SortedSetOperations { this: RedisOps =>
                        min: Double = `-Inf`, minInclusive: Boolean = true,
                        max: Double = `+Inf`, maxInclusive: Boolean = true,
                        limit: Option[(Int, Int)] = None)
-                      (implicit timeout: Timeout, reader: Read[A]) =
+                      (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef
       .ask(ZRangeByScore[A](key, min, minInclusive, max, maxInclusive, limit))
       .mapTo[ZRangeByScore[A]#Ret]
@@ -82,7 +82,7 @@ trait SortedSetOperations { this: RedisOps =>
                           max: Double = `+Inf`, maxInclusive: Boolean = true,
                           min: Double = `-Inf`, minInclusive: Boolean = true,
                           limit: Option[(Int, Int)] = None)
-                         (implicit timeout: Timeout, reader: Read[A]) =
+                         (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef
       .ask(ZRevRangeByScore[A](key, min, minInclusive, max, maxInclusive, limit))
       .mapTo[ZRevRangeByScore[A]#Ret]
@@ -91,7 +91,7 @@ trait SortedSetOperations { this: RedisOps =>
                                  min: Double = `-Inf`, minInclusive: Boolean = true,
                                  max: Double = `+Inf`, maxInclusive: Boolean = true,
                                  limit: Option[(Int, Int)] = None)
-                                (implicit timeout: Timeout, reader: Read[A]) =
+                                (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef
       .ask(ZRangeByScoreWithScores[A](key, min, minInclusive, max, maxInclusive, limit))
       .mapTo[ZRangeByScoreWithScores[A]#Ret]
@@ -100,7 +100,7 @@ trait SortedSetOperations { this: RedisOps =>
                                     max: Double = `+Inf`, maxInclusive: Boolean = true,
                                     min: Double = `-Inf`, minInclusive: Boolean = true,
                                     limit: Option[(Int, Int)] = None)
-                                   (implicit timeout: Timeout, reader: Read[A]) =
+                                   (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef
       .ask(ZRevRangeByScoreWithScores[A](key, min, minInclusive, max, maxInclusive, limit))
       .mapTo[ZRevRangeByScoreWithScores[A]#Ret]

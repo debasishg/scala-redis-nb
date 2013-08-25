@@ -4,6 +4,7 @@ import akka.io.Tcp
 import akka.actor.ActorRef
 import akka.util.ByteString
 import scala.language.existentials
+import com.redis.serialization.{Writer, Stringified}
 
 
 package object protocol {
@@ -28,6 +29,18 @@ package object protocol {
 
   case class RedisError(message: String) extends Throwable(message)
 
+
+  type Args = RedisCommand.Args
+
+  val ANil = RedisCommand.Args.empty
+
+  implicit class StringifiedArgsOps(values: Seq[Stringified]) {
+    def toArgs = new Args(values)
+  }
+
+  implicit class ArgsOps[A: Writer](values: Seq[A]) {
+    def toArgs = new Args(values)
+  }
 
   /**
    * Response codes from the Redis server

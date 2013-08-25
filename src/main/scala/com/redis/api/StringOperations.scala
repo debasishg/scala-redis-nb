@@ -13,7 +13,7 @@ trait StringOperations { this: RedisOps =>
 
   // GET (key)
   // gets the value for the specified key.
-  def get[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
+  def get[A](key: String)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(Get[A](key)).mapTo[Get[A]#Ret]
 
   // SET KEY (key, value)
@@ -32,7 +32,7 @@ trait StringOperations { this: RedisOps =>
 
   // GETSET (key, value)
   // is an atomic set this value and return the old value command.
-  def getset[A](key: String, value: Stringified)(implicit timeout: Timeout, reader: Read[A]) =
+  def getset[A](key: String, value: Stringified)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(GetSet[A](key, value)).mapTo[GetSet[A]#Ret]
 
   // SETNX (key, value)
@@ -73,10 +73,10 @@ trait StringOperations { this: RedisOps =>
 
   // MGET (key, key, key, ...)
   // get the values of all the specified keys.
-  def mget[A](keys: Seq[String])(implicit timeout: Timeout, reader: Read[A]) =
+  def mget[A](keys: Seq[String])(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(MGet[A](keys)).mapTo[MGet[A]#Ret]
 
-  def mget[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Read[A]) =
+  def mget[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(MGet[A](key, keys:_*)).mapTo[MGet[A]#Ret]
 
 
@@ -99,7 +99,7 @@ trait StringOperations { this: RedisOps =>
   // GETRANGE key start end
   // Returns the substring of the string value stored at key, determined by the offsets
   // start and end (both are inclusive).
-  def getrange[A](key: String, start: Int, end: Int)(implicit timeout: Timeout, reader: Read[A]) =
+  def getrange[A](key: String, start: Int, end: Int)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(GetRange[A](key, start, end)).mapTo[GetRange[A]#Ret]
 
   // STRLEN key
@@ -124,8 +124,11 @@ trait StringOperations { this: RedisOps =>
 
   // BITOP op destKey srcKey...
   // Perform a bitwise operation between multiple keys (containing string values) and store the result in the destination key.
-  def bitop(op: String, destKey: String, srcKeys: String*)(implicit timeout: Timeout) =
-    clientRef.ask(BitOp(op, destKey, srcKeys:_*)).mapTo[BitOp#Ret]
+  def bitop(op: String, destKey: String, srcKeys: Seq[String])(implicit timeout: Timeout) =
+    clientRef.ask(BitOp(op, destKey, srcKeys)).mapTo[BitOp#Ret]
+
+  def bitop(op: String, destKey: String, srcKey: String, srcKeys: String*)(implicit timeout: Timeout) =
+    clientRef.ask(BitOp(op, destKey, srcKey, srcKeys: _*)).mapTo[BitOp#Ret]
 
   // BITCOUNT key range
   // Count the number of set bits in the given key within the optional range

@@ -1,11 +1,12 @@
 package com.redis.serialization
 
-import RawReplyParser._
+import akka.util.ByteString
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{Iterator, GenTraversable}
 import scala.language.higherKinds
 import scala.annotation.implicitNotFound
 import com.redis.protocol.Err
+import RawReplyParser._
 
 
 @implicitNotFound(msg = "Cannot find implicit PartialDeserializer for ${A}")
@@ -25,11 +26,13 @@ object PartialDeserializer extends LowPriorityPD {
 
   import PrefixDeserializer._
 
-  implicit val intPD     = _intPD
-  implicit val longPD    = _longPD
-  implicit val stringPD  = _stringPD orElse _statusStringPD
-  implicit val bulkPD    = _bulkPD
-  implicit val booleanPD = _booleanPD
+  implicit val intPD        = _intPD
+  implicit val longPD       = _longPD
+  implicit val bulkPD       = _rawBulkPD
+  implicit val booleanPD    = _booleanPD
+  implicit val byteStringPD = bulkPD.andThen {
+    _.getOrElse { throw new Error("Non-empty bulk reply expected, but got nil") }
+  } orElse _statusStringPD
 
   implicit def multiBulkPD[A, B[_] <: GenTraversable[_]](implicit cbf: CanBuildFrom[_, A, B[A]], pd: PartialDeserializer[A]) = _multiBulkPD(cbf, pd)
   implicit def listPD[A](implicit pd: PartialDeserializer[A]) = multiBulkPD[A, List]
@@ -40,30 +43,34 @@ object PartialDeserializer extends LowPriorityPD {
 private[serialization] trait LowPriorityPD extends CommandSpecificPD {
   import PartialDeserializer._
 
-  implicit def parsedPD[A](implicit reader: Read[A]): PartialDeserializer[A] =
-    stringPD andThen reader.read
+  implicit def parsedPD[A](implicit reader: Reader[A]): PartialDeserializer[A] =
+    byteStringPD andThen reader.fromByteString
 
-  implicit def parsedOptionPD[A](implicit reader: Read[A]): PartialDeserializer[Option[A]] =
-    bulkPD andThen (_ map reader.read)
+  implicit def parsedOptionPD[A](implicit reader: Reader[A]): PartialDeserializer[Option[A]] =
+    bulkPD andThen (_ map reader.fromByteString)
 
-  implicit def setPD[A](implicit parse: Read[A]): PartialDeserializer[Set[A]] =
+  implicit def setPD[A](implicit parse: Reader[A]): PartialDeserializer[Set[A]] =
     multiBulkPD[A, Set]
 
-  implicit def pairOptionListPD[A, B](implicit parseA: Read[A], parseB: Read[B]): PartialDeserializer[List[Option[(A, B)]]] =
+  implicit def pairOptionListPD[A, B](implicit parseA: Reader[A], parseB: Reader[B]): PartialDeserializer[List[Option[(A, B)]]] =
     pairOptionIteratorPD[A, B] andThen (_.toList)
 
-  implicit def pairOptionPD[A, B](implicit parseA: Read[A], parseB: Read[B]): PartialDeserializer[Option[(A, B)]] =
+  implicit def pairOptionPD[A, B](implicit parseA: Reader[A], parseB: Reader[B]): PartialDeserializer[Option[(A, B)]] =
     pairOptionIteratorPD[A, B] andThen (_.next)
 
-  implicit def mapPD[K, V](implicit parseA: Read[K], parseB: Read[V]): PartialDeserializer[Map[K, V]] =
+  implicit def mapPD[K, V](implicit parseA: Reader[K], parseB: Reader[V]): PartialDeserializer[Map[K, V]] =
     pairIteratorPD[K, V] andThen (_.toMap)
 
-  protected def pairIteratorPD[A, B](implicit readA: Read[A], readB: Read[B]): PartialDeserializer[Iterator[(A, B)]] =
-    multiBulkPD[String, Iterable] andThen (_.grouped(2).map { case Seq(a, b) => (readA.read(a), readB.read(b)) })
+  protected def pairIteratorPD[A, B](implicit readA: Reader[A], readB: Reader[B]): PartialDeserializer[Iterator[(A, B)]] =
+    multiBulkPD[ByteString, Iterable] andThen {
+      _.grouped(2).map {
+        case Seq(a, b) => (readA.fromByteString(a), readB.fromByteString(b))
+      }
+    }
 
-  protected def pairOptionIteratorPD[A, B](implicit readA: Read[A], readB: Read[B]): PartialDeserializer[Iterator[Option[(A, B)]]] =
-    multiBulkPD[Option[String], Iterable] andThen (_.grouped(2).map {
-      case Seq(Some(a), Some(b)) => Some((readA.read(a), readB.read(b)))
+  protected def pairOptionIteratorPD[A, B](implicit readA: Reader[A], readB: Reader[B]): PartialDeserializer[Iterator[Option[(A, B)]]] =
+    multiBulkPD[Option[ByteString], Iterable] andThen (_.grouped(2).map {
+      case Seq(Some(a), Some(b)) => Some((readA.fromByteString(a), readB.fromByteString(b)))
       case _ => None
     })
 }
@@ -78,7 +85,7 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
   // special deserializers for Sorted Set
   implicit def doubleOptionPD: PartialDeserializer[Option[Double]] = parsedOptionPD[Double]
 
-  implicit def scoredListPD[A](implicit reader: Read[A]): PartialDeserializer[List[(A, Double)]] =
+  implicit def scoredListPD[A](implicit reader: Reader[A]): PartialDeserializer[List[(A, Double)]] =
     pairIteratorPD[A, Double] andThen (_.toList)
 
   // lift non-bulk reply to `Option`
@@ -87,10 +94,14 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
 
 
   // special deserializer for (H)MGET
-  def keyedMapPD[A](fields: Seq[String])(implicit reader: Read[A]): PartialDeserializer[Map[String, A]] =
-    multiBulkPD[Option[A], Iterable] andThen { _.view.zip(fields).collect { case (Some(value), field) => (field, value) }.toMap }
+  def keyedMapPD[A](fields: Seq[String])(implicit reader: Reader[A]): PartialDeserializer[Map[String, A]] =
+    multiBulkPD[Option[A], Iterable] andThen {
+      _.view.zip(fields).collect {
+        case (Some(value), field) => (field, value)
+      }.toMap
+    }
 
   // special deserializer for EVAL(SHA)
-  def ensureListPD[A](implicit reader: Read[A]): PartialDeserializer[List[A]] =
+  def ensureListPD[A](implicit reader: Reader[A]): PartialDeserializer[List[A]] =
     multiBulkPD[A, List].orElse(parsedOptionPD[A].andThen(_.toList))
 }

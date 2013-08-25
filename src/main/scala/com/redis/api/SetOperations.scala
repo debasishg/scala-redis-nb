@@ -29,7 +29,7 @@ trait SetOperations { this: RedisOps =>
 
   // SPOP
   // Remove and return (pop) a random element from the Set value at key.
-  def spop[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
+  def spop[A](key: String)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(SPop[A](key)).mapTo[SPop[A]#Ret]
 
   // SMOVE
@@ -49,10 +49,10 @@ trait SetOperations { this: RedisOps =>
 
   // SINTER
   // Return the intersection between the Sets stored at key1, key2, ..., keyN.
-  def sinter[A](keys: Seq[String])(implicit timeout: Timeout, reader: Read[A]) =
+  def sinter[A](keys: Seq[String])(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(SInter[A](keys)).mapTo[SInter[A]#Ret]
 
-  def sinter[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Read[A]) =
+  def sinter[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(SInter[A](key, keys:_*)).mapTo[SInter[A]#Ret]
 
   // SINTERSTORE
@@ -69,10 +69,10 @@ trait SetOperations { this: RedisOps =>
 
   // SUNION
   // Return the union between the Sets stored at key1, key2, ..., keyN.
-  def sunion[A](keys: Seq[String])(implicit timeout: Timeout, reader: Read[A]) =
+  def sunion[A](keys: Seq[String])(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(SUnion[A](keys)).mapTo[SUnion[A]#Ret]
 
-  def sunion[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Read[A]) =
+  def sunion[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(SUnion[A](key, keys:_*)).mapTo[SUnion[A]#Ret]
 
 
@@ -90,10 +90,10 @@ trait SetOperations { this: RedisOps =>
 
   // SDIFF
   // Return the difference between the Set stored at key1 and all the Sets key2, ..., keyN.
-  def sdiff[A](keys: Seq[String])(implicit timeout: Timeout, reader: Read[A]) =
+  def sdiff[A](keys: Seq[String])(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(SDiff(keys)).mapTo[SDiff[A]#Ret]
 
-  def sdiff[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Read[A]) =
+  def sdiff[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(SDiff(key, keys:_*)).mapTo[SDiff[A]#Ret]
 
 
@@ -109,17 +109,17 @@ trait SetOperations { this: RedisOps =>
 
   // SMEMBERS
   // Return all the members of the Set value at key.
-  def smembers[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
+  def smembers[A](key: String)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(SMembers(key)).mapTo[SMembers[A]#Ret]
 
   // SRANDMEMBER
   // Return a random element from a Set
-  def srandmember[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
+  def srandmember[A](key: String)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(SRandMember(key)).mapTo[SRandMember[A]#Ret]
 
   // SRANDMEMBER
   // Return multiple random elements from a Set (since 2.6)
-  def srandmember[A](key: String, count: Int)(implicit timeout: Timeout, reader: Read[A]) =
+  def srandmember[A](key: String, count: Int)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(SRandMembers(key, count)).mapTo[SRandMembers[A]#Ret]
 }
 
