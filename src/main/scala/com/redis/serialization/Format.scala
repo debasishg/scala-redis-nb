@@ -62,6 +62,7 @@ private[serialization] trait LowPriorityFormats {
   implicit val longFormat = Format[Long](J.Long.parseLong, _.toString)
   implicit val floatFormat = Format[Float](J.Float.parseFloat, _.toString)
   implicit val doubleFormat = Format[Double](J.Double.parseDouble, _.toString)
+  implicit val anyFormat = Format[Any](identity, _.toString)
 }
 
 trait DefaultFormats extends LowPriorityFormats {
