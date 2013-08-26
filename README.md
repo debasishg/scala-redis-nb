@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
 
 ### Coming up
 
-- Transcations
+- Transactions
 - Publish-Subscribe
 - Clustering
 
