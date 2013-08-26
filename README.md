@@ -4,12 +4,11 @@ A non blocking Redis client based on Akka I/O
 
 ### Key features of the library
 
-- Non blocking
-- Full set of Redis commands
-- Scripting support
-- Transparent typeclass based serialization
-- Out of the box integration support with Json serialization libraries
-- Composable with Futures
+- [Non blocking, compositional with Futures](#non-blocking-compositional-with-futures)
+- [Full set of Redis commands](#full-set-of-redis-commands)
+- [Scripting support](#scripting-support)
+- [Transparent typeclass based serialization](#typeclass-based-transparent-serialization)
+- [Out of the box integration support with Json serialization libraries](#integration-support-with-json-serializing-libraries)
 
 ### Project Dependencies
 
@@ -37,7 +36,14 @@ implicit val timeout = AkkaTimeout(5 seconds)
 val client = RedisClient("localhost", 6379)
 ```
 
-#### Non Blocking Compositional Gets and Sets
+**Note**
+
+The below examples are taken from the test cases.
+
+Every API call returns Scala [`Future`](http://www.scala-lang.org/api/current/index.html#scala.concurrent.Future) and `_.futureValue` is just a helper provided by [ScalaTest](http://scalatest.org) for ease of test. You won't need this in most cases because it blocks current thread.
+
+
+#### Non Blocking, Compositional with Futures
 
 ```scala
 describe("set") {
@@ -74,7 +80,42 @@ describe("get") {
 }
 ```
 
-#### List Operations
+```scala
+describe("non blocking apis using futures") {
+  // ...
+
+  it("should compose with sequential combinator") {
+    val key = "client_key_seq"
+
+    val res = for {
+      p <- client.lpush(key, 0 to 100)
+      if p > 0
+      r <- client.lrange[Long](key, 0, -1)
+    } yield (p, r)
+
+    val (count, list) = res.futureValue
+    count should equal (101)
+    list.reverse should equal (0 to 100)
+  }
+}
+
+describe("error handling using promise failure") {
+  it("should give error trying to lpush on a key that has a non list value") {
+    val key = "client_err"
+    client.set(key, "value200").futureValue should be (true)
+
+    val thrown = evaluating {
+      client.lpush(key, 1200).futureValue
+    } should produce [TestFailedException]
+
+    thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
+  }
+}
+```
+
+#### Full set of Redis commands
+
+##### List Operations
 
 ```scala
 describe("lpush") {
@@ -97,28 +138,39 @@ describe("lpush") {
 }
 ```
 
-#### Other Data Structure support as per Redis
+##### Other Data Structure support as per Redis
 
 ```scala
 // Hash
 describe("hmget") {
- it("should set and get maps") {
-   val key = "hmget1"
-   client.hmset(key, Map("field1" -> "val1", "field2" -> "val2"))
-   client.hmget(key, "field1").futureValue should equal (Map("field1" -> "val1"))
-   client.hmget(key, "field1", "field2").futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
-   client.hmget(key, "field1", "field2", "field3").futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
- }
+  it("should set and get maps") {
+    val key = "hmget1"
+    client.hmset(key, Map("field1" -> "val1", "field2" -> "val2"))
+
+    client
+      .hmget(key, "field1")
+      .futureValue should equal (Map("field1" -> "val1"))
+
+    client
+      .hmget(key, "field1", "field2")
+      .futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
+
+    client
+      .hmget(key, "field1", "field2", "field3")
+      .futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
+  }
 }
 
 // Set
 describe("spop") {
   it("should pop a random element") {
     val key = "spop1"
-    client.sadd(key, "foo").futureValue should equal (1)
-    client.sadd(key, "bar").futureValue should equal (1)
-    client.sadd(key, "baz").futureValue should equal (1)
-    client.spop(key).futureValue should (equal (Some("foo")) or equal (Some("bar")) or equal (Some("baz")))
+    client.sadd(key, "foo")
+    client.sadd(key, "bar")
+
+    client
+      .spop(key)
+      .futureValue should (equal (Some("foo")) or equal (Some("bar")))
   }
 
   it("should return nil if the key does not exist") {
@@ -132,88 +184,30 @@ describe("z(rev)rangeByScoreWithScore") {
   it ("should return the elements between min and max") {
     add
 
-    client.zrangeByScoreWithScores("hackers", 1940, true, 1969, true, None).futureValue should equal (
-      List(("alan kay", 1940.0), ("richard stallman", 1953.0), ("yukihiro matsumoto", 1965.0), ("linus torvalds", 1969.0)))
+    client
+      .zrangeByScoreWithScores("hackers", 1940, true, 1969, true, None)
+      .futureValue should equal (List(
+        ("alan kay", 1940.0), ("richard stallman", 1953.0),
+        ("yukihiro matsumoto", 1965.0), ("linus torvalds", 1969.0)
+      ))
 
-    client.zrevrangeByScoreWithScores("hackers", 1940, true, 1969, true, None).futureValue should equal (
-      List(("linus torvalds", 1969.0), ("yukihiro matsumoto", 1965.0), ("richard stallman", 1953.0),("alan kay", 1940.0)))
+    client
+      .zrevrangeByScoreWithScores("hackers", 1940, true, 1969, true, None)
+      .futureValue should equal (List(
+        ("linus torvalds", 1969.0), ("yukihiro matsumoto", 1965.0),
+        ("richard stallman", 1953.0),("alan kay", 1940.0)
+      ))
 
-    client.zrangeByScoreWithScores("hackers", 1940, true, 1969, true, Some(3, 1)).futureValue should equal (
-      List(("linus torvalds", 1969.0)))
+    client
+      .zrangeByScoreWithScores("hackers", 1940, true, 1969, true, Some(3, 1))
+      .futureValue should equal (List(("linus torvalds", 1969.0)))
 
-    client.zrevrangeByScoreWithScores("hackers", 1940, true, 1969, true, Some(3, 1)).futureValue should equal (
-      List(("alan kay", 1940.0)))
+    client
+      .zrevrangeByScoreWithScores("hackers", 1940, true, 1969, true, Some(3, 1))
+      .futureValue should equal (List(("alan kay", 1940.0)))
   }
 }
  ```
-
-#### With Operations that compose
-
-```scala
-describe("non blocking apis using futures") {
-  it("get and set should be non blocking") {
-    @volatile var callbackExecuted = false
-
-    val ks = (1 to 10).map(i => s"client_key_$i")
-    val kvs = ks.zip(1 to 10)
-
-    val sets: Seq[Future[Boolean]] = kvs map {
-      case (k, v) => client.set(k, v)
-    }
-
-    val setResult = Future.sequence(sets) map { r: Seq[Boolean] =>
-      callbackExecuted = true
-      r
-    }
-
-    callbackExecuted should be (false)
-    setResult.futureValue should contain only (true)
-    callbackExecuted should be (true)
-
-    callbackExecuted = false
-    val gets: Seq[Future[Option[Long]]] = ks.map { k => client.get[Long](k) }
-    val getResult = Future.sequence(gets).map { rs =>
-      callbackExecuted = true
-      rs.flatten.sum
-    }
-
-    callbackExecuted should be (false)
-    getResult.futureValue should equal (55)
-    callbackExecuted should be (true)
-  }
-
-  it("should compose with sequential combinator") {
-    val key = "client_key_seq"
-    val values = (1 to 100).toList
-    val pushResult = client.lpush(key, 0, values:_*)
-    val getResult = client.lrange[Long](key, 0, -1)
-
-    val res = for {
-      p <- pushResult.mapTo[Long]
-      if p > 0
-      r <- getResult.mapTo[List[Long]]
-    } yield (p, r)
-
-    val (count, list) = res.futureValue
-    count should equal (101)
-    list.reverse should equal (0 to 100)
-  }
-}
-```
-
-```scala
-describe("error handling using promise failure") {
-  it("should give error trying to lpush on a key that has a non list value") {
-    val key = "client_err"
-    val v = client.set(key, "value200")
-    v.futureValue should be (true)
-
-    val x = client.lpush(key, 1200)
-    val thrown = evaluating { x.futureValue } should produce [TestFailedException]
-    thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
-  }
-}
-```
 
 #### Scripting support
 
@@ -312,10 +306,21 @@ describe("eval") {
 ```scala
 import DefaultFormats._
 
-client.hmset("hash", Map("field1" -> "1", "field2" -> 2)).futureValue should be (true)
-client.hmget[String]("hash", "field1", "field2").futureValue should be(Map("field1" -> "1", "field2" -> "2"))
-client.hmget[Int]("hash", "field1", "field2").futureValue should be(Map("field1" -> 1, "field2" -> 2))
-client.hmget[Int]("hash", "field1", "field2", "field3").futureValue should be(Map("field1" -> 1, "field2" -> 2))
+client
+  .hmset("hash", Map("field1" -> "1", "field2" -> 2))
+  .futureValue should be (true)
+
+client
+  .hmget[String]("hash", "field1", "field2")
+  .futureValue should equal (Map("field1" -> "1", "field2" -> "2"))
+
+client
+  .hmget[Int]("hash", "field1", "field2")
+  .futureValue should equal (Map("field1" -> 1, "field2" -> 2))
+
+client
+  .hmget[Int]("hash", "field1", "field2", "field3")
+  .futureValue should equal (Map("field1" -> 1, "field2" -> 2))
 ```
 
 ###### Should use a provided implicit Format typeclass
@@ -323,14 +328,17 @@ client.hmget[Int]("hash", "field1", "field2", "field3").futureValue should be(Ma
 ```scala
 import DefaultFormats._
 
-client.hmset("hash", Map("field1" -> "1", "field2" -> 2)).futureValue should be (true)
-client.hmget("hash", "field1", "field2").futureValue should be(Map("field1" -> "1", "field2" -> "2"))
+client.hmset("hash", Map("field1" -> "1", "field2" -> 2))
 
 implicit val intFormat = Format[Int](java.lang.Integer.parseInt, _.toString)
 
-client.hmget[Int]("hash", "field1", "field2").futureValue should be(Map("field1" -> 1, "field2" -> 2))
-client.hmget[String]("hash", "field1", "field2").futureValue should be(Map("field1" -> "1", "field2" -> "2"))
-client.hmget[Int]("hash", "field1", "field2", "field3").futureValue should be(Map("field1" -> 1, "field2" -> 2))
+client
+  .hmget[Int]("hash", "field1", "field2")
+  .futureValue should equal (Map("field1" -> 1, "field2" -> 2))
+
+client
+  .hmget[String]("hash", "field1", "field2")
+  .futureValue should be(Map("field1" -> "1", "field2" -> "2"))
 ```
 
 ###### Easy to have custom Format for case classes
@@ -340,7 +348,6 @@ case class Person(id: Int, name: String)
 
 val debasish = Person(1, "Debasish Gosh")
 val jisoo = Person(2, "Jisoo Park")
-val people = List(debasish, jisoo)
 
 implicit val customPersonFormat =
   new Format[Person] {
@@ -358,31 +365,29 @@ implicit val customPersonFormat =
     }
   }
 
-val write = implicitly[Write[Person]].write _
-val read = implicitly[Read[Person]].read _
+client.set("debasish", debasish)
 
-read(write(debasish)) should equal (debasish)
+client.get[Person]("debasish").futureValue should equal (Some(debasish))
 ```
 
 ###### Integration support with Json Serializing libraries
 
 ```scala
 import spray.json.DefaultJsonProtocol._
-import SprayJsonSupport._
+import com.redis.serialization.SprayJsonSupport._
 
 implicit val personFormat = jsonFormat2(Person)
 
-val write = implicitly[Write[Person]].write _
-val read = implicitly[Read[Person]].read _
+client.set("debasish", debasish)
+client.set("people", List(debasish, jisoo))
 
-val writeL = implicitly[Write[List[Person]]].write _
-val readL = implicitly[Read[List[Person]]].read _
-
-read(write(debasish)) should equal (debasish)
-readL(writeL(people)) should equal (people)
+client.get[Person]("debasish").futureValue should equal (Some(debasish))
+client.get[List[Person]]("people").futureValue should equal (Some(List(debasish, jisoo)))
 ```
 
 For more examples on serialization, have a look at the test cases.
+
+_Third-party libraries are not installed by default. You need to provide them by yourself._
 
 ### License
 

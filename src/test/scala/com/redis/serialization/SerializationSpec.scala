@@ -1,70 +1,22 @@
 package com.redis.serialization
 
-
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
-import com.redis.RedisSpecBase
 
-
-// should be top-level for equality test
-case class Person(id: Int, name: String)
+object SerializationSpec {
+  // should not be path dependent for equality test
+  case class Person(id: Int, name: String)
+}
 
 @RunWith(classOf[JUnitRunner])
-class SerializationSpec extends RedisSpecBase {
+class SerializationSpec extends FunSpec with Matchers  {
+  import SerializationSpec._
 
   val debasish = Person(1, "Debasish Gosh")
   val jisoo = Person(2, "Jisoo Park")
   val people = List(debasish, jisoo)
-
-  describe("Serialization") {
-    it("should set values to keys") {
-      import DefaultFormats._
-      client.set("key100", 200).futureValue should be (true)
-      client.get[Long]("key100").futureValue should be (Some(200))
-    }
-
-    it("should not conflict when using all built in parsers") {
-      import DefaultFormats._
-      client.hmset("hash", Map("field1" -> "1", "field2" -> 2)).futureValue should be (true)
-      client.hmget[String]("hash", "field1", "field2").futureValue should be(Map("field1" -> "1", "field2" -> "2"))
-      client.hmget[Int]("hash", "field1", "field2").futureValue should be(Map("field1" -> 1, "field2" -> 2))
-      client.hmget[Int]("hash", "field1", "field2", "field3").futureValue should be(Map("field1" -> 1, "field2" -> 2))
-    }
-
-    it("should use a provided implicit parser") {
-      import DefaultFormats._
-      client.hmset("hash", Map("field1" -> "1", "field2" -> 2)).futureValue should be (true)
-
-      client.hmget("hash", "field1", "field2").futureValue should be(Map("field1" -> "1", "field2" -> "2"))
-
-      implicit val intFormat = Format[Int](java.lang.Integer.parseInt, _.toString)
-
-      client.hmget[Int]("hash", "field1", "field2").futureValue should be(Map("field1" -> 1, "field2" -> 2))
-      client.hmget[String]("hash", "field1", "field2").futureValue should be(Map("field1" -> "1", "field2" -> "2"))
-      client.hmget[Int]("hash", "field1", "field2", "field3").futureValue should be(Map("field1" -> 1, "field2" -> 2))
-    }
-
-    it("should use a provided implicit string parser") {
-      import DefaultFormats._
-      implicit val stringFormat = Format[String](new String(_).toInt.toBinaryString, identity)
-      client.hmset("hash", Map("field1" -> "1", "field2" -> 2)).futureValue should be (true)
-      client.hmget[Int]("hash", "field1", "field2").futureValue should be(Map("field1" -> 1, "field2" -> 2))
-      client.hmget[String]("hash", "field1", "field2").futureValue should be(Map("field1" -> "1", "field2" -> "10"))
-    }
-
-    it("should parse string as a bytearray with an implicit parser") {
-      import DefaultFormats.byteArrayFormat
-      val x = "debasish".getBytes("UTF-8")
-      client.set("key", x).futureValue should be(true)
-
-      val s = client.get[Array[Byte]]("key").futureValue
-      new String(s.get, "UTF-8") should equal("debasish")
-
-      client.get[Array[Byte]]("keey").futureValue should equal(None)
-    }
-  }
 
   describe("Format") {
     it("should be easy to customize") {

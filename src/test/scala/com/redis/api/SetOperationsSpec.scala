@@ -75,8 +75,10 @@ class SetOperationsSpec extends RedisSpecBase {
       val key = "spop1"
       client.sadd(key, "foo").futureValue should equal (1)
       client.sadd(key, "bar").futureValue should equal (1)
-      client.sadd(key, "baz").futureValue should equal (1)
-      client.spop(key).futureValue should (equal (Some("foo")) or equal (Some("bar")) or equal (Some("baz")))
+
+      client
+        .spop(key)
+        .futureValue should (equal (Some("foo")) or equal (Some("bar")))
     }
 
     it("should return nil if the key does not exist") {

@@ -65,8 +65,7 @@ class StringOperationsSpec extends RedisSpecBase {
     it("should get results for keys set earlier") {
       val numKeys = 3
       val (keys, values) = (1 to numKeys map { num => ("get" + num, "value" + num) }).unzip
-      val writes = keys zip values map { case (key, value) => client.set(key, value) }
-      val writeResults = Future.sequence(writes).futureValue
+      keys zip values foreach { case (key, value) => client.set(key, value) }
 
       val reads = keys map (client.get(_))
       val readResults = Future.sequence(reads).futureValue
