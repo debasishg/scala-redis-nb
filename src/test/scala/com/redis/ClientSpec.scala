@@ -48,14 +48,11 @@ class ClientSpec extends RedisSpecBase {
 
     it("should compose with sequential combinator") {
       val key = "client_key_seq"
-      val values = (1 to 100).toList
-      val pushResult = client.lpush(key, 0, values:_*)
-      val getResult = client.lrange[Long](key, 0, -1)
 
       val res = for {
-        p <- pushResult.mapTo[Long]
+        p <- client.lpush(key, 0 to 100)
         if p > 0
-        r <- getResult.mapTo[List[Long]]
+        r <- client.lrange[Long](key, 0, -1)
       } yield (p, r)
 
       val (count, list) = res.futureValue
@@ -67,11 +64,12 @@ class ClientSpec extends RedisSpecBase {
   describe("error handling using promise failure") {
     it("should give error trying to lpush on a key that has a non list value") {
       val key = "client_err"
-      val v = client.set(key, "value200")
-      v.futureValue should be (true)
+      client.set(key, "value200").futureValue should be (true)
 
-      val x = client.lpush(key, 1200)
-      val thrown = evaluating { x.futureValue } should produce [TestFailedException]
+      val thrown = evaluating {
+        client.lpush(key, 1200).futureValue
+      } should produce [TestFailedException]
+
       thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
     }
   }

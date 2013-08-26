@@ -20,9 +20,18 @@ class HashOperationsSpec extends RedisSpecBase {
     it("should set and get maps") {
       val key = "hmget1"
       client.hmset(key, Map("field1" -> "val1", "field2" -> "val2"))
-      client.hmget(key, "field1").futureValue should equal (Map("field1" -> "val1"))
-      client.hmget(key, "field1", "field2").futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
-      client.hmget(key, "field1", "field2", "field3").futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
+
+      client
+        .hmget(key, "field1")
+        .futureValue should equal (Map("field1" -> "val1"))
+
+      client
+        .hmget(key, "field1", "field2")
+        .futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
+
+      client
+        .hmget(key, "field1", "field2", "field3")
+        .futureValue should equal (Map("field1" -> "val1", "field2" -> "val2"))
     }
    }
 
