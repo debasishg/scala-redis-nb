@@ -66,7 +66,7 @@ trait NodeOperations { this: RedisOps =>
   object config {
     import Config._
 
-    def get[A](param: String)(implicit timeout: Timeout, reader: Read[A]) =
+    def get[A](param: String)(implicit timeout: Timeout, reader: Reader[A]) =
       clientRef.ask(Get(param)).mapTo[Get[A]#Ret]
 
     def set(param: String, value: Stringified)(implicit timeout: Timeout) =

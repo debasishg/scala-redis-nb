@@ -118,4 +118,36 @@ class StringOperationsSpec extends RedisSpecBase {
     }
   }
 
+  describe("bitop") {
+    it("should perform bitwise operations") {
+      val _ = Future.sequence(
+        client.set("key1", "abc") ::
+        client.set("key2", "def") ::
+        Nil
+      ).futureValue
+
+      val res = (for {
+        _ <- client.bitop("AND", "dest", "key1", "key2")
+        r <- client.get("dest")
+      } yield r).futureValue
+
+      res should equal (Some("``b"))
+    }
+  }
+
+  // Refer to https://github.com/debasishg/scala-redis-nb/issues/27
+  it("should handle irregular byte arrays") {
+    val _ = Future.sequence(
+        client.set("key", "z") ::
+        Nil
+    ).futureValue
+
+    val res = (for {
+      _ <- client.bitop("NOT", "dest", "key")
+      r <- client.get[Array[Byte]]("dest")
+    } yield r).futureValue
+
+    res.get should equal (Array(0x85.toByte))
+  }
+
 }

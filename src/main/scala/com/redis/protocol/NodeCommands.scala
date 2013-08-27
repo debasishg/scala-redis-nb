@@ -63,12 +63,12 @@ object NodeCommands {
 
   object Config {
 
-    case class Get[A](globStyleParam: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+    case class Get[A](globStyleParam: String)(implicit reader: Reader[A]) extends RedisCommand[Option[A]] {
       def line = multiBulk(Seq("CONFIG", "GET", globStyleParam))
     }
 
     case class Set(param: String, value: Stringified) extends RedisCommand[Boolean] {
-      def line = multiBulk("CONFIG" +: Seq("SET", param, value.toString))
+      def line = multiBulk("CONFIG" +: Seq("SET", param, value.value))
     }
 
     case object ResetStat extends RedisCommand[Boolean] {

@@ -8,7 +8,7 @@ object ListCommands {
 
   case class LPush(key: String, values: Seq[Stringified]) extends RedisCommand[Long] {
     require(values.nonEmpty)
-    def line = multiBulk("LPUSH" +: key +: values.map(_.toString))
+    def line = multiBulk("LPUSH" +: key +: values.map(_.value))
   }
 
   object LPush {
@@ -17,13 +17,13 @@ object ListCommands {
 
 
   case class LPushX(key: String, value: Stringified) extends RedisCommand[Long] {
-    def line = multiBulk("LPUSHX" +: key +: value.toString +: Nil)
+    def line = multiBulk("LPUSHX" +: key +: value.value +: Nil)
   }
 
 
   case class RPush(key: String, values: Seq[Stringified]) extends RedisCommand[Long] {
     require(values.nonEmpty)
-    def line = multiBulk("RPUSH" +: key +: values.map(_.toString))
+    def line = multiBulk("RPUSH" +: key +: values.map(_.value))
   }
 
   object RPush {
@@ -32,11 +32,11 @@ object ListCommands {
 
 
   case class RPushX(key: String, value: Stringified) extends RedisCommand[Long] {
-    def line = multiBulk("RPUSHX" +: Seq(key, value.toString))
+    def line = multiBulk("RPUSHX" +: Seq(key, value.value))
   }
   
   case class LRange[A](key: String, start: Int, stop: Int)
-                      (implicit reader: Read[A]) extends RedisCommand[List[A]] {
+                      (implicit reader: Reader[A]) extends RedisCommand[List[A]] {
     def line = multiBulk("LRANGE" +: key +: Seq(start, stop).map(_.toString))
   }
 
@@ -48,63 +48,63 @@ object ListCommands {
     def line = multiBulk("LTRIM" +: key +: Seq(start, end).map(_.toString))
   }
   
-  case class LIndex[A](key: String, index: Int)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+  case class LIndex[A](key: String, index: Int)(implicit reader: Reader[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("LINDEX" +: Seq(key, index.toString))
 
   }
 
   case class LSet(key: String, index: Int, value: Stringified) extends RedisCommand[Boolean] {
-    def line = multiBulk("LSET" +: Seq(key, index.toString, value.toString))
+    def line = multiBulk("LSET" +: Seq(key, index.toString, value.value))
 
   }
 
   case class LRem(key: String, count: Int, value: Stringified) extends RedisCommand[Long] {
-    def line = multiBulk("LREM" +: Seq(key, count.toString, value.toString))
+    def line = multiBulk("LREM" +: Seq(key, count.toString, value.value))
 
   }
   
-  case class LPop[A](key: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+  case class LPop[A](key: String)(implicit reader: Reader[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("LPOP" +: Seq(key))
 
   }
   
-  case class RPop[A](key: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+  case class RPop[A](key: String)(implicit reader: Reader[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("RPOP" +: Seq(key))
 
   }
   
   case class RPopLPush[A](srcKey: String, dstKey: String)
-                         (implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+                         (implicit reader: Reader[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("RPOPLPUSH" +: Seq(srcKey, dstKey))
 
   }
   
   case class BRPopLPush[A](srcKey: String, dstKey: String, timeoutInSeconds: Int)
-                          (implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+                          (implicit reader: Reader[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("BRPOPLPUSH" +: Seq(srcKey, dstKey, timeoutInSeconds.toString))
 
   }
   
   case class BLPop[A](timeoutInSeconds: Int, keys: Seq[String])
-                     (implicit reader: Read[A]) extends RedisCommand[Option[(String, A)]] {
+                     (implicit reader: Reader[A]) extends RedisCommand[Option[(String, A)]] {
     require(keys.nonEmpty)
     def line = multiBulk("BLPOP" +: keys.foldRight(timeoutInSeconds.toString :: Nil)(_ :: _))
   }
 
   object BLPop {
-    def apply[A](timeoutInSeconds: Int, key: String, keys: String*)(implicit reader: Read[A]): BLPop[A] =
+    def apply[A](timeoutInSeconds: Int, key: String, keys: String*)(implicit reader: Reader[A]): BLPop[A] =
       BLPop(timeoutInSeconds, key +: keys)
   }
 
   
   case class BRPop[A](timeoutInSeconds: Int, keys: Seq[String])
-                     (implicit reader: Read[A]) extends RedisCommand[Option[(String, A)]] {
+                     (implicit reader: Reader[A]) extends RedisCommand[Option[(String, A)]] {
     require(keys.nonEmpty)
     def line = multiBulk("BRPOP" +: keys.foldRight(timeoutInSeconds.toString :: Nil)(_ :: _))
   }
 
   object BRPop {
-    def apply[A](timeoutInSeconds: Int, key: String, keys: String*)(implicit reader: Read[A]): BRPop[A] =
+    def apply[A](timeoutInSeconds: Int, key: String, keys: String*)(implicit reader: Reader[A]): BRPop[A] =
       BRPop(timeoutInSeconds, key +: keys)
   }
 }
