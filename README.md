@@ -14,7 +14,7 @@ A non blocking Redis client based on Akka I/O
 
 ```scala
 libraryDependencies ++= Seq(
-  "net.debasishg.redisreact" %% "redisreact" % "0.1"
+  "net.debasishg" %% "redisreact" % "0.1"
 )
 ```
 
