@@ -6,26 +6,26 @@ import scala.language.implicitConversions
 trait SprayJsonSupport {
   import spray.json._
 
-  implicit def sprayJsonReader[A](implicit reader: RootJsonReader[A]): Read[A] =
-    Read(s => reader.read(s.asJson))
+  implicit def sprayJsonReader[A](implicit reader: RootJsonReader[A]): Reader[A] =
+    Reader(s => reader.read(s.asJson))
 
-  implicit def sprayJsonWriter[A](implicit writer: RootJsonWriter[A]): Write[A] =
-    Write(writer.write(_).toString)
+  implicit def sprayJsonWriter[A](implicit writer: RootJsonWriter[A]): Writer[A] =
+    Writer(writer.write(_).toString)
 }
 
 object SprayJsonSupport extends SprayJsonSupport
 
 
 trait Json4sSupport {
-  import org.json4s._
+  import org.json4s.{Serialization, Formats}
 
   def Serialization: Serialization
 
-  implicit def json4sReader[A](implicit format: Formats, manifest: Manifest[A]): Read[A] =
-    Read(Serialization.read(_))
+  implicit def json4sReader[A](implicit format: Formats, manifest: Manifest[A]): Reader[A] =
+    Reader(Serialization.read(_))
 
-  implicit def json4sWriter[A <: AnyRef](implicit format: Formats): Write[A] =
-    Write(Serialization.write(_))
+  implicit def json4sWriter[A <: AnyRef](implicit format: Formats): Writer[A] =
+    Writer(Serialization.write(_))
 }
 
 trait Json4sNativeSupport extends Json4sSupport {
@@ -44,11 +44,11 @@ object Json4sJacksonSupport extends Json4sJacksonSupport
 trait LiftJsonSupport {
   import net.liftweb.json._
 
-  implicit def liftJsonReader[A](implicit format: Formats, manifest: Manifest[A]): Read[A] =
-    Read(parse(_).extract[A])
+  implicit def liftJsonReader[A](implicit format: Formats, manifest: Manifest[A]): Reader[A] =
+    Reader(parse(_).extract[A])
 
-  implicit def liftJsonWriter[A <: AnyRef](implicit format: Formats): Write[A] =
-    Write(Serialization.write(_))
+  implicit def liftJsonWriter[A <: AnyRef](implicit format: Formats): Writer[A] =
+    Writer(Serialization.write(_))
 }
 
 object LiftJsonSupport extends LiftJsonSupport

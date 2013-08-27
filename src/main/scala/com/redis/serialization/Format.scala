@@ -5,36 +5,49 @@ import scala.language.implicitConversions
 
 
 @implicitNotFound(msg = "Cannot find implicit Read or Format type class for ${A}")
-trait Read[A] {
-  val forByteArray: Boolean = false
-
-  def read(in: String): A
+private[redis] trait Reader[A] {
+  def fromByteString(in: ByteString): A
 }
 
-trait LowPriorityDefaultReader {
-  implicit object byteArrayReader extends Read[Array[Byte]] {
-    override val forByteArray = true
+trait StringReader[A] extends Reader[A] {
+  def read(in: String): A
 
-    def read(in: String): Array[Byte] = throw new Error("Not intended to use directly")
+  def fromByteString(in: ByteString): A = read(in.utf8String)
+}
+
+private[redis] trait LowPriorityDefaultReader {
+  implicit object bypassingReader extends Reader[ByteString] {
+    def fromByteString(in: ByteString) = in
+  }
+
+  implicit object byteArrayReader extends Reader[Array[Byte]] {
+    def fromByteString(in: ByteString) = in.toArray[Byte]
   }
 }
 
-object Read extends LowPriorityDefaultReader {
-  def apply[A](f: String => A) = new Read[A] { def read(in: String) = f(in) }
+object Reader extends LowPriorityDefaultReader {
+  def apply[A](f: String => A) = new StringReader[A] { def read(in: String) = f(in) }
 
-  implicit def default: Read[String] = DefaultFormats.stringFormat
+  implicit def default: Reader[String] = DefaultFormats.stringFormat
 }
 
 
 @implicitNotFound(msg = "Cannot find implicit Write or Format type class for ${A}")
-trait Write[A] {
-  def write(in: A): String
+private[redis] trait Writer[A] {
+  private[redis] def toByteString(in: A): ByteString
 }
 
-object Write {
-  def apply[A](f: A => String) = new Write[A] { def write(in: A) = f(in) }
+trait StringWriter[A] extends Writer[A] {
+  def write(in: A): String
 
-  implicit def default: Write[String] = DefaultFormats.stringFormat
+  def toByteString(in: A): ByteString = ByteString(write(in))
+}
+
+
+object Writer {
+  def apply[A](f: A => String) = new StringWriter[A] { def write(in: A) = f(in) }
+
+  implicit def default: Writer[String] = DefaultFormats.stringFormat
 
   private[redis] object Internal {
     def formatBoolean(b: Boolean) = if (b) "1" else "0"
@@ -51,7 +64,8 @@ object Write {
 }
 
 
-trait Format[A] extends Read[A] with Write[A]
+
+trait Format[A] extends StringReader[A] with StringWriter[A]
 
 object Format {
 

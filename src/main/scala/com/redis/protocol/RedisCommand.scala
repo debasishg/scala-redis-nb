@@ -17,7 +17,7 @@ abstract class RedisCommand[A]()(implicit _des: PartialDeserializer[A]) {
 object RedisCommand {
 
   def flattenPairs(in: Iterable[KeyValuePair]) =
-    in.iterator.flatMap(x => Iterator(x.key, x.value.toString)).toList
+    in.iterator.flatMap(x => Iterator(x.key, x.value.value)).toList
   
   def multiBulk(args: Seq[String]): ByteString = {
     val b = new ByteStringBuilder

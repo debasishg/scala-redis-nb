@@ -13,7 +13,7 @@ trait StringOperations { this: RedisOps =>
 
   // GET (key)
   // gets the value for the specified key.
-  def get[A](key: String)(implicit timeout: Timeout, reader: Read[A]) =
+  def get[A](key: String)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(Get[A](key)).mapTo[Get[A]#Ret]
 
   // SET KEY (key, value)
@@ -32,7 +32,7 @@ trait StringOperations { this: RedisOps =>
 
   // GETSET (key, value)
   // is an atomic set this value and return the old value command.
-  def getset[A](key: String, value: Stringified)(implicit timeout: Timeout, reader: Read[A]) =
+  def getset[A](key: String, value: Stringified)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(GetSet[A](key, value)).mapTo[GetSet[A]#Ret]
 
   // SETNX (key, value)
@@ -73,10 +73,10 @@ trait StringOperations { this: RedisOps =>
 
   // MGET (key, key, key, ...)
   // get the values of all the specified keys.
-  def mget[A](keys: Seq[String])(implicit timeout: Timeout, reader: Read[A]) =
+  def mget[A](keys: Seq[String])(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(MGet[A](keys)).mapTo[MGet[A]#Ret]
 
-  def mget[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Read[A]) =
+  def mget[A](key: String, keys: String*)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(MGet[A](key, keys:_*)).mapTo[MGet[A]#Ret]
 
 
@@ -99,7 +99,7 @@ trait StringOperations { this: RedisOps =>
   // GETRANGE key start end
   // Returns the substring of the string value stored at key, determined by the offsets
   // start and end (both are inclusive).
-  def getrange[A](key: String, start: Int, end: Int)(implicit timeout: Timeout, reader: Read[A]) =
+  def getrange[A](key: String, start: Int, end: Int)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(GetRange[A](key, start, end)).mapTo[GetRange[A]#Ret]
 
   // STRLEN key

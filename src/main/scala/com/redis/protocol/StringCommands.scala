@@ -6,7 +6,8 @@ import RedisCommand._
 
 
 object StringCommands {
-  case class Get[A](key: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+
+  case class Get[A](key: String)(implicit reader: Reader[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("GET" +: key +: Nil)
   }
 
@@ -24,7 +25,7 @@ object StringCommands {
                  exORpx: Option[SetExpiryOption] = None,
                  nxORxx: Option[SetConditionOption] = None) extends RedisCommand[Boolean] {
 
-    def line = multiBulk("SET" +: key +: value.toString +: (exORpx.toSeq ++ nxORxx.toSeq).flatMap(_.toSeq))
+    def line = multiBulk("SET" +: key +: value.value +: (exORpx.toSeq ++ nxORxx.toSeq).flatMap(_.toSeq))
   }
 
   object Set {
@@ -40,20 +41,20 @@ object StringCommands {
   }
 
 
-  case class GetSet[A](key: String, value: Stringified)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
-    def line = multiBulk("GETSET" +: key +: value.toString +: Nil)
+  case class GetSet[A](key: String, value: Stringified)(implicit reader: Reader[A]) extends RedisCommand[Option[A]] {
+    def line = multiBulk("GETSET" +: key +: value.value +: Nil)
   }
   
   case class SetNx(key: String, value: Stringified) extends RedisCommand[Boolean] {
-    def line = multiBulk("SETNX" +: key +: value.toString +: Nil)
+    def line = multiBulk("SETNX" +: key +: value.value +: Nil)
   }
   
   case class SetEx(key: String, expiry: Long, value: Stringified) extends RedisCommand[Boolean] {
-    def line = multiBulk("SETEX" +: key +: expiry.toString +: value.toString +: Nil)
+    def line = multiBulk("SETEX" +: key +: expiry.toString +: value.value +: Nil)
   }
   
   case class PSetEx(key: String, expiryInMillis: Long, value: Stringified) extends RedisCommand[Boolean] {
-    def line = multiBulk("PSETEX" +: key +: expiryInMillis.toString +: value.toString +: Nil)
+    def line = multiBulk("PSETEX" +: key +: expiryInMillis.toString +: value.value +: Nil)
   }
 
   
@@ -75,30 +76,30 @@ object StringCommands {
   }
 
 
-  case class MGet[A](keys: Seq[String])(implicit reader: Read[A])
+  case class MGet[A](keys: Seq[String])(implicit reader: Reader[A])
       extends RedisCommand[Map[String, A]]()(PartialDeserializer.keyedMapPD(keys)) {
     require(keys.nonEmpty)
     def line = multiBulk("MGET" +: keys)
   }
 
   object MGet {
-    def apply[A](key: String, keys: String*)(implicit reader: Read[A]): MGet[A] = MGet(key +: keys)
+    def apply[A](key: String, keys: String*)(implicit reader: Reader[A]): MGet[A] = MGet(key +: keys)
   }
 
 
   case class MSet(kvs: KeyValuePair*) extends RedisCommand[Boolean] {
-    def line = multiBulk("MSET" +: kvs.foldRight(Seq[String]()){ case (KeyValuePair(k,v),l) => k +: v.toString +: l })
+    def line = multiBulk("MSET" +: kvs.foldRight(Seq[String]()){ case (KeyValuePair(k,v),l) => k +: v.value +: l })
   }
 
   case class MSetNx(kvs: KeyValuePair*) extends RedisCommand[Boolean] {
-    def line = multiBulk("MSETNX" +: kvs.foldRight(Seq[String]()){ case (KeyValuePair(k,v),l) => k +: v.toString +: l })
+    def line = multiBulk("MSETNX" +: kvs.foldRight(Seq[String]()){ case (KeyValuePair(k,v),l) => k +: v.value +: l })
   }
   
   case class SetRange(key: String, offset: Int, value: Stringified) extends RedisCommand[Long] {
-    def line = multiBulk("SETRANGE" +: Seq(key, offset.toString, value.toString))
+    def line = multiBulk("SETRANGE" +: Seq(key, offset.toString, value.value))
   }
 
-  case class GetRange[A](key: String, start: Int, end: Int)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+  case class GetRange[A](key: String, start: Int, end: Int)(implicit reader: Reader[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("GETRANGE" +: key +: Seq(start, end).map(_.toString))
   }
   
@@ -107,7 +108,7 @@ object StringCommands {
   }
   
   case class Append(key: String, value: Stringified) extends RedisCommand[Long] {
-    def line = multiBulk("APPEND" +: Seq(key, value.toString))
+    def line = multiBulk("APPEND" +: Seq(key, value.value))
   }
   
   case class GetBit(key: String, offset: Int) extends RedisCommand[Boolean] {
@@ -115,7 +116,7 @@ object StringCommands {
   }
   
   case class SetBit(key: String, offset: Int, value: Boolean) extends RedisCommand[Long] {
-    def line = multiBulk("SETBIT" +: Seq(key, offset.toString, Write.Internal.formatBoolean(value)))
+    def line = multiBulk("SETBIT" +: Seq(key, offset.toString, Writer.Internal.formatBoolean(value)))
   }
   
   case class BitOp(op: String, destKey: String, srcKeys: String*) extends RedisCommand[Long] {

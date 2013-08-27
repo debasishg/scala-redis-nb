@@ -1,6 +1,6 @@
 package com.redis.protocol
 
-import com.redis.serialization.{PartialDeserializer, Read}
+import com.redis.serialization.{PartialDeserializer, Reader}
 import RedisCommand._
 
 
@@ -77,7 +77,7 @@ object KeyCommands {
     desc: Boolean = false, 
     alpha: Boolean = false, 
     by: Option[String] = None, 
-    get: Seq[String] = Nil)(implicit reader: Read[A]) extends RedisCommand[List[A]] {
+    get: Seq[String] = Nil)(implicit reader: Reader[A]) extends RedisCommand[List[A]] {
 
     def line = multiBulk("SORT" +: makeSortArgs(key, limit, desc, alpha, by, get))
   }

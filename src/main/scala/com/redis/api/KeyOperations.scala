@@ -132,7 +132,7 @@ trait KeyOperations { this: RedisOps =>
     desc: Boolean = false, 
     alpha: Boolean = false, 
     by: Option[String] = None, 
-    get: Seq[String] = Nil)(implicit timeout: Timeout, reader: Read[A]) =
+    get: Seq[String] = Nil)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(Sort(key, limit, desc, alpha, by, get)).mapTo[Sort[A]#Ret]
 
   // SORT with STORE

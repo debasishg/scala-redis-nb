@@ -37,8 +37,8 @@ class SerializationSpec extends FunSpec with Matchers  {
           }
         }
 
-      val write = implicitly[Write[Person]].write _
-      val read = implicitly[Read[Person]].read _
+      val write = implicitly[Writer[Person]].toByteString _
+      val read = implicitly[Reader[Person]].fromByteString _
 
       read(write(debasish)) should equal (debasish)
     }
@@ -59,7 +59,7 @@ class SerializationSpec extends FunSpec with Matchers  {
     it("should prioritize closer implicits") {
       @volatile var localWriterUsed = false
 
-      implicit val localWriter: Write[String] = Write { string =>
+      implicit val localWriter: Writer[String] = Writer { string =>
         localWriterUsed = true
         string
       }
@@ -79,11 +79,11 @@ class SerializationSpec extends FunSpec with Matchers  {
 
         implicit val personFormat = jsonFormat2(Person)
 
-        val write = implicitly[Write[Person]].write _
-        val read = implicitly[Read[Person]].read _
+        val write = implicitly[Writer[Person]].toByteString _
+        val read = implicitly[Reader[Person]].fromByteString _
 
-        val writeL = implicitly[Write[List[Person]]].write _
-        val readL = implicitly[Read[List[Person]]].read _
+        val writeL = implicitly[Writer[List[Person]]].toByteString _
+        val readL = implicitly[Reader[List[Person]]].fromByteString _
 
         read(write(debasish)) should equal (debasish)
         readL(writeL(people)) should equal (people)
@@ -96,11 +96,11 @@ class SerializationSpec extends FunSpec with Matchers  {
 
         implicit val format = org.json4s.DefaultFormats
 
-        val write = implicitly[Write[Person]].write _
-        val read = implicitly[Read[Person]].read _
+        val write = implicitly[Writer[Person]].toByteString _
+        val read = implicitly[Reader[Person]].fromByteString _
 
-        val writeL = implicitly[Write[List[Person]]].write _
-        val readL = implicitly[Read[List[Person]]].read _
+        val writeL = implicitly[Writer[List[Person]]].toByteString _
+        val readL = implicitly[Reader[List[Person]]].fromByteString _
 
         read(write(debasish)) should equal (debasish)
         readL(writeL(people)) should equal (people)
@@ -113,11 +113,11 @@ class SerializationSpec extends FunSpec with Matchers  {
 
         implicit val format = org.json4s.DefaultFormats
 
-        val write = implicitly[Write[Person]].write _
-        val read = implicitly[Read[Person]].read _
+        val write = implicitly[Writer[Person]].toByteString _
+        val read = implicitly[Reader[Person]].fromByteString _
 
-        val writeL = implicitly[Write[List[Person]]].write _
-        val readL = implicitly[Read[List[Person]]].read _
+        val writeL = implicitly[Writer[List[Person]]].toByteString _
+        val readL = implicitly[Reader[List[Person]]].fromByteString _
 
         read(write(debasish)) should equal (debasish)
         readL(writeL(people)) should equal (people)
@@ -130,11 +130,11 @@ class SerializationSpec extends FunSpec with Matchers  {
 
         implicit val format = net.liftweb.json.DefaultFormats
 
-        val write = implicitly[Write[Person]].write _
-        val read = implicitly[Read[Person]].read _
+        val write = implicitly[Writer[Person]].toByteString _
+        val read = implicitly[Reader[Person]].fromByteString _
 
-        val writeL = implicitly[Write[List[Person]]].write _
-        val readL = implicitly[Read[List[Person]]].read _
+        val writeL = implicitly[Writer[List[Person]]].toByteString _
+        val readL = implicitly[Reader[List[Person]]].fromByteString _
 
         read(write(debasish)) should equal (debasish)
         readL(writeL(people)) should equal (people)

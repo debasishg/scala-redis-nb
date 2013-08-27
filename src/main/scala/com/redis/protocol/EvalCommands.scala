@@ -7,12 +7,12 @@ import RedisCommand._
 object EvalCommands {
 
   case class Eval[A](script: String, keys: Seq[String] = Nil, args: Seq[Stringified] = Nil)
-                        (implicit reader: Read[A]) extends RedisCommand[List[A]]()(PartialDeserializer.ensureListPD) {
+                        (implicit reader: Reader[A]) extends RedisCommand[List[A]]()(PartialDeserializer.ensureListPD) {
     def line = multiBulk("EVAL" +: argsForEval(script, keys, args))
   }
 
   case class EvalSHA[A](shaHash: String, keys: Seq[String] = Nil, args: Seq[Stringified] = Nil)
-                       (implicit reader: Read[A]) extends RedisCommand[List[A]]()(PartialDeserializer.ensureListPD) {
+                       (implicit reader: Reader[A]) extends RedisCommand[List[A]]()(PartialDeserializer.ensureListPD) {
     def line = multiBulk("EVALSHA" +: argsForEval(shaHash, keys, args))
   }
 
@@ -33,5 +33,5 @@ object EvalCommands {
   }
 
   private def argsForEval[A](luaCode: String, keys: Seq[String], args: Seq[Stringified]): Seq[String] =
-    luaCode +: keys.length.toString +: (keys ++ args.map(_.toString))
+    luaCode +: keys.length.toString +: (keys ++ args.map(_.value))
 }

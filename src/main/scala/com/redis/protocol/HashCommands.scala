@@ -6,10 +6,10 @@ import RedisCommand._
 
 object HashCommands {
   case class HSet(key: String, field: String, value: Stringified, nx: Boolean = false) extends RedisCommand[Boolean] {
-    def line = multiBulk((if (nx) "HSETNX" else "HSET") +: Seq(key, field, value.toString))
+    def line = multiBulk((if (nx) "HSETNX" else "HSET") +: Seq(key, field, value.value))
   }
   
-  case class HGet[A](key: String, field: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
+  case class HGet[A](key: String, field: String)(implicit reader: Reader[A]) extends RedisCommand[Option[A]] {
     def line = multiBulk("HGET" +: Seq(key, field))
   }
   
@@ -17,7 +17,7 @@ object HashCommands {
     def line = multiBulk("HMSET" +: key +: flattenPairs(mapLike))
   }
   
-  case class HMGet[A](key: String, fields: String*)(implicit reader: Read[A])
+  case class HMGet[A](key: String, fields: String*)(implicit reader: Reader[A])
       extends RedisCommand[Map[String, A]]()(PartialDeserializer.keyedMapPD(fields)) {
     require(fields.nonEmpty)
     def line = multiBulk("HMGET" +: key +: fields)
@@ -50,11 +50,11 @@ object HashCommands {
     def line = multiBulk("HKEYS" +: Seq(key))
   }
   
-  case class HVals[A](key: String)(implicit reader: Read[A]) extends RedisCommand[List[A]] {
+  case class HVals[A](key: String)(implicit reader: Reader[A]) extends RedisCommand[List[A]] {
     def line = multiBulk("HVALS" +: Seq(key))
   }
   
-  case class HGetall[A](key: String)(implicit reader: Read[A]) extends RedisCommand[Map[String, A]] {
+  case class HGetall[A](key: String)(implicit reader: Reader[A]) extends RedisCommand[Map[String, A]] {
     def line = multiBulk("HGETALL" +: Seq(key))
   }
 }

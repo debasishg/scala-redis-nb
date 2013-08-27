@@ -118,7 +118,7 @@ class StringOperationsSpec extends RedisSpecBase {
     }
   }
 
-  describe("BITOP") {
+  describe("bitop") {
     it("should perform bitwise operations") {
       val _ = Future.sequence(
         client.set("key1", "abc") ::
