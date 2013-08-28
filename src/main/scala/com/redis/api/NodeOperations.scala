@@ -12,12 +12,12 @@ trait NodeOperations { this: RedisOps =>
   // SAVE
   // save the DB on disk now.
   def save()(implicit timeout: Timeout) =
-    clientRef.ask(Save).mapTo[Save#Ret]
+    clientRef.ask(Save).mapTo[Save.Ret]
 
   // BGSAVE
   // save the DB in the background.
   def bgsave()(implicit timeout: Timeout) =
-    clientRef.ask(Save(true)).mapTo[Save#Ret]
+    clientRef.ask(BgSave).mapTo[BgSave.Ret]
 
   // LASTSAVE
   // return the UNIX TIME of the last DB SAVE executed with success.
@@ -66,7 +66,7 @@ trait NodeOperations { this: RedisOps =>
   object config {
     import Config._
 
-    def get[A](param: String)(implicit timeout: Timeout, reader: Read[A]) =
+    def get[A](param: String)(implicit timeout: Timeout, reader: Reader[A]) =
       clientRef.ask(Get(param)).mapTo[Get[A]#Ret]
 
     def set(param: String, value: Stringified)(implicit timeout: Timeout) =
