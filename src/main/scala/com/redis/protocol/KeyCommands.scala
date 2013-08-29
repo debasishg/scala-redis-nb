@@ -81,14 +81,6 @@ object KeyCommands {
     def params = key +: db +: ANil
   }
 
-  case object Quit extends RedisCommand[Boolean]("QUIT") {
-    def params = ANil
-  }
-
-  case class Auth(secret: String) extends RedisCommand[Boolean]("AUTH") {
-    def params = secret +: ANil
-  }
-
   case class Persist(key: String) extends RedisCommand[Boolean]("PERSIST") {
     def params = key +: ANil
   }
@@ -133,4 +125,5 @@ object KeyCommands {
   case class Select(index: Int) extends RedisCommand[Boolean]("SELECT") {
     def params = index +: ANil
   }
+
 }
