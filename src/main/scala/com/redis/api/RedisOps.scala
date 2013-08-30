@@ -11,6 +11,6 @@ private[redis] class RedisOps(protected val clientRef: ActorRef)
   with SortedSetOperations
   with HashOperations
   with KeyOperations
-  with NodeOperations
+  with ServerOperations
   with EvalOperations
   with ConnectionOperations

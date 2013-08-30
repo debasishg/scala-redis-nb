@@ -4,10 +4,10 @@ package api
 import serialization._
 import akka.pattern.ask
 import akka.util.Timeout
-import com.redis.protocol.NodeCommands
+import com.redis.protocol.ServerCommands
 
-trait NodeOperations { this: RedisOps =>
-  import NodeCommands._
+trait ServerOperations { this: RedisOps =>
+  import ServerCommands._
 
   // SAVE
   // save the DB on disk now.
