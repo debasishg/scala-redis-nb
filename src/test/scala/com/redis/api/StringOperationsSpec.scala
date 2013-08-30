@@ -59,6 +59,14 @@ class StringOperationsSpec extends RedisSpecBase {
           case false => client.get(key).futureValue should equal (None)
         }
     }
+
+    it("should not encode a byte array to a UTF-8 string") {
+      val bytes = Array(0x85.toByte)
+
+      client.set("bytes", bytes)
+      client.get[String]("bytes").futureValue.get should not equal (bytes)
+      client.get[Array[Byte]]("bytes").futureValue.get.toList should equal (bytes.toList)
+    }
   }
 
   describe("get") {
@@ -115,6 +123,38 @@ class StringOperationsSpec extends RedisSpecBase {
       val (keys, _) = keyvals.unzip
       val readResult = client.mget("nonExistingKey", keys.take(2): _*).futureValue
       readResult should equal (keyvals.take(2).toMap)
+    }
+  }
+
+  describe("bitop") {
+    it("should perform bitwise operations") {
+      val _ = Future.sequence(
+        client.set("key1", "abc") ::
+        client.set("key2", "def") ::
+        Nil
+      ).futureValue
+
+      val res = (for {
+        _ <- client.bitop("AND", "dest", "key1", "key2")
+        r <- client.get("dest")
+      } yield r).futureValue
+
+      res should equal (Some("``b"))
+    }
+
+    // Refer to https://github.com/debasishg/scala-redis-nb/issues/27
+    it("should handle irregular byte arrays") {
+      val _ = Future.sequence(
+          client.set("key", "z") ::
+          Nil
+      ).futureValue
+
+      val res = (for {
+        _ <- client.bitop("NOT", "dest", "key")
+        r <- client.get[Array[Byte]]("dest")
+      } yield r).futureValue
+
+      res.get should equal (Array(0x85.toByte))
     }
   }
 

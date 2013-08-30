@@ -1,40 +1,49 @@
 package com.redis.protocol
 
 import com.redis.serialization._
-import RedisCommand._
 
 
 object HashCommands {
-  case class HSet(key: String, field: String, value: Stringified, nx: Boolean = false) extends RedisCommand[Boolean] {
-    def line = multiBulk((if (nx) "HSETNX" else "HSET") +: Seq(key, field, value.toString))
+  import DefaultWriters._
+
+  case class HSet(key: String, field: String, value: Stringified) extends RedisCommand[Boolean]("HSET") {
+    def params = key +: field +: value +: ANil
+  }
+
+  case class HSetNx(key: String, field: String, value: Stringified) extends RedisCommand[Boolean]("HSETNX") {
+    def params = key +: field +: value +: ANil
+  }
+
+  case class HGet[A: Reader](key: String, field: String) extends RedisCommand[Option[A]]("HGET") {
+    def params = key +: field +: ANil
   }
   
-  case class HGet[A](key: String, field: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
-    def line = multiBulk("HGET" +: Seq(key, field))
+  case class HMSet(key: String, mapLike: Iterable[KeyValuePair]) extends RedisCommand[Boolean]("HMSET") {
+    def params = key +: mapLike.foldRight(ANil) { (x, acc) => x.key +: x.value +: acc }
   }
   
-  case class HMSet(key: String, mapLike: Iterable[KeyValuePair]) extends RedisCommand[Boolean] {
-    def line = multiBulk("HMSET" +: key +: flattenPairs(mapLike))
-  }
-  
-  case class HMGet[A](key: String, fields: String*)(implicit reader: Read[A])
-      extends RedisCommand[Map[String, A]]()(PartialDeserializer.keyedMapPD(fields)) {
+  case class HMGet[A: Reader](key: String, fields: Seq[String])
+      extends RedisCommand[Map[String, A]]("HMGET")(PartialDeserializer.keyedMapPD(fields)) {
     require(fields.nonEmpty)
-    def line = multiBulk("HMGET" +: key +: fields)
+    def params = key +: fields.toArgs
   }
 
-  case class HIncrby(key: String, field: String, value: Int) extends RedisCommand[Long] {
-    def line = multiBulk("HINCRBY" +: Seq(key, field, value.toString))
+  object HMGet {
+    def apply[A: Reader](key: String, field: String, fields: String*): HMGet[A] = HMGet[A](key, field +: fields)
+  }
+
+  case class HIncrby(key: String, field: String, value: Int) extends RedisCommand[Long]("HINCRBY") {
+    def params = key +: field +: value +: ANil
   }
   
-  case class HExists(key: String, field: String) extends RedisCommand[Boolean] {
-    def line = multiBulk("HEXISTS" +: Seq(key, field))
+  case class HExists(key: String, field: String) extends RedisCommand[Boolean]("HEXISTS") {
+    def params = key +: field +: ANil
   }
 
 
-  case class HDel(key: String, fields: Seq[String]) extends RedisCommand[Long] {
+  case class HDel(key: String, fields: Seq[String]) extends RedisCommand[Long]("HDEL") {
     require(fields.nonEmpty)
-    def line = multiBulk("HDEL" +: key +: fields)
+    def params = key +: fields.toArgs
   }
 
   object HDel {
@@ -42,19 +51,19 @@ object HashCommands {
   }
 
 
-  case class HLen(key: String) extends RedisCommand[Long] {
-    def line = multiBulk("HLEN" +: Seq(key))
+  case class HLen(key: String) extends RedisCommand[Long]("HLEN") {
+    def params = key +: ANil
   }
   
-  case class HKeys(key: String) extends RedisCommand[List[String]] {
-    def line = multiBulk("HKEYS" +: Seq(key))
+  case class HKeys(key: String) extends RedisCommand[List[String]]("HKEYS") {
+    def params = key +: ANil
   }
   
-  case class HVals[A](key: String)(implicit reader: Read[A]) extends RedisCommand[List[A]] {
-    def line = multiBulk("HVALS" +: Seq(key))
+  case class HVals[A](key: String)(implicit reader: Reader[A]) extends RedisCommand[List[A]]("HVALS") {
+    def params = key +: ANil
   }
   
-  case class HGetall[A](key: String)(implicit reader: Read[A]) extends RedisCommand[Map[String, A]] {
-    def line = multiBulk("HGETALL" +: Seq(key))
+  case class HGetall[A](key: String)(implicit reader: Reader[A]) extends RedisCommand[Map[String, A]]("HGETALL") {
+    def params = key +: ANil
   }
 }

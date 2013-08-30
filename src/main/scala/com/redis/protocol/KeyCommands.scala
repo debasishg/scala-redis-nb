@@ -1,34 +1,39 @@
 package com.redis.protocol
 
-import com.redis.serialization.{PartialDeserializer, Read}
-import RedisCommand._
+import com.redis.serialization._
 
 
 object KeyCommands {
-  case class Keys(pattern: String = "*") extends RedisCommand[List[String]] {
-    def line = multiBulk("KEYS" +: Seq(pattern))
+  import DefaultWriters._
+
+  case class Keys(pattern: String = "*") extends RedisCommand[List[String]]("KEYS") {
+    def params = pattern +: ANil
   }
 
-  case object RandomKey extends RedisCommand[Option[String]] {
-    def line = multiBulk(Seq("RANDOMKEY"))
+  case object RandomKey extends RedisCommand[Option[String]]("RANDOMKEY") {
+    def params = ANil
   }
 
-  case class Rename(oldKey: String, newKey: String, nx: Boolean = false) extends RedisCommand[Boolean] {
-    def line = multiBulk((if (nx) "RENAMENX" else "RENAME") +: Seq(oldKey, newKey))
+  case class Rename(oldKey: String, newKey: String) extends RedisCommand[Boolean]("RENAME") {
+    def params = oldKey +: newKey +: ANil
   }
 
-  case object DBSize extends RedisCommand[Long] {
-    def line = multiBulk(Seq("DBSIZE"))
+  case class RenameNx(oldKey: String, newKey: String) extends RedisCommand[Boolean]("RENAMENX") {
+    def params = oldKey +: newKey +: ANil
   }
 
-  case class Exists(key: String) extends RedisCommand[Boolean] {
-    def line = multiBulk("EXISTS" +: Seq(key))
+  case object DBSize extends RedisCommand[Long]("DBSIZE") {
+    def params = ANil
+  }
+
+  case class Exists(key: String) extends RedisCommand[Boolean]("EXISTS") {
+    def params = key +: ANil
   }
 
 
-  case class Del(keys: Seq[String]) extends RedisCommand[Long] {
+  case class Del(keys: Seq[String]) extends RedisCommand[Long]("DEL") {
     require(keys.nonEmpty)
-    def line = multiBulk("DEL" +: keys)
+    def params = keys.toArgs
   }
 
   object Del {
@@ -36,69 +41,85 @@ object KeyCommands {
   }
 
 
-  case class Type(key: String) extends RedisCommand[String] {
-    def line = multiBulk("TYPE" +: Seq(key))
+  case class Type(key: String) extends RedisCommand[String]("TYPE") {
+    def params = key +: ANil
   }
 
-  case class Expire(key: String, ttl: Int, millis: Boolean = false) extends RedisCommand[Boolean] {
-    def line = multiBulk((if (millis) "PEXPIRE" else "EXPIRE") +: Seq(key, ttl.toString))
+  case class Expire(key: String, ttl: Int) extends RedisCommand[Boolean]("EXPIRE") {
+    def params = key +: ttl +: ANil
   }
 
-  case class ExpireAt(key: String, timestamp: Long, millis: Boolean = false) extends RedisCommand[Boolean] {
-    def line = multiBulk((if (millis) "PEXPIREAT" else "EXPIREAT") +: Seq(key, timestamp.toString))
+  case class PExpire(key: String, ttl: Int) extends RedisCommand[Boolean]("PEXPIRE") {
+    def params = key +: ttl +: ANil
   }
 
-  case class TTL(key: String, millis: Boolean = false) extends RedisCommand[Long] {
-    def line = multiBulk((if (millis) "PTTL" else "TTL") +: Seq(key))
+  case class ExpireAt(key: String, timestamp: Long) extends RedisCommand[Boolean]("EXPIREAT") {
+    def params = key +: timestamp +: ANil
   }
 
-  case class FlushDB(all: Boolean = false) extends RedisCommand[Boolean] {
-    def line = multiBulk(Seq(if (all) "FLUSHALL" else "FLUSHDB"))
+  case class PExpireAt(key: String, timestamp: Long) extends RedisCommand[Boolean]("PEXPIREAT") {
+    def params = key +: timestamp +: ANil
   }
 
-  case class Move(key: String, db: Int) extends RedisCommand[Boolean] {
-    def line = multiBulk("MOVE" +: Seq(key, db.toString))
+  case class TTL(key: String) extends RedisCommand[Long]("TTL") {
+    def params = key +: ANil
   }
 
-  case object Quit extends RedisCommand[Boolean] {
-    def line = multiBulk(Seq("QUIT"))
+  case class PTTL(key: String) extends RedisCommand[Long]("PTTL") {
+    def params = key +: ANil
   }
 
-  case class Auth(secret: String) extends RedisCommand[Boolean] {
-    def line = multiBulk("AUTH" +: Seq(secret))
+  case object FlushDB extends RedisCommand[Boolean]("FLUSHDB") {
+    def params = ANil
   }
 
-  case class Persist(key: String) extends RedisCommand[Boolean] {
-    def line = multiBulk("PERSIST" +: Seq(key))
+  case object FlushAll extends RedisCommand[Boolean]("FLUSHALL") {
+    def params = ANil
   }
 
-  case class Sort[A](key: String, 
-    limit: Option[Pair[Int, Int]] = None, 
-    desc: Boolean = false, 
-    alpha: Boolean = false, 
-    by: Option[String] = None, 
-    get: Seq[String] = Nil)(implicit reader: Read[A]) extends RedisCommand[List[A]] {
+  case class Move(key: String, db: Int) extends RedisCommand[Boolean]("MOVE") {
+    def params = key +: db +: ANil
+  }
 
-    def line = multiBulk("SORT" +: makeSortArgs(key, limit, desc, alpha, by, get))
+  case object Quit extends RedisCommand[Boolean]("QUIT") {
+    def params = ANil
+  }
+
+  case class Auth(secret: String) extends RedisCommand[Boolean]("AUTH") {
+    def params = secret +: ANil
+  }
+
+  case class Persist(key: String) extends RedisCommand[Boolean]("PERSIST") {
+    def params = key +: ANil
+  }
+
+  case class Sort[A](key: String,
+    limit: Option[Pair[Int, Int]] = None,
+    desc: Boolean = false,
+    alpha: Boolean = false,
+    by: Option[String] = None,
+    get: Seq[String] = Nil)(implicit reader: Reader[A]) extends RedisCommand[List[A]]("SORT") {
+
+    def params = makeSortArgs(key, limit, desc, alpha, by, get)
   }
 
   case class SortNStore(key: String,
-    limit: Option[Pair[Int, Int]] = None, 
-    desc: Boolean = false, 
-    alpha: Boolean = false, 
-    by: Option[String] = None, 
+    limit: Option[Pair[Int, Int]] = None,
+    desc: Boolean = false,
+    alpha: Boolean = false,
+    by: Option[String] = None,
     get: Seq[String] = Nil,
-    storeAt: String) extends RedisCommand[Long] {
+    storeAt: String) extends RedisCommand[Long]("SORT") {
 
-    def line = multiBulk("SORT" +: (makeSortArgs(key, limit, desc, alpha, by, get) ++ Seq("STORE", storeAt)))
+    def params = makeSortArgs(key, limit, desc, alpha, by, get) ++ Seq("STORE", storeAt)
   }
 
-  private def makeSortArgs(key: String, 
-    limit: Option[Pair[Int, Int]] = None, 
-    desc: Boolean = false, 
-    alpha: Boolean = false, 
-    by: Option[String] = None, 
-    get: Seq[String] = Nil): Seq[String] = {
+  private def makeSortArgs(key: String,
+    limit: Option[Pair[Int, Int]] = None,
+    desc: Boolean = false,
+    alpha: Boolean = false,
+    by: Option[String] = None,
+    get: Seq[String] = Nil): Args = {
 
     Seq(Seq(key)
       , limit.fold(Seq.empty[String]) { case (from, to) => "LIMIT" +: Seq(from, to).map(_.toString) }
@@ -106,10 +127,10 @@ object KeyCommands {
       , if (alpha) Seq("ALPHA") else Nil
       , by.fold(Seq.empty[String])("BY" +: _ +: Nil)
       , get.map("GET" +: _ +: Nil).flatten
-    ).flatten
+    ).flatten.toArgs
   }
 
-  case class Select(index: Int) extends RedisCommand[Boolean] {
-    val line = multiBulk("SELECT" +: Seq(index.toString))
+  case class Select(index: Int) extends RedisCommand[Boolean]("SELECT") {
+    def params = index +: ANil
   }
 }

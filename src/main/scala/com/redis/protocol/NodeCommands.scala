@@ -1,61 +1,63 @@
 package com.redis.protocol
 
 import com.redis.serialization._
-import RedisCommand._
 
 
 object NodeCommands {
+  import DefaultWriters._
 
-  case class Save(bg: Boolean = false) extends RedisCommand[Boolean] {
-    def line = multiBulk(Seq((if (bg) "BGSAVE" else "SAVE")))
+  case object Save extends RedisCommand[Boolean]("SAVE") {
+    def params = ANil
   }
 
-  case object LastSave extends RedisCommand[Long] {
-    def line = multiBulk(Seq("LASTSAVE"))
+  case object BgSave extends RedisCommand[Boolean]("BGSAVE") {
+    def params = ANil
   }
 
-  case object Shutdown extends RedisCommand[Boolean] {
-    def line = multiBulk(Seq("SHUTDOWN"))
+  case object LastSave extends RedisCommand[Long]("LASTSAVE") {
+    def params = ANil
   }
 
-  case object BGRewriteAOF extends RedisCommand[Boolean] {
-    def line = multiBulk(Seq("BGREWRITEAOF"))
+  case object Shutdown extends RedisCommand[Boolean]("SHUTDOWN") {
+    def params = ANil
   }
 
-  case class Info(section: String) extends RedisCommand[Option[String]] {
-    def line = multiBulk(Seq("INFO", section))
+  case object BGRewriteAOF extends RedisCommand[Boolean]("BGREWRITEAOF") {
+    def params = ANil
   }
 
-  case object Monitor extends RedisCommand[Boolean] {
-    def line = multiBulk(Seq("MONITOR"))
+  case class Info(section: String) extends RedisCommand[Option[String]]("INFO") {
+    def params = section +: ANil
   }
 
-  case class SlaveOf(node: Option[(String, Int)]) extends RedisCommand[Boolean] {
-    def line = multiBulk(
-      node match {
-        case Some((h: String, p: Int)) => "SLAVEOF" +: Seq(h, p.toString)
-        case _ => Seq("SLAVEOF", "NO", "ONE")
-      }
-    )
+  case object Monitor extends RedisCommand[Boolean]("MONITOR") {
+    def params = ANil
+  }
+
+  case class SlaveOf(node: Option[(String, Int)]) extends RedisCommand[Boolean]("SLAVEOF") {
+    def params = node match {
+      case Some((h: String, p: Int)) => h +: p +: ANil
+      case _ => "NO" +: "ONE" +: ANil
+    }
   }
 
 
   object Client {
 
-    case object GetName extends RedisCommand[Option[String]] {
-      def line = multiBulk(Seq("CLIENT", "GETNAME"))
+    case object GetName extends RedisCommand[Option[String]]("CLIENT") {
+      def params = "GETNAME" +: ANil
     }
 
-    case class SetName(name: String) extends RedisCommand[Boolean] {
-      def line = multiBulk(Seq("CLIENT", "SETNAME", name))
+    case class SetName(name: String) extends RedisCommand[Boolean]("CLIENT") {
+      def params = "SETNAME" +: ANil
     }
 
-    case class Kill(ipPort: String) extends RedisCommand[Boolean] {
-      def line = multiBulk(Seq("CLIENT", "KILL", ipPort))
+    case class Kill(ipPort: String) extends RedisCommand[Boolean]("CLIENT") {
+      def params = "KILL" +: ipPort +: ANil
     }
 
-    case object List extends RedisCommand[Option[String]] {
-      def line = multiBulk(Seq("CLIENT", "LIST"))
+    case object List extends RedisCommand[Option[String]]("CLIENT") {
+      def params = "LIST" +: ANil
     }
 
   }
@@ -63,20 +65,20 @@ object NodeCommands {
 
   object Config {
 
-    case class Get[A](globStyleParam: String)(implicit reader: Read[A]) extends RedisCommand[Option[A]] {
-      def line = multiBulk(Seq("CONFIG", "GET", globStyleParam))
+    case class Get[A](globStyleParam: String)(implicit reader: Reader[A]) extends RedisCommand[Option[A]]("CONFIG") {
+      def params = "GET" +: globStyleParam +: ANil
     }
 
-    case class Set(param: String, value: Stringified) extends RedisCommand[Boolean] {
-      def line = multiBulk("CONFIG" +: Seq("SET", param, value.toString))
+    case class Set(param: String, value: Stringified) extends RedisCommand[Boolean]("CONFIG") {
+      def params = "SET" +: param +: value +: ANil
     }
 
-    case object ResetStat extends RedisCommand[Boolean] {
-      def line = multiBulk(Seq("CONFIG", "RESETSTAT"))
+    case object ResetStat extends RedisCommand[Boolean]("CONFIG") {
+      def params = "RESETSTAT" +: ANil
     }
 
-    case object Rewrite extends RedisCommand[Boolean] {
-      def line = multiBulk(Seq("CONFIG", "REWRITE"))
+    case object Rewrite extends RedisCommand[Boolean]("CONFIG") {
+      def params = "REWRITE" +: ANil
     }
 
   }

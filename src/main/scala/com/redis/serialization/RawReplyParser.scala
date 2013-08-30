@@ -1,8 +1,8 @@
 package com.redis.serialization
 
 import scala.annotation.tailrec
-import scala.collection.mutable.ArrayBuilder
-import akka.util.CompactByteString
+
+import akka.util.{ByteString, CompactByteString, ByteStringBuilder}
 import scala.collection.GenTraversable
 import scala.collection.generic.CanBuildFrom
 import scala.language.higherKinds
@@ -33,8 +33,8 @@ private[serialization] object RawReplyParser {
   }
 
   // Parse a string of undetermined length
-  def parseSingle(input: RawReply): String = {
-    val builder = ArrayBuilder.make[Byte]
+  def parseSingle(input: RawReply): ByteString = {
+    val builder = new ByteStringBuilder
 
     @tailrec def loop(): Unit =
       input.nextByte() match {
@@ -46,33 +46,23 @@ private[serialization] object RawReplyParser {
 
     loop()
     input.jump(1)
-    new String(builder.result)
+    builder.result
   }
 
   // Parse a string with known length
-  def parseBulk(input: RawReply): Option[String] = {
+  def parseBulk(input: RawReply): Option[ByteString] = {
     val length = parseInt(input)
 
     if (length == NullBulkReplyCount) None
     else {
-      val res = Some(input.take(length).utf8String)
+      val res = Some(input.take(length))
       input.jump(2)
       res
     }
   }
 
-  // Parse a string with known length
-  def parseString(input: RawReply): String = {
-    val length = parseInt(input)
-    require(length != -1, "Non-empty bulk reply expected, but got nil")
-
-    val res = input.take(length).utf8String
-    input.jump(2)
-    res
-  }
-
   def parseError(input: RawReply): RedisError =
-    new RedisError(parseSingle(input))
+    new RedisError(parseSingle(input).utf8String)
 
   def parseMultiBulk[A, B[_] <: GenTraversable[_]](input: RawReply)(implicit cbf: CanBuildFrom[_, A, B[A]], pd: PartialDeserializer[A]): B[A] = {
     val builder = cbf.apply()
@@ -129,17 +119,16 @@ private[serialization] object RawReplyParser {
   }
 
   object PrefixDeserializer {
-    val _intPD           = new PrefixDeserializer[Int]            (Integer, parseInt _)
-    val _longPD          = new PrefixDeserializer[Long]           (Integer, parseLong _)
-    val _stringPD        = new PrefixDeserializer[String]         (Bulk,    parseString _)
-    val _statusStringPD  = new PrefixDeserializer[String]         (Status,  parseSingle _)
-    val _bulkPD          = new PrefixDeserializer[Option[String]] (Bulk,    parseBulk _)
-    val _errorPD         = new PrefixDeserializer[RedisError]     (Err,     parseError _)
+    val _intPD           = new PrefixDeserializer[Int]                 (Integer, parseInt _)
+    val _longPD          = new PrefixDeserializer[Long]                (Integer, parseLong _)
+    val _statusStringPD  = new PrefixDeserializer[ByteString]          (Status,  parseSingle _)
+    val _rawBulkPD       = new PrefixDeserializer[Option[ByteString]]  (Bulk,    parseBulk _)
+    val _errorPD         = new PrefixDeserializer[RedisError]          (Err,     parseError _)
 
     val _booleanPD =
       new PrefixDeserializer[Boolean](Status, (x: RawReply) => {parseSingle(x); true }) orElse
         (_longPD andThen (_ > 0)) orElse
-        (_bulkPD andThen (_.isDefined))
+        (_rawBulkPD andThen (_.isDefined))
 
     def _multiBulkPD[A, B[_] <: GenTraversable[_]](implicit cbf: CanBuildFrom[_, A, B[A]], pd: PartialDeserializer[A]) =
       new PrefixDeserializer[B[A]](Multi, parseMultiBulk(_)(cbf, pd))
