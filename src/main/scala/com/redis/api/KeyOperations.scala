@@ -107,18 +107,6 @@ trait KeyOperations { this: RedisOps =>
   def move(key: String, db: Int)(implicit timeout: Timeout) =
     clientRef.ask(Move(key, db)).mapTo[Move#Ret]
 
-  // QUIT
-  // exits the server.
-  def quit()(implicit timeout: Timeout): Future[Boolean] = {
-    clientRef ! Quit
-    gracefulStop(clientRef, 5 seconds)
-  }
-
-  // AUTH
-  // auths with the server.
-  def auth(secret: String)(implicit timeout: Timeout) =
-    clientRef.ask(Auth(secret)).mapTo[Auth#Ret]
-
   // PERSIST (key)
   // Remove the existing timeout on key, turning the key from volatile (a key with an expire set)
   // to persistent (a key that will never expire as no timeout is associated).
@@ -145,9 +133,4 @@ trait KeyOperations { this: RedisOps =>
     get: Seq[String] = Nil,
     storeAt: String)(implicit timeout: Timeout) =
     clientRef.ask(SortNStore(key, limit, desc, alpha, by, get, storeAt)).mapTo[SortNStore#Ret]
-
-  // SELECT (index)
-  // selects the DB to connect, defaults to 0 (zero).
-  def select(index: Int)(implicit timeout: Timeout) =
-    clientRef.ask(Select(index)).mapTo[Select#Ret]
 }
