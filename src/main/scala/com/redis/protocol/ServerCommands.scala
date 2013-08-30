@@ -3,7 +3,7 @@ package com.redis.protocol
 import com.redis.serialization._
 
 
-object NodeCommands {
+object ServerCommands {
   import DefaultWriters._
 
   case object Save extends RedisCommand[Boolean]("SAVE") {
