@@ -59,11 +59,11 @@ object HashCommands {
     def params = key +: ANil
   }
   
-  case class HVals[A](key: String)(implicit reader: Reader[A]) extends RedisCommand[List[A]]("HVALS") {
+  case class HVals[A: Reader](key: String) extends RedisCommand[List[A]]("HVALS") {
     def params = key +: ANil
   }
   
-  case class HGetall[A](key: String)(implicit reader: Reader[A]) extends RedisCommand[Map[String, A]]("HGETALL") {
+  case class HGetall[A: Reader](key: String) extends RedisCommand[Map[String, A]]("HGETALL") {
     def params = key +: ANil
   }
 }
