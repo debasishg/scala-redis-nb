@@ -9,6 +9,7 @@ A non blocking Redis client based on Akka I/O
 - [Scripting support](#scripting-support)
 - [Transparent typeclass based serialization](#typeclass-based-transparent-serialization)
 - [Out of the box integration support with Json serialization libraries](#integration-support-with-json-serializing-libraries)
+- [Transaction Support](#transaction-support)
 
 ### Project Dependencies
 
@@ -20,7 +21,6 @@ libraryDependencies ++= Seq(
 
 ### Coming up
 
-- Transactions
 - Publish-Subscribe
 - Clustering
 
@@ -388,6 +388,63 @@ client.get[List[Person]]("people").futureValue should equal (Some(List(debasish,
 For more examples on serialization, have a look at the test cases.
 
 _Third-party libraries are not installed by default. You need to provide them by yourself._
+
+#### Transaction Support
+
+Implicit support of `MULTI`, `EXEC`, `DISCARD`, `WATCH` and `UNWATCH` provided through custom API. Here are some examples:
+
+```scala
+describe("transactions with API") {
+  it("should use API") {
+    val result = client.withTransaction {c =>
+      c.set("anshin-1", "debasish") 
+      c.exists("anshin-1")
+      c.get("anshin-1")
+      c.set("anshin-2", "debasish")
+      c.lpush("anshin-3", "debasish") 
+      c.lpush("anshin-3", "maulindu") 
+      c.lrange("anshin-3", 0, -1)
+    }
+    result.futureValue should equal (List(true, true, Some("debasish"), true, 1, 2, List("maulindu", "debasish")))
+    client.get("anshin-1").futureValue should equal(Some("debasish"))
+  }
+
+  it("should execute partial set and report failure on exec") {
+    val result = client.withTransaction {c =>
+      c.set("anshin-1", "debasish") 
+      c.exists("anshin-1")
+      c.get("anshin-1")
+      c.set("anshin-2", "debasish")
+      c.lpush("anshin-2", "debasish") 
+      c.lpush("anshin-3", "maulindu") 
+      c.lrange("anshin-3", 0, -1)
+    }
+    val r = result.futureValue.asInstanceOf[List[_]].toVector
+    r(0) should equal(true)
+    r(1) should equal(true)
+    r(2) should equal(Some("debasish"))
+    r(3) should equal(true)
+    r(4).asInstanceOf[akka.actor.Status.Failure].cause.isInstanceOf[Throwable] should equal(true)
+    r(5) should equal(1)
+    r(6) should equal(List("maulindu"))
+    client.get("anshin-1").futureValue should equal(Some("debasish"))
+  }
+  it("should fail if key is changed outside transaction") {
+    client.watch("key1").futureValue should equal(true)
+    client.set("key1", 1).futureValue should equal(true)
+    val v = client.get[Long]("key1").futureValue.get + 20L
+    val result = client.withTransaction {c =>
+      c.set("key1", 100)
+      c.get[Long]("key1")
+    }
+    result onComplete {
+      case util.Success(_) => 
+      case util.Failure(th) => th should equal(EmptyTxnResultException)
+    }
+  }
+}
+```
+
 
 ### License
 

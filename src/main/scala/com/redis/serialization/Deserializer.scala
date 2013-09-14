@@ -40,7 +40,7 @@ object Deserializer {
   object NotEnoughDataException extends Exception
   object EmptyTxnResultException extends Exception
 
-  def nullMultiBulk(data: CompactByteString) = data.tail.head match {
+  def nullMultiBulk(data: CompactByteString) = data(1) match {
     case Err => true
     case _ => false
   }
