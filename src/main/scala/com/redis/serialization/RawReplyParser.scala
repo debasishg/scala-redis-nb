@@ -61,8 +61,13 @@ private[serialization] object RawReplyParser {
     }
   }
 
-  def parseError(input: RawReply): RedisError =
-    new RedisError(parseSingle(input).utf8String)
+  def parseError(input: RawReply): RedisError = {
+    val msg = parseSingle(input).utf8String
+    msg match {
+      case "QUEUED" => Queued
+      case _ => new RedisError(msg)
+    }
+  }
 
   def parseMultiBulk[A, B[_] <: GenTraversable[_]](input: RawReply)(implicit cbf: CanBuildFrom[_, A, B[A]], pd: PartialDeserializer[A]): B[A] = {
     val builder = cbf.apply()

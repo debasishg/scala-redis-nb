@@ -65,7 +65,7 @@ object ServerCommands {
 
   object Config {
 
-    case class Get[A](globStyleParam: String)(implicit reader: Reader[A]) extends RedisCommand[Option[A]]("CONFIG") {
+    case class Get[A: Reader](globStyleParam: String) extends RedisCommand[Option[A]]("CONFIG") {
       def params = "GET" +: globStyleParam +: ANil
     }
 

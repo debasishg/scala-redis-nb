@@ -30,6 +30,7 @@ class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) exte
   import context.system
 
   private[this] var pendingRequests = Queue.empty[RedisRequest]
+  private[this] var txnRequests = Queue.empty[RedisRequest]
 
   IO(Tcp) ! Connect(remote)
 
@@ -54,7 +55,33 @@ class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) exte
       context stop self
   }
 
+  def transactional(pipe: ActorRef): Receive = withTerminationManagement {
+    case TransactionCommands.Exec =>
+      sendAllTxnRequests(pipe)
+      sendRequest(pipe, RedisRequest(sender, TransactionCommands.Exec))
+      context become (running(pipe))
+
+    case TransactionCommands.Discard =>
+      txnRequests = txnRequests.drop(txnRequests.size)
+      sendRequest(pipe, RedisRequest(sender, TransactionCommands.Discard))
+      context become (running(pipe))
+
+    // this should not happen
+    // if it comes allow to flow through and Redis will report an error
+    case TransactionCommands.Multi =>
+      sendRequest(pipe, RedisRequest(sender, TransactionCommands.Multi))
+
+    case cmd: RedisCommand[_] =>
+      log.debug("Received a command in Multi: {}", cmd)
+      addTxnRequest(cmd)
+
+  }
+
   def running(pipe: ActorRef): Receive = withTerminationManagement {
+    case TransactionCommands.Multi =>
+      sendRequest(pipe, RedisRequest(sender, TransactionCommands.Multi))
+      context become (transactional(pipe))
+
     case command: RedisCommand[_] =>
       sendRequest(pipe, RedisRequest(sender, command))
 
@@ -99,8 +126,12 @@ class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) exte
   def addPendingRequest(cmd: RedisCommand[_]): Unit =
     pendingRequests :+= RedisRequest(sender, cmd)
 
-  def sendRequest(pipe: ActorRef, req: RedisRequest): Unit =
+  def addTxnRequest(cmd: RedisCommand[_]): Unit =
+    txnRequests :+= RedisRequest(sender, cmd)
+
+  def sendRequest(pipe: ActorRef, req: RedisRequest): Unit = {
     pipe ! init.Command(req)
+  }
 
   @tailrec
   final def sendAllPendingRequests(pipe: ActorRef): Unit =
@@ -110,6 +141,13 @@ class RedisClient(remote: InetSocketAddress, settings: RedisClientSettings) exte
       sendAllPendingRequests(pipe)
     }
 
+  @tailrec
+  final def sendAllTxnRequests(pipe: ActorRef): Unit =
+    if (txnRequests.nonEmpty) {
+      sendRequest(pipe, txnRequests.head)
+      txnRequests = txnRequests.tail
+      sendAllTxnRequests(pipe)
+    }
 
   val init = {
     import RedisClientSettings._

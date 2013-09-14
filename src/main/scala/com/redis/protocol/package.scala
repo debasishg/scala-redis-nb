@@ -28,6 +28,11 @@ package object protocol {
   case object RequestQueueEmpty extends Event
 
   case class RedisError(message: String) extends Throwable(message)
+  object Queued extends RedisError("Queued") {
+    def unapply(q: Queued.type) = Some("Queued")
+  }
+
+  case object Discarded
 
 
   type Args = RedisCommand.Args
@@ -56,5 +61,6 @@ package object protocol {
   val Newline = ByteString("\r\n")
 
   val NullBulkReplyCount = -1
+  val NullMultiBulkReplyCount = -1
 
 }

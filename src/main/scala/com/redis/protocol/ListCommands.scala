@@ -67,8 +67,7 @@ object ListCommands {
     def params = key +: ANil
   }
   
-  case class RPopLPush[A: Reader](srcKey: String, dstKey: String)
-      extends RedisCommand[Option[A]]("RPOPLPUSH") {
+  case class RPopLPush[A: Reader](srcKey: String, dstKey: String) extends RedisCommand[Option[A]]("RPOPLPUSH") {
 
     def params = srcKey +: dstKey +: ANil
   }
@@ -79,8 +78,7 @@ object ListCommands {
     def params = srcKey +: dstKey +: timeoutInSeconds +: ANil
   }
   
-  case class BLPop[A: Reader](timeoutInSeconds: Int, keys: Seq[String])
-      extends RedisCommand[Option[(String, A)]]("BLPOP") {
+  case class BLPop[A: Reader](timeoutInSeconds: Int, keys: Seq[String]) extends RedisCommand[Option[(String, A)]]("BLPOP") {
 
     require(keys.nonEmpty)
     def params = keys.toArgs :+ timeoutInSeconds
@@ -92,8 +90,8 @@ object ListCommands {
   }
 
   
-  case class BRPop[A](timeoutInSeconds: Int, keys: Seq[String])
-                     (implicit reader: Reader[A]) extends RedisCommand[Option[(String, A)]]("BRPOP") {
+  case class BRPop[A: Reader](timeoutInSeconds: Int, keys: Seq[String])
+    extends RedisCommand[Option[(String, A)]]("BRPOP") {
     require(keys.nonEmpty)
     def params = keys.toArgs :+ timeoutInSeconds
   }

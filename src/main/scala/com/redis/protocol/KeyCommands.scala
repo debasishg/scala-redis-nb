@@ -85,12 +85,12 @@ object KeyCommands {
     def params = key +: ANil
   }
 
-  case class Sort[A](key: String,
+  case class Sort[A: Reader](key: String,
     limit: Option[Pair[Int, Int]] = None,
     desc: Boolean = false,
     alpha: Boolean = false,
     by: Option[String] = None,
-    get: Seq[String] = Nil)(implicit reader: Reader[A]) extends RedisCommand[List[A]]("SORT") {
+    get: Seq[String] = Nil) extends RedisCommand[List[A]]("SORT") {
 
     def params = makeSortArgs(key, limit, desc, alpha, by, get)
   }

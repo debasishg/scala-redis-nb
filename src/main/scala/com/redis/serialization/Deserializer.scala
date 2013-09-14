@@ -27,6 +27,7 @@ class Deserializer {
 }
 
 object Deserializer {
+  import com.redis.protocol._
 
   sealed trait Result
 
@@ -37,6 +38,12 @@ object Deserializer {
   }
 
   object NotEnoughDataException extends Exception
+  object EmptyTxnResultException extends Exception
+
+  def nullMultiBulk(data: CompactByteString) = data.tail.head match {
+    case Err => true
+    case _ => false
+  }
 }
 
 

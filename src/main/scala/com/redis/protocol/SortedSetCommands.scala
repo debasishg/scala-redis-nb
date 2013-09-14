@@ -47,8 +47,8 @@ object SortedSetCommands {
   }
 
 
-  case class ZRange[A](key: String, start: Int = 0, end: Int = -1)
-                      (implicit reader: Reader[A]) extends RedisCommand[List[A]]("ZRANGE") {
+  case class ZRange[A](key: String, start: Int = 0, end: Int = -1)(implicit reader: Reader[A])
+                      extends RedisCommand[List[A]]("ZRANGE") {
     def params = key +: start +: end +: ANil
 
     def reverse = ZRevRange(key, start, end)(reader)
@@ -56,23 +56,23 @@ object SortedSetCommands {
     def withScores = ZRangeWithScores[A](key, start, end)(reader)
   }
 
-  case class ZRangeWithScores[A](key: String, start: Int = 0, end: Int = -1)
-                                (implicit reader: Reader[A]) extends RedisCommand[List[(A, Double)]]("ZRANGE") {
+  case class ZRangeWithScores[A](key: String, start: Int = 0, end: Int = -1)(implicit reader: Reader[A])
+                                extends RedisCommand[List[(A, Double)]]("ZRANGE") {
     def params = key +: start +: end +: "WITHSCORES" +: ANil
 
     def reverse = ZRangeWithScores(key, start, end)(reader)
   }
 
 
-  case class ZRevRange[A](key: String, start: Int = 0, end: Int = -1)
-                      (implicit reader: Reader[A]) extends RedisCommand[List[A]]("ZREVRANGE") {
+  case class ZRevRange[A](key: String, start: Int = 0, end: Int = -1)(implicit reader: Reader[A])
+                      extends RedisCommand[List[A]]("ZREVRANGE") {
     def params = key +: start +: end +: ANil
 
     def withScores = ZRevRangeWithScores[A](key, start, end)(reader)
   }
 
-  case class ZRevRangeWithScores[A](key: String, start: Int = 0, end: Int = -1)
-                                   (implicit reader: Reader[A]) extends RedisCommand[List[(A, Double)]]("ZREVRANGE") {
+  case class ZRevRangeWithScores[A: Reader](key: String, start: Int = 0, end: Int = -1)
+                                   extends RedisCommand[List[(A, Double)]]("ZREVRANGE") {
     def params = key +: start +: end +: "WITHSCORES" +: ANil
   }
 
@@ -80,8 +80,8 @@ object SortedSetCommands {
   case class ZRangeByScore[A](key: String,
                               min: Double = `-Inf`, minInclusive: Boolean = true,
                               max: Double = `+Inf`, maxInclusive: Boolean = true,
-                              limit: Option[(Int, Int)] = None)
-                             (implicit reader: Reader[A]) extends RedisCommand[List[A]]("ZRANGEBYSCORE") {
+                              limit: Option[(Int, Int)] = None)(implicit reader: Reader[A])
+                             extends RedisCommand[List[A]]("ZRANGEBYSCORE") {
 
     def params = key +: scoreParams(min, minInclusive, max, maxInclusive, limit, false)
 
@@ -93,8 +93,8 @@ object SortedSetCommands {
   case class ZRangeByScoreWithScores[A](key: String,
                                         min: Double = `-Inf`, minInclusive: Boolean = true,
                                         max: Double = `+Inf`, maxInclusive: Boolean = true,
-                                        limit: Option[(Int, Int)] = None)
-                                       (implicit reader: Reader[A]) extends RedisCommand[List[(A, Double)]]("ZRANGEBYSCORE") {
+                                        limit: Option[(Int, Int)] = None)(implicit reader: Reader[A])
+                                        extends RedisCommand[List[(A, Double)]]("ZRANGEBYSCORE") {
 
     def params = key +: scoreParams(min, minInclusive, max, maxInclusive, limit, true)
 
@@ -104,19 +104,19 @@ object SortedSetCommands {
   case class ZRevRangeByScore[A](key: String,
                                  max: Double = `+Inf`, maxInclusive: Boolean = true,
                                  min: Double = `-Inf`, minInclusive: Boolean = true,
-                                 limit: Option[(Int, Int)] = None)
-                                (implicit reader: Reader[A]) extends RedisCommand[List[A]]("ZREVRANGEBYSCORE") {
+                                 limit: Option[(Int, Int)] = None)(implicit reader: Reader[A])
+                                extends RedisCommand[List[A]]("ZREVRANGEBYSCORE") {
 
     def params = key +: scoreParams(max, maxInclusive, min, minInclusive, limit, false)
 
     def withScores = ZRevRangeByScoreWithScores(key, min, minInclusive, max, maxInclusive, limit)(reader)
   }
 
-  case class ZRevRangeByScoreWithScores[A](key: String,
+  case class ZRevRangeByScoreWithScores[A: Reader](key: String,
                                            max: Double = `+Inf`, maxInclusive: Boolean = true,
                                            min: Double = `-Inf`, minInclusive: Boolean = true,
                                            limit: Option[(Int, Int)] = None)
-                                          (implicit reader: Reader[A]) extends RedisCommand[List[(A, Double)]]("ZREVRANGEBYSCORE") {
+                                          extends RedisCommand[List[(A, Double)]]("ZREVRANGEBYSCORE") {
 
     def params = key +: scoreParams(max, maxInclusive, min, minInclusive, limit, true)
   }
