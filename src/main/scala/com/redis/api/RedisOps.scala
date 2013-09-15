@@ -4,7 +4,7 @@ package api
 import akka.actor.ActorRef
 
 
-trait RedisOps extends StringOperations
+private [redis] trait RedisOps extends StringOperations
   with ListOperations
   with SetOperations
   with SortedSetOperations
