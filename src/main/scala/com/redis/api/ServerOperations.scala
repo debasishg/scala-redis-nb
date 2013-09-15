@@ -33,7 +33,7 @@ trait ServerOperations { this: RedisOps =>
 
   // INFO
   // the info command returns different information and statistics about the server.
-  def info()(implicit timeout: Timeout) = clientRef.ask(Info).mapTo[Info#Ret]
+  def info()(implicit timeout: Timeout) = clientRef.ask(Info).mapTo[Info.Ret]
 
   // MONITOR
   // is a debugging command that outputs the whole sequence of commands received by the Redis server.
