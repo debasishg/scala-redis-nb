@@ -4,8 +4,7 @@ package api
 import akka.actor.ActorRef
 
 
-private[redis] class RedisOps(protected val clientRef: ActorRef)
-  extends StringOperations
+trait RedisOps extends StringOperations
   with ListOperations
   with SetOperations
   with SortedSetOperations
@@ -14,4 +13,7 @@ private[redis] class RedisOps(protected val clientRef: ActorRef)
   with ServerOperations
   with EvalOperations
   with ConnectionOperations
-  with TransactionOperations
+  with TransactionOperations {
+
+  def clientRef: ActorRef
+}

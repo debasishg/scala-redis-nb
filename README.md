@@ -429,6 +429,7 @@ describe("transactions with API") {
     r(6) should equal(List("maulindu"))
     client.get("anshin-1").futureValue should equal(Some("debasish"))
   }
+
   it("should fail if key is changed outside transaction") {
     client.watch("key1").futureValue should equal(true)
     client.set("key1", 1).futureValue should equal(true)
