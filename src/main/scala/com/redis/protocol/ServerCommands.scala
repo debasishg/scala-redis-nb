@@ -26,8 +26,8 @@ object ServerCommands {
     def params = ANil
   }
 
-  case class Info(section: String) extends RedisCommand[Option[String]]("INFO") {
-    def params = section +: ANil
+  case object Info extends RedisCommand[Option[String]]("INFO") {
+    def params = ANil
   }
 
   case object Monitor extends RedisCommand[Boolean]("MONITOR") {
