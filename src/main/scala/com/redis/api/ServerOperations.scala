@@ -67,7 +67,7 @@ trait ServerOperations { this: RedisOps =>
     import Config._
 
     def get[A](param: String)(implicit timeout: Timeout, reader: Reader[A]) =
-      clientRef.ask(Get(param)).mapTo[Get[A]#Ret]
+      clientRef.ask(Get[A](param)).mapTo[Get[A]#Ret]
 
     def set(param: String, value: Stringified)(implicit timeout: Timeout) =
       clientRef.ask(Set(param, value)).mapTo[Set#Ret]
