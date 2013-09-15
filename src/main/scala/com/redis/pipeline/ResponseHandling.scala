@@ -120,6 +120,7 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
     val eventPipeline = (evt: Event) => evt match {
 
       case Tcp.Received(data: CompactByteString) => 
+        // println("Received data from server: {}", data.utf8String.replace("\r\n", "\\r\\n"))
         handleResponse(data)
 
       case _ => ctx singleEvent evt

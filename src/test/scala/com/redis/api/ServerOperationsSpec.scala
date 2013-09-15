@@ -16,4 +16,14 @@ class ServerOperationsSpec extends RedisSpecBase {
       client.info.futureValue.get.length should be > (0)
     }
   }
+
+  describe("config") {
+    it("should return appropriate config values with glob style params") {
+      client.config.get("hash-max-ziplist-entries")
+            .futureValue should equal(List("hash-max-ziplist-entries", "512"))
+
+      client.config.get("*max-*-entries*")
+            .futureValue should equal(List("hash-max-ziplist-entries", "512", "list-max-ziplist-entries", "512", "set-max-intset-entries", "512", "zset-max-ziplist-entries", "128"))
+    }
+  }
 }
