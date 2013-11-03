@@ -45,6 +45,17 @@ class SortedSetOperationsSpec extends RedisSpecBase {
     }
   }
 
+  describe("zrevrange") {
+    it("should get the proper range") {
+      client.zadd("myzset", 1, "one").futureValue
+      client.zadd("myzset", 2, "two").futureValue
+      client.zadd("myzset", 3, "three").futureValue
+      client.zrevrange("myzset", 0, -1).futureValue should equal(List("three", "two", "one"))
+      client.zrevrange("myzset", 2, 3).futureValue should equal(List("one")) 
+      client.zrevrange("myzset", -2, -1).futureValue should equal(List("two", "one")) 
+    }
+  }
+
   describe("zrank") {
     it ("should give proper rank") {
       add
