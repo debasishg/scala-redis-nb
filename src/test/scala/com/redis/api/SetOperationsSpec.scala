@@ -25,7 +25,7 @@ class SetOperationsSpec extends RedisSpecBase {
       val key = "sadd3"
       client.lpush(key, "foo").futureValue should equal (1)
       val thrown = intercept[Exception] { client.sadd(key, "foo").futureValue }
-      thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
+      thrown.getCause.getMessage should equal ("WRONGTYPE Operation against a key holding the wrong kind of value")
     }
   }
 
@@ -56,7 +56,7 @@ class SetOperationsSpec extends RedisSpecBase {
       val key = "srem3"
       client.lpush(key, "foo").futureValue should equal (1)
       val thrown = intercept[Exception] { client.srem(key, "foo").futureValue }
-      thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
+      thrown.getCause.getMessage should equal ("WRONGTYPE Operation against a key holding the wrong kind of value")
     }
   }
 
@@ -121,7 +121,7 @@ class SetOperationsSpec extends RedisSpecBase {
       client.lpush(key, "baz").futureValue should equal (3)
       client.sadd("set-1", "foo").futureValue should equal (1)
       val thrown = intercept[Exception] { client.smove(key, "set-1", "bat").futureValue }
-      thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
+      thrown.getCause.getMessage should equal ("WRONGTYPE Operation against a key holding the wrong kind of value")
     }
   }
 
