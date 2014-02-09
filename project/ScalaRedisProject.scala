@@ -21,15 +21,15 @@ object ScalaRedisProject extends Build
           "com.typesafe.akka" %%  "akka-actor"      % "2.2.3",
           "com.typesafe.akka" %%  "akka-slf4j"      % "2.2.3"     % "provided",
           "commons-pool"      %   "commons-pool"    % "1.6",
-          "org.slf4j"         %   "slf4j-api"       % "1.7.5"     % "provided",
-          "ch.qos.logback"    %   "logback-classic" % "1.0.13"    % "provided",
+          "org.slf4j"         %   "slf4j-api"       % "1.7.6"     % "provided",
+          "ch.qos.logback"    %   "logback-classic" % "1.1.1"     % "provided",
           "junit"             %   "junit"           % "4.11"      % "test",
           "org.scalatest"     %%  "scalatest"       % "2.1.0-RC2" % "test",
 
           // Third-party serialization libraries
           "net.liftweb" %%  "lift-json"      % "2.5.1" % "provided, test",
-          "org.json4s"  %%  "json4s-native"  % "3.2.5" % "provided, test",
-          "org.json4s"  %%  "json4s-jackson" % "3.2.5" % "provided, test",
+          "org.json4s"  %%  "json4s-native"  % "3.2.6" % "provided, test",
+          "org.json4s"  %%  "json4s-jackson" % "3.2.6" % "provided, test",
           "io.spray"    %%  "spray-json"     % "1.2.5" % "provided, test"
         ),
     parallelExecution in Test := false,
