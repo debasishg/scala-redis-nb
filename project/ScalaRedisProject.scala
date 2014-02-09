@@ -18,8 +18,8 @@ object ScalaRedisProject extends Build
     name := "RedisReact",
     libraryDependencies :=
         Seq(
-          "com.typesafe.akka" %%  "akka-actor"      % "2.2.0",
-          "com.typesafe.akka" %%  "akka-slf4j"      % "2.2.0"     % "provided",
+          "com.typesafe.akka" %%  "akka-actor"      % "2.2.3",
+          "com.typesafe.akka" %%  "akka-slf4j"      % "2.2.3"     % "provided",
           "commons-pool"      %   "commons-pool"    % "1.6",
           "org.slf4j"         %   "slf4j-api"       % "1.7.5"     % "provided",
           "ch.qos.logback"    %   "logback-classic" % "1.0.13"    % "provided",
