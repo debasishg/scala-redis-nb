@@ -30,7 +30,7 @@ libraryDependencies ++= Seq(
 // Akka setup
 implicit val system = ActorSystem("redis-client")
 implicit val executionContext = system.dispatcher
-implicit val timeout = AkkaTimeout(5 seconds)
+implicit val timeout = Timeout(5 seconds)
 
 // Redis client setup
 val client = RedisClient("localhost", 6379)
