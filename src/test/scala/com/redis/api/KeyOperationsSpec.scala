@@ -46,7 +46,7 @@ class KeyOperationsSpec extends RedisSpecBase {
       val prepareRes = Future.sequence(prepare).futureValue
 
       client.rename("anshin-2", "anshin-2-new").futureValue should be (true)
-      val thrown = evaluating { client.rename("anshin-2", "anshin-2-new").futureValue } should produce[Exception]
+      val thrown = intercept[Exception] { client.rename("anshin-2", "anshin-2-new").futureValue }
       thrown.getCause.getMessage should equal ("ERR no such key")
     }
   }

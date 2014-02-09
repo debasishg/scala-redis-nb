@@ -66,9 +66,9 @@ class ClientSpec extends RedisSpecBase {
       val key = "client_err"
       client.set(key, "value200").futureValue should be (true)
 
-      val thrown = evaluating {
+      val thrown = intercept[TestFailedException] {
         client.lpush(key, 1200).futureValue
-      } should produce [TestFailedException]
+      }
 
       thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
     }

@@ -19,14 +19,14 @@ object ScalaRedisProject extends Build
     libraryDependencies :=
         Seq(
           "com.typesafe.akka" %%  "akka-actor"      % "2.2.0",
-          "com.typesafe.akka" %%  "akka-slf4j"      % "2.2.0"         % "provided",
+          "com.typesafe.akka" %%  "akka-slf4j"      % "2.2.0"     % "provided",
           "commons-pool"      %   "commons-pool"    % "1.6",
-          "org.slf4j"         %   "slf4j-api"       % "1.7.5"         % "provided",
-          "ch.qos.logback"    %   "logback-classic" % "1.0.13"        % "provided",
-          "junit"             %   "junit"           % "4.11"          % "test",
-          "org.scalatest"     %%  "scalatest"       % "2.0.RC1-SNAP4" % "test",
+          "org.slf4j"         %   "slf4j-api"       % "1.7.5"     % "provided",
+          "ch.qos.logback"    %   "logback-classic" % "1.0.13"    % "provided",
+          "junit"             %   "junit"           % "4.11"      % "test",
+          "org.scalatest"     %%  "scalatest"       % "2.1.0-RC2" % "test",
 
-        // Third-party serialization libraries
+          // Third-party serialization libraries
           "net.liftweb" %%  "lift-json"      % "2.5.1" % "provided, test",
           "org.json4s"  %%  "json4s-native"  % "3.2.5" % "provided, test",
           "org.json4s"  %%  "json4s-jackson" % "3.2.5" % "provided, test",

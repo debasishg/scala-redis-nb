@@ -24,7 +24,7 @@ class SetOperationsSpec extends RedisSpecBase {
     it("should fail if the key points to a non-set") {
       val key = "sadd3"
       client.lpush(key, "foo").futureValue should equal (1)
-      val thrown = evaluating { client.sadd(key, "foo").futureValue } should produce [Exception]
+      val thrown = intercept[Exception] { client.sadd(key, "foo").futureValue }
       thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
     }
   }
@@ -55,7 +55,7 @@ class SetOperationsSpec extends RedisSpecBase {
     it("should fail if the key points to a non-set") {
       val key = "srem3"
       client.lpush(key, "foo").futureValue should equal (1)
-      val thrown = evaluating { client.srem(key, "foo").futureValue } should produce [Exception]
+      val thrown = intercept[Exception] { client.srem(key, "foo").futureValue }
       thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
     }
   }
@@ -120,7 +120,7 @@ class SetOperationsSpec extends RedisSpecBase {
       client.lpush(key, "bar").futureValue should equal (2)
       client.lpush(key, "baz").futureValue should equal (3)
       client.sadd("set-1", "foo").futureValue should equal (1)
-      val thrown = evaluating { client.smove(key, "set-1", "bat").futureValue } should produce [Exception]
+      val thrown = intercept[Exception] { client.smove(key, "set-1", "bat").futureValue }
       thrown.getCause.getMessage should equal ("ERR Operation against a key holding the wrong kind of value")
     }
   }
