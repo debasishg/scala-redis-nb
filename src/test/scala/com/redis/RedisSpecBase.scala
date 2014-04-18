@@ -1,14 +1,12 @@
 package com.redis
 
 import scala.concurrent.duration._
-import akka.util.Timeout
-import akka.actor._
 
+import akka.actor._
 import com.redis.RedisClientSettings.ConstantReconnectionSettings
 import org.scalatest._
 import org.scalatest.concurrent.{Futures, ScalaFutures}
 import org.scalatest.time._
-
 
 trait RedisSpecBase extends FunSpec
                  with Matchers

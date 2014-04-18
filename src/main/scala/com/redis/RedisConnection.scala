@@ -1,13 +1,15 @@
 package com.redis
 
 import java.net.InetSocketAddress
-import akka.actor._
-import akka.io.{BackpressureBuffer, IO, Tcp, TcpPipelineHandler}
 import java.util.concurrent.TimeUnit
+
+import scala.annotation.tailrec
 import scala.collection.immutable.Queue
 import scala.concurrent.duration.Duration
 import scala.language.existentials
-import scala.annotation.tailrec
+
+import akka.actor._
+import akka.io.{BackpressureBuffer, IO, Tcp, TcpPipelineHandler}
 import com.redis.RedisClientSettings.ReconnectionSettings
 import pipeline._
 import protocol._
