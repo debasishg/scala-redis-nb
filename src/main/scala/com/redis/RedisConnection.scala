@@ -3,9 +3,12 @@ package com.redis
 import java.net.InetSocketAddress
 import akka.actor._
 import akka.io.{BackpressureBuffer, IO, Tcp, TcpPipelineHandler}
+import java.util.concurrent.TimeUnit
 import scala.collection.immutable.Queue
+import scala.concurrent.duration.Duration
 import scala.language.existentials
 import scala.annotation.tailrec
+import com.redis.RedisClientSettings.ReconnectionSettings
 import pipeline._
 import protocol._
 
@@ -20,6 +23,7 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
 
   private[this] var pendingRequests = Queue.empty[RedisRequest]
   private[this] var txnRequests = Queue.empty[RedisRequest]
+  private[this] var reconnectionSchedule: Option[_ <: ReconnectionSettings#ReconnectionSchedule] = None
 
   IO(Tcp) ! Connect(remote)
 
@@ -40,8 +44,18 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
       context watch pipe
 
     case CommandFailed(c: Connect) =>
-      log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
-      context stop self
+      settings.reconnectionSettings match {
+        case Some(r) =>
+          if (reconnectionSchedule.isEmpty) {
+            reconnectionSchedule = Some(settings.reconnectionSettings.get.newSchedule)
+          }
+          val delayMs = reconnectionSchedule.get.nextDelayMs
+          log.error("Connect failed for {} with {}. Reconnecting in {} ms... ", c.remoteAddress, c.failureMessage, delayMs)
+          context.system.scheduler.scheduleOnce(Duration(delayMs, TimeUnit.MILLISECONDS), IO(Tcp), Connect(remote))(context.dispatcher, self)
+        case None =>
+          log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
+          context stop self
+      }
   }
 
   def transactional(pipe: ActorRef): Receive = withTerminationManagement {
@@ -107,8 +121,19 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
 
   def withTerminationManagement(handler: Receive): Receive = handler orElse {
     case Terminated(x) => {
-      log.info("Child termination detected: {}", x)
-      context stop self
+      settings.reconnectionSettings match {
+        case Some(r) =>
+          if (reconnectionSchedule.isEmpty) {
+            reconnectionSchedule = Some(settings.reconnectionSettings.get.newSchedule)
+          }
+          val delayMs = reconnectionSchedule.get.nextDelayMs
+          log.error("Child termination detected: {}. Reconnecting in {} ms... ", x, delayMs)
+          context become unconnected
+          context.system.scheduler.scheduleOnce(Duration(delayMs, TimeUnit.MILLISECONDS), IO(Tcp), Connect(remote))(context.dispatcher, self)
+        case None =>
+          log.error("Child termination detected: {}", x)
+          context stop self
+      }
     }
   }
 
