@@ -73,4 +73,23 @@ class ClientSpec extends RedisSpecBase {
       thrown.getCause.getMessage should equal ("WRONGTYPE Operation against a key holding the wrong kind of value")
     }
   }
+
+  describe("reconnections based on policy") {
+    it("should reconnect") {
+      val key = "reconnect_test"
+
+      client.lpush(key, 0)
+
+      // Extract our address
+      // TODO Cleaner address extraction, perhaps in ServerOperations.client?
+      val address = client.client.list().futureValue.get.toString.split(" ").head.split("=").last
+      client.client.kill(address).futureValue should be (true)
+
+      client.lpush(key, 1 to 100).futureValue should equal (100)
+      val list = client.lrange[Long](key, 0, -1).futureValue
+
+      list.size should equal (101)
+      list.reverse should equal (0 to 100)
+    }
+  }
 }
