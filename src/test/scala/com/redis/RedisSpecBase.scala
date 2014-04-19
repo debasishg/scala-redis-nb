@@ -8,17 +8,17 @@ import com.redis.RedisClientSettings.ConstantReconnectionSettings
 import org.scalatest._
 import org.scalatest.concurrent.{Futures, ScalaFutures}
 import org.scalatest.time._
+import akka.testkit.TestKit
 
-trait RedisSpecBase extends FunSpec
+class RedisSpecBase(_system: ActorSystem) extends TestKit(_system)
+                 with FunSpecLike
                  with Matchers
                  with Futures
                  with ScalaFutures
                  with BeforeAndAfterEach
                  with BeforeAndAfterAll {
-  import RedisSpecBase._
-
   // Akka setup
-  implicit val system = ActorSystem("redis-test-"+ iter.next)
+  def this() = this(ActorSystem("redis-test-"+ RedisSpecBase.iter.next))
   implicit val executionContext = system.dispatcher
   implicit val timeout = Timeout(2 seconds)
 
@@ -26,7 +26,12 @@ trait RedisSpecBase extends FunSpec
   implicit val defaultPatience = PatienceConfig(timeout = Span(5, Seconds), interval = Span(5, Millis))
 
   // Redis client setup
-  val client = RedisClient("localhost", 6379, settings = RedisClientSettings(reconnectionSettings = Some(ConstantReconnectionSettings(1000))))
+  val client = RedisClient("localhost", 6379)
+
+  def withReconnectingClient(testCode: RedisClient => Any) = {
+    val client = RedisClient("localhost", 6379, settings = RedisClientSettings(reconnectionSettings = ConstantReconnectionSettings(1000)))
+    testCode(client)
+  }
 
   override def beforeEach = {
     client.flushdb()
@@ -50,6 +55,6 @@ trait RedisSpecBase extends FunSpec
 
 object RedisSpecBase {
 
-  private val iter = Iterator from 0
+  val iter = Iterator from 0
 
 }
