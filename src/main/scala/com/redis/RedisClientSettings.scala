@@ -38,7 +38,7 @@ object RedisClientSettings {
     }
   }
 
-  case class ExponentialReconnectionPolicy(baseDelayMs: Long, maxDelayMs: Long) extends ReconnectionSettings {
+  case class ExponentialReconnectionSettings(baseDelayMs: Long, maxDelayMs: Long) extends ReconnectionSettings {
     require(baseDelayMs > 0, s"Base reconnection delay must be greater than 0. Received $baseDelayMs")
     require(maxDelayMs > 0, s"Maximum reconnection delay must be greater than 0. Received $maxDelayMs")
     require(maxDelayMs >= baseDelayMs, "Maximum reconnection delay cannot be smaller than base reconnection delay")
