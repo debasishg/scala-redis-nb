@@ -2,12 +2,11 @@ package com.redis
 
 import scala.concurrent.Future
 
+import akka.testkit.TestProbe
+import org.junit.runner.RunWith
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.junit.JUnitRunner
-import org.junit.runner.RunWith
-
 import serialization._
-
 
 @RunWith(classOf[JUnitRunner])
 class ClientSpec extends RedisSpecBase {
@@ -75,21 +74,34 @@ class ClientSpec extends RedisSpecBase {
   }
 
   describe("reconnections based on policy") {
-    it("should reconnect") {
-      val key = "reconnect_test"
-
-      client.lpush(key, 0)
-
+    it("should not reconnect by default") {
+      val probe = TestProbe()
+      probe watch client.clientRef
       // Extract our address
       // TODO Cleaner address extraction, perhaps in ServerOperations.client?
       val address = client.client.list().futureValue.get.toString.split(" ").head.split("=").last
-      client.client.kill(address).futureValue should be (true)
+      client.client.kill(address).futureValue should be(true)
+      probe.expectTerminated(client.clientRef)
+    }
 
-      client.lpush(key, 1 to 100).futureValue should equal (101)
-      val list = client.lrange[Long](key, 0, -1).futureValue
+    it("should reconnect with settings") {
+      withReconnectingClient {
+        client =>
+          val key = "reconnect_test"
 
-      list.size should equal (101)
-      list.reverse should equal (0 to 100)
+          client.lpush(key, 0)
+
+          // Extract our address
+          // TODO Cleaner address extraction, perhaps in ServerOperations.client?
+          val address = client.client.list().futureValue.get.toString.split(" ").head.split("=").last
+          client.client.kill(address).futureValue should be(true)
+
+          client.lpush(key, 1 to 100).futureValue should equal(101)
+          val list = client.lrange[Long](key, 0, -1).futureValue
+
+          list.size should equal(101)
+          list.reverse should equal(0 to 100)
+      }
     }
   }
 }
