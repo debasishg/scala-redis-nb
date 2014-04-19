@@ -70,7 +70,7 @@ class ClientSpec extends RedisSpecBase {
         client.lpush(key, 1200).futureValue
       }
 
-      thrown.getCause.getMessage should equal ("WRONGTYPE Operation against a key holding the wrong kind of value")
+      thrown.getCause.getMessage should include ("Operation against a key holding the wrong kind of value")
     }
   }
 
