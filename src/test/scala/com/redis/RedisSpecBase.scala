@@ -2,6 +2,7 @@ package com.redis
 
 import scala.concurrent.duration._
 
+import akka.util.Timeout
 import akka.actor._
 import com.redis.RedisClientSettings.ConstantReconnectionSettings
 import org.scalatest._

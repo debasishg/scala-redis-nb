@@ -85,7 +85,7 @@ class ClientSpec extends RedisSpecBase {
       val address = client.client.list().futureValue.get.toString.split(" ").head.split("=").last
       client.client.kill(address).futureValue should be (true)
 
-      client.lpush(key, 1 to 100).futureValue should equal (100)
+      client.lpush(key, 1 to 100).futureValue should equal (101)
       val list = client.lrange[Long](key, 0, -1).futureValue
 
       list.size should equal (101)
