@@ -46,17 +46,17 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
       context watch pipe
 
     case CommandFailed(c: Connect) =>
-      settings.reconnectionSettings match {
-        case Some(r) =>
-          if (reconnectionSchedule.isEmpty) {
-            reconnectionSchedule = Some(settings.reconnectionSettings.get.newSchedule)
-          }
-          val delayMs = reconnectionSchedule.get.nextDelayMs
-          log.error("Connect failed for {} with {}. Reconnecting in {} ms... ", c.remoteAddress, c.failureMessage, delayMs)
-          context.system.scheduler.scheduleOnce(Duration(delayMs, TimeUnit.MILLISECONDS), IO(Tcp), Connect(remote))(context.dispatcher, self)
-        case None =>
-          log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
-          context stop self
+      if (reconnectionSchedule.isEmpty) {
+        reconnectionSchedule = Some(settings.reconnectionSettings.newSchedule)
+      }
+      if (reconnectionSchedule.get.attempts < reconnectionSchedule.get.maxAttempts) {
+        val delayMs = reconnectionSchedule.get.nextDelayMs
+        log.error("Connect failed for {} with {}. Reconnecting in {} ms... ", c.remoteAddress, c.failureMessage, delayMs)
+        context become unconnected
+        context.system.scheduler.scheduleOnce(Duration(delayMs, TimeUnit.MILLISECONDS), IO(Tcp), Connect(remote))(context.dispatcher, self)
+      } else {
+        log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
+        context stop self
       }
   }
 
@@ -123,18 +123,17 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
 
   def withTerminationManagement(handler: Receive): Receive = handler orElse {
     case Terminated(x) => {
-      settings.reconnectionSettings match {
-        case Some(r) =>
-          if (reconnectionSchedule.isEmpty) {
-            reconnectionSchedule = Some(settings.reconnectionSettings.get.newSchedule)
-          }
-          val delayMs = reconnectionSchedule.get.nextDelayMs
-          log.error("Child termination detected: {}. Reconnecting in {} ms... ", x, delayMs)
-          context become unconnected
-          context.system.scheduler.scheduleOnce(Duration(delayMs, TimeUnit.MILLISECONDS), IO(Tcp), Connect(remote))(context.dispatcher, self)
-        case None =>
-          log.error("Child termination detected: {}", x)
-          context stop self
+      if (reconnectionSchedule.isEmpty) {
+        reconnectionSchedule = Some(settings.reconnectionSettings.newSchedule)
+      }
+      if (reconnectionSchedule.get.attempts < reconnectionSchedule.get.maxAttempts) {
+        val delayMs = reconnectionSchedule.get.nextDelayMs
+        log.error("Child termination detected: {}. Reconnecting in {} ms... ", x, delayMs)
+        context become unconnected
+        context.system.scheduler.scheduleOnce(Duration(delayMs, TimeUnit.MILLISECONDS), IO(Tcp), Connect(remote))(context.dispatcher, self)
+      } else {
+        log.error("Child termination detected: {}", x)
+        context stop self
       }
     }
   }
