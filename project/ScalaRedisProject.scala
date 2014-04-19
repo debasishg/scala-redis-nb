@@ -8,7 +8,7 @@ object ScalaRedisProject extends Build
 
   lazy val commonSettings: Seq[Setting[_]] = Seq(
     organization := "net.debasishg",
-    version := "0.4-SNAPSHOT",
+    version := "0.5-SNAPSHOT",
     scalaVersion := "2.10.4-RC3",
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
     resolvers ++= Seq(akkaRelease, akkaSnapshot, sprayJson)
@@ -18,8 +18,8 @@ object ScalaRedisProject extends Build
     name := "RedisReact",
     libraryDependencies :=
         Seq(
-          "com.typesafe.akka" %%  "akka-actor"      % "2.2.3",
-          "com.typesafe.akka" %%  "akka-slf4j"      % "2.2.3"     % "provided",
+          "com.typesafe.akka" %%  "akka-actor"      % "2.3.0",
+          "com.typesafe.akka" %%  "akka-slf4j"      % "2.3.0"     % "provided",
           "commons-pool"      %   "commons-pool"    % "1.6",
           "org.slf4j"         %   "slf4j-api"       % "1.7.6"     % "provided",
           "ch.qos.logback"    %   "logback-classic" % "1.1.1"     % "provided",
