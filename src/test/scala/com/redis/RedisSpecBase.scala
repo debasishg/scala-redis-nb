@@ -2,13 +2,13 @@ package com.redis
 
 import scala.concurrent.duration._
 
-import akka.util.Timeout
 import akka.actor._
+import akka.testkit.TestKit
+import akka.util.Timeout
 import com.redis.RedisClientSettings.ConstantReconnectionSettings
 import org.scalatest._
 import org.scalatest.concurrent.{Futures, ScalaFutures}
 import org.scalatest.time._
-import akka.testkit.TestKit
 
 class RedisSpecBase(_system: ActorSystem) extends TestKit(_system)
                  with FunSpecLike
