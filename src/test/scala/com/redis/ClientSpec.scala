@@ -77,9 +77,9 @@ class ClientSpec extends RedisSpecBase {
     it("should not reconnect by default") {
       val probe = TestProbe()
       probe watch client.clientRef
-      // Extract our address
-      // TODO Cleaner address extraction, perhaps in ServerOperations.client?
-      val address = client.client.list().futureValue.get.toString.split(" ").head.split("=").last
+      val clients = client.client.list().futureValue.get.split('\n')
+      // addr=127.0.0.1:65227 fd=9 name= age=0 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0 events=r cmd=client
+      val address = clients.last.split(" ").head.split("=").last
       client.client.kill(address).futureValue should be(true)
       probe.expectTerminated(client.clientRef)
     }
