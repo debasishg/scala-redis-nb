@@ -25,7 +25,7 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
 
   private[this] var pendingRequests = Queue.empty[RedisRequest]
   private[this] var txnRequests = Queue.empty[RedisRequest]
-  private[this] var reconnectionSchedule: Option[_ <: ReconnectionSettings#ReconnectionSchedule] = None
+  private[this] lazy val reconnectionSchedule = settings.reconnectionSettings.newSchedule
 
   IO(Tcp) ! Connect(remote)
 
@@ -113,11 +113,8 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
 
   def withTerminationManagement(handler: Receive): Receive = handler orElse {
     case Terminated(x) => {
-      if (reconnectionSchedule.isEmpty) {
-        reconnectionSchedule = Some(settings.reconnectionSettings.newSchedule)
-      }
-      if (reconnectionSchedule.get.attempts < reconnectionSchedule.get.maxAttempts) {
-        val delayMs = reconnectionSchedule.get.nextDelayMs
+      if (reconnectionSchedule.attempts < reconnectionSchedule.maxAttempts) {
+        val delayMs = reconnectionSchedule.nextDelayMs
         log.error("Child termination detected: {}. Reconnecting in {} ms... ", x, delayMs)
         context become unconnected
         context.system.scheduler.scheduleOnce(Duration(delayMs, TimeUnit.MILLISECONDS), IO(Tcp), Connect(remote))(context.dispatcher, self)
