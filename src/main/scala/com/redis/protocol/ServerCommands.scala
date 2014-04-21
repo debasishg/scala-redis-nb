@@ -49,7 +49,7 @@ object ServerCommands {
     }
 
     case class SetName(name: String) extends RedisCommand[Boolean]("CLIENT") {
-      def params = "SETNAME" +: ANil
+      def params = "SETNAME" +: name +: ANil
     }
 
     case class Kill(ipPort: String) extends RedisCommand[Boolean]("CLIENT") {
