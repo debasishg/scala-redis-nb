@@ -7,6 +7,11 @@ import org.junit.runner.RunWith
 import org.scalatest.exceptions.TestFailedException
 import org.scalatest.junit.JUnitRunner
 import serialization._
+import akka.io.Tcp.{Connected, CommandFailed}
+import scala.reflect.ClassTag
+import scala.concurrent.duration._
+import com.redis.RedisClientSettings.ConstantReconnectionSettings
+import com.redis.protocol.ServerCommands.Client.Kill
 
 @RunWith(classOf[JUnitRunner])
 class ClientSpec extends RedisSpecBase {
@@ -74,33 +79,50 @@ class ClientSpec extends RedisSpecBase {
   }
 
   describe("reconnections based on policy") {
+
+    def killClientsNamed(rc: RedisClient, name: String): Future[List[Boolean]] = {
+      // Clients are a list of lines similar to
+      // addr=127.0.0.1:65227 fd=9 name= age=0 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0 events=r cmd=client
+      // We'll split them up and make a map
+      val clients = rc.client.list().futureValue.get.toString
+        .split('\n')
+        .map(_.trim)
+        .filterNot(_.isEmpty)
+        .map(
+          _.split(" ").map(
+            _.split("=").padTo(2, "")
+          ).map(
+            item => (item(0), item(1))
+          )
+        ).map(_.toMap)
+      Future.sequence(clients.filter(_("name") == name).map(_("addr")).map(rc.client.kill).toList)
+    }
+
     it("should not reconnect by default") {
+      val name = "test-client-1"
+      client.client.setname(name).futureValue should equal (true)
+
       val probe = TestProbe()
       probe watch client.clientRef
-      val clients = client.client.list().futureValue.get.split('\n')
-      // addr=127.0.0.1:65227 fd=9 name= age=0 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0 events=r cmd=client
-      val address = clients.last.split(" ").head.split("=").last
-      client.client.kill(address).futureValue should be(true)
+      killClientsNamed(client, name).futureValue.reduce(_ && _) should equal (true)
       probe.expectTerminated(client.clientRef)
     }
 
     it("should reconnect with settings") {
-      withReconnectingClient {
-        client =>
-          val key = "reconnect_test"
+      withReconnectingClient { client =>
+        val name = "test-client-2"
+        client.client.setname(name).futureValue should equal (true)
 
-          client.lpush(key, 0)
+        val key = "reconnect_test"
+        client.lpush(key, 0)
 
-          // Extract our address
-          // TODO Cleaner address extraction, perhaps in ServerOperations.client?
-          val address = client.client.list().futureValue.get.toString.split(" ").head.split("=").last
-          client.client.kill(address).futureValue should be(true)
+        killClientsNamed(client, name).futureValue.reduce(_ && _) should equal (true)
 
-          client.lpush(key, 1 to 100).futureValue should equal(101)
-          val list = client.lrange[Long](key, 0, -1).futureValue
+        client.lpush(key, 1 to 100).futureValue should equal(101)
+        val list = client.lrange[Long](key, 0, -1).futureValue
 
-          list.size should equal(101)
-          list.reverse should equal(0 to 100)
+        list.size should equal(101)
+        list.reverse should equal(0 to 100)
       }
     }
   }
