@@ -31,6 +31,7 @@ class RedisSpecBase(_system: ActorSystem) extends TestKit(_system)
   def withReconnectingClient(testCode: RedisClient => Any) = {
     val client = RedisClient("localhost", 6379, settings = RedisClientSettings(reconnectionSettings = ConstantReconnectionSettings(100)))
     testCode(client)
+    client.quit().futureValue should equal (true)
   }
 
   override def beforeEach = {
