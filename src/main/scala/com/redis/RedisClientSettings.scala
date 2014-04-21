@@ -26,7 +26,7 @@ object RedisClientSettings {
 
     trait ReconnectionSchedule {
       val maxAttempts: Long
-      var attempts = 0
+      var attempts: Long = 0
 
       /**
        * Gets the number of milliseconds until the next reconnection attempt.
