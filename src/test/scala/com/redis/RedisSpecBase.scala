@@ -56,6 +56,6 @@ class RedisSpecBase(_system: ActorSystem) extends TestKit(_system)
 
 object RedisSpecBase {
 
-  val iter = Iterator from 0
+  private val iter = Iterator from 0
 
 }
