@@ -46,8 +46,15 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
       context watch pipe
 
     case CommandFailed(c: Connect) =>
-      log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
-      context stop self
+      if (reconnectionSchedule.attempts < reconnectionSchedule.maxAttempts) {
+        val delayMs = reconnectionSchedule.nextDelayMs
+        log.error("Connect failed for {} with {}. Reconnecting in {} ms... ", c.remoteAddress, c.failureMessage, delayMs)
+        context become unconnected
+        context.system.scheduler.scheduleOnce(Duration(delayMs, TimeUnit.MILLISECONDS), IO(Tcp), Connect(remote))(context.dispatcher, self)
+      } else {
+        log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
+        context stop self
+      }
   }
 
   def transactional(pipe: ActorRef): Receive = withTerminationManagement {
