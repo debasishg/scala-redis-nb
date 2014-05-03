@@ -9,7 +9,7 @@ import com.redis.RedisSpecBase
 @RunWith(classOf[JUnitRunner])
 class SortedSetOperationsSpec extends RedisSpecBase {
 
-  private def add = {
+  private def add() = {
     val add1 = client.zadd("hackers", 1965, "yukihiro matsumoto")
     val add2 = client.zadd("hackers", 1953, "richard stallman")
     val add3 = client.zadd("hackers", (1916, "claude shannon"), (1969, "linus torvalds"))
@@ -18,6 +18,23 @@ class SortedSetOperationsSpec extends RedisSpecBase {
     add2.futureValue should equal (1)
     add3.futureValue should equal (2)
     add4.futureValue should equal (2)
+  }
+
+  private def addLex() = {
+    val add1 = client.zadd("myzset", 0, "a")
+    val add2 = client.zadd("myzset", 0, "b")
+    val add3 = client.zadd("myzset", 0, "c")
+    val add4 = client.zadd("myzset", 0, "d")
+    val add5 = client.zadd("myzset", 0, "e")
+    val add6 = client.zadd("myzset", 0, "f")
+    val add7 = client.zadd("myzset", 0, "g")
+    add1.futureValue should equal (1)
+    add2.futureValue should equal (1)
+    add3.futureValue should equal (1)
+    add4.futureValue should equal (1)
+    add5.futureValue should equal (1)
+    add6.futureValue should equal (1)
+    add7.futureValue should equal (1)
   }
 
   describe("zadd") {
@@ -217,6 +234,40 @@ class SortedSetOperationsSpec extends RedisSpecBase {
     }
   }
 
+  describe("zlexcount") {
+    it ("should return the number of elements in lexicographic ordering between min and max") {
+      addLex
+      client.zlexcount("myzset", "a", true, "d", true).futureValue should equal(4)
+      client.zlexcount("myzset", "a", true, "d", false).futureValue should equal(3)
+      client.zlexcount("myzset", "a", false, "d", true).futureValue should equal(3)
+      client.zlexcount("myzset", "a", false, "d", false).futureValue should equal(2)
+      client.zlexcount("myzset", maxKey = "d", maxInclusive = false).futureValue should equal(3)
+      client.zlexcount("myzset", "a", false).futureValue should equal(6)
+      client.zlexcount("myzset").futureValue should equal(7)
+    }
+  }
+
+  describe("zrangebylex") {
+    it ("should return the elements in lexicographic ordering between min and max") {
+      addLex
+      client.zrangebylex("myzset", "a", true, "d", true).futureValue should equal(List("a", "b", "c", "d"))
+      client.zrangebylex("myzset", "a", true, "d", false).futureValue should equal(List("a", "b", "c"))
+      client.zrangebylex("myzset", "a", false, "d", true).futureValue should equal(List("b", "c", "d"))
+      client.zrangebylex("myzset", "a", false, "d", false).futureValue should equal(List("b", "c"))
+      client.zrangebylex("myzset", maxKey = "d", maxInclusive = false).futureValue should equal(List("a", "b", "c"))
+      client.zrangebylex("myzset", "a", false).futureValue should equal(List("b", "c", "d", "e", "f", "g"))
+      client.zrangebylex("myzset").futureValue should equal(List("a", "b", "c", "d", "e", "f", "g"))
+      client.zrangebylex("myzset", "aaa", true, "g", false).futureValue should equal(List("b", "c", "d", "e", "f"))
+      client.zrangebylex("myzset", "aaa", true, "g", false, Some((1, 2))).futureValue should equal(List("c", "d"))
+    }
+  }
+
+  describe("zremrangebylex") {
+    it ("should return the number of elements deleted in lexicographic ordering between min and max") {
+      client.zadd("myzset", Seq((0, "aaaa"), (0, "b"), (0, "c"), (0, "d"), (0, "e"))).futureValue should equal(5)
+      client.zadd("myzset", Seq((0, "foo"), (0, "zap"), (0, "zip"), (0, "ALPHA"), (0, "alpha"))).futureValue should equal(5)
+      client.zremrangebylex("myzset", "alpha", true, "omega", true).futureValue should equal(6)
+    }
+  }
+
 }
-
-

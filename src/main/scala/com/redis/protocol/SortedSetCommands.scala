@@ -7,8 +7,10 @@ object SortedSetCommands {
   import DefaultWriters._
 
 
-  val `+Inf` = Double.PositiveInfinity
-  val `-Inf` = Double.NegativeInfinity
+  final val `+Inf` = Double.PositiveInfinity
+  final val `-Inf` = Double.NegativeInfinity
+  final val `+LexInf`   = "+"
+  final val `-LexInf`   = "-"
 
   case class ZAdd(key: String, scoreMembers: Seq[ScoredValue]) extends RedisCommand[Long]("ZADD") {
     require(scoreMembers.nonEmpty)
@@ -198,6 +200,47 @@ object SortedSetCommands {
     def params = key +: formatDouble(min, minInclusive) +: formatDouble(max, maxInclusive) +: ANil
   }
 
+  case class ZLexCount(key: String, 
+                       minKey: String = `-LexInf`, minInclusive: Boolean = true,
+                       maxKey: String = `+LexInf`, maxInclusive: Boolean = true) extends RedisCommand[Long]("ZLEXCOUNT") {
+    def params = key +: formatLex(minKey, minInclusive) +: formatLex(maxKey, maxInclusive) +: ANil 
+  }
+
+  case class ZRangeByLex[A](key: String,
+                            min: String, minInclusive: Boolean = true,
+                            max: String, maxInclusive: Boolean = true,
+                            limit: Option[(Int, Int)] = None)(implicit reader: Reader[A])
+                            extends RedisCommand[List[A]]("ZRANGEBYLEX") {
+
+    def params = key +: lexParams(min, minInclusive, max, maxInclusive, limit)
+  }
+
+  case class ZRemRangeByLex[A](key: String,
+                               min: String, minInclusive: Boolean = true,
+                               max: String, maxInclusive: Boolean = true)
+                               extends RedisCommand[Long]("ZREMRANGEBYLEX") {
+
+    def params = key +: lexParams(min, minInclusive, max, maxInclusive)
+  }
+
+  private def lexParams(min: String, minInclusive: Boolean, max: String, maxInclusive: Boolean,
+                        limit: Option[(Int, Int)] = None): Args = {
+
+    formatLex(min, minInclusive) +: formatLex(max, maxInclusive) +: 
+    (
+      limit match {
+        case Some((from, to)) => "LIMIT" +: from +: to +: ANil
+        case _ => ANil
+      }
+    )
+  }
+
+  private def formatLex(key: String, inclusive: Boolean) = Stringified(
+    if (key == `+LexInf` || key == `-LexInf`) key
+    else {
+      if (inclusive) s"[$key" else s"($key"
+    }
+  )
 
   private def formatDouble(d: Double, inclusive: Boolean = true) = Stringified(
     (if (inclusive) ("") else ("(")) + {
