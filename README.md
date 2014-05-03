@@ -1,4 +1,4 @@
-## redisreact
+## redisreact [![Build Status](https://travis-ci.org/debasishg/scala-redis-nb.png?branch=master)](https://travis-ci.org/debasishg/scala-redis-nb)
 
 A non blocking Redis client based on Akka I/O
 
