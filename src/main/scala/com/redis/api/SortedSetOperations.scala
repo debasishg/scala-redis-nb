@@ -151,4 +151,33 @@ trait SortedSetOperations { this: RedisOps =>
              max: Double = `+Inf`, maxInclusive: Boolean = true)
             (implicit timeout: Timeout) =
     clientRef.ask(ZCount(key, min, minInclusive, max, maxInclusive)).mapTo[ZCount#Ret]
+
+  // ZLEXCOUNT
+  def zlexcount(key: String, 
+                minKey: String = `-∞`, minInclusive: Boolean = true,
+                maxKey: String = `+∞`, maxInclusive: Boolean = true)(implicit timeout: Timeout) =
+    clientRef.ask(ZLexCount(key, minKey, minInclusive, maxKey, maxInclusive)).mapTo[ZLexCount#Ret]
+
+  // ZRANGEBYLEX
+  //
+  def zrangebylex[A](key: String,
+                     minKey: String = `-∞`, minInclusive: Boolean = true,
+                     maxKey: String = `+∞`, maxInclusive: Boolean = true,
+                     limit: Option[(Int, Int)] = None)
+                     (implicit timeout: Timeout, reader: Reader[A]) =
+    clientRef
+      .ask(ZRangeByLex[A](key, minKey, minInclusive, maxKey, maxInclusive, limit))
+      .mapTo[ZRangeByLex[A]#Ret]
+
+  // ZREMRANGEBYLEX
+  //
+  def zremrangebylex[A](key: String,
+                        minKey: String = `-∞`, minInclusive: Boolean = true,
+                        maxKey: String = `+∞`, maxInclusive: Boolean = true)
+                        (implicit timeout: Timeout) =
+    clientRef
+      .ask(ZRemRangeByLex[A](key, minKey, minInclusive, maxKey, maxInclusive))
+      .mapTo[ZRemRangeByLex[A]#Ret]
+
+
 }
