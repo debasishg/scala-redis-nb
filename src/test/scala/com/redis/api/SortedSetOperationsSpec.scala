@@ -9,7 +9,7 @@ import com.redis.RedisSpecBase
 @RunWith(classOf[JUnitRunner])
 class SortedSetOperationsSpec extends RedisSpecBase {
 
-  private def add = {
+  private def add() = {
     val add1 = client.zadd("hackers", 1965, "yukihiro matsumoto")
     val add2 = client.zadd("hackers", 1953, "richard stallman")
     val add3 = client.zadd("hackers", (1916, "claude shannon"), (1969, "linus torvalds"))
@@ -20,7 +20,7 @@ class SortedSetOperationsSpec extends RedisSpecBase {
     add4.futureValue should equal (2)
   }
 
-  private def addLex = {
+  private def addLex() = {
     val add1 = client.zadd("myzset", 0, "a")
     val add2 = client.zadd("myzset", 0, "b")
     val add3 = client.zadd("myzset", 0, "c")

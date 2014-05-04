@@ -154,15 +154,15 @@ trait SortedSetOperations { this: RedisOps =>
 
   // ZLEXCOUNT
   def zlexcount(key: String, 
-                minKey: String = `-∞`, minInclusive: Boolean = true,
-                maxKey: String = `+∞`, maxInclusive: Boolean = true)(implicit timeout: Timeout) =
+                minKey: String = `-LexInf`, minInclusive: Boolean = true,
+                maxKey: String = `+LexInf`, maxInclusive: Boolean = true)(implicit timeout: Timeout) =
     clientRef.ask(ZLexCount(key, minKey, minInclusive, maxKey, maxInclusive)).mapTo[ZLexCount#Ret]
 
   // ZRANGEBYLEX
   //
   def zrangebylex[A](key: String,
-                     minKey: String = `-∞`, minInclusive: Boolean = true,
-                     maxKey: String = `+∞`, maxInclusive: Boolean = true,
+                     minKey: String = `-LexInf`, minInclusive: Boolean = true,
+                     maxKey: String = `+LexInf`, maxInclusive: Boolean = true,
                      limit: Option[(Int, Int)] = None)
                      (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef
@@ -172,8 +172,8 @@ trait SortedSetOperations { this: RedisOps =>
   // ZREMRANGEBYLEX
   //
   def zremrangebylex[A](key: String,
-                        minKey: String = `-∞`, minInclusive: Boolean = true,
-                        maxKey: String = `+∞`, maxInclusive: Boolean = true)
+                        minKey: String = `-LexInf`, minInclusive: Boolean = true,
+                        maxKey: String = `+LexInf`, maxInclusive: Boolean = true)
                         (implicit timeout: Timeout) =
     clientRef
       .ask(ZRemRangeByLex[A](key, minKey, minInclusive, maxKey, maxInclusive))

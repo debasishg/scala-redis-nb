@@ -9,8 +9,8 @@ object SortedSetCommands {
 
   final val `+Inf` = Double.PositiveInfinity
   final val `-Inf` = Double.NegativeInfinity
-  final val `+∞`   = "+"
-  final val `-∞`   = "-"
+  final val `+LexInf`   = "+"
+  final val `-LexInf`   = "-"
 
   case class ZAdd(key: String, scoreMembers: Seq[ScoredValue]) extends RedisCommand[Long]("ZADD") {
     require(scoreMembers.nonEmpty)
@@ -201,8 +201,8 @@ object SortedSetCommands {
   }
 
   case class ZLexCount(key: String, 
-                       minKey: String = `-∞`, minInclusive: Boolean = true,
-                       maxKey: String = `+∞`, maxInclusive: Boolean = true) extends RedisCommand[Long]("ZLEXCOUNT") {
+                       minKey: String = `-LexInf`, minInclusive: Boolean = true,
+                       maxKey: String = `+LexInf`, maxInclusive: Boolean = true) extends RedisCommand[Long]("ZLEXCOUNT") {
     def params = key +: formatLex(minKey, minInclusive) +: formatLex(maxKey, maxInclusive) +: ANil 
   }
 
@@ -236,7 +236,7 @@ object SortedSetCommands {
   }
 
   private def formatLex(key: String, inclusive: Boolean) = Stringified(
-    if (key == `+∞` || key == `-∞`) key
+    if (key == `+LexInf` || key == `-LexInf`) key
     else {
       if (inclusive) s"[$key" else s"($key"
     }
