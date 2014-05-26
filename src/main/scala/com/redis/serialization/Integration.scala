@@ -7,7 +7,7 @@ trait SprayJsonSupport {
   import spray.json._
 
   implicit def sprayJsonStringReader[A](implicit reader: RootJsonReader[A]): Reader[A] =
-    StringReader(s => reader.read(s.asJson))
+    StringReader(s => reader.read(s.parseJson))
 
   implicit def sprayJsonStringWriter[A](implicit writer: RootJsonWriter[A]): Writer[A] =
     StringWriter(writer.write(_).toString)
@@ -41,14 +41,14 @@ trait Json4sJacksonSupport extends Json4sSupport {
 object Json4sJacksonSupport extends Json4sJacksonSupport
 
 
-trait LiftJsonSupport {
-  import net.liftweb.json._
+//trait LiftJsonSupport {
+//  import net.liftweb.json._
 
-  implicit def liftJsonStringReader[A](implicit format: Formats, manifest: Manifest[A]): Reader[A] =
-    StringReader(parse(_).extract[A])
+//  implicit def liftJsonStringReader[A](implicit format: Formats, manifest: Manifest[A]): Reader[A] =
+//    StringReader(parse(_).extract[A])
 
-  implicit def liftJsonStringWriter[A <: AnyRef](implicit format: Formats): Writer[A] =
-    StringWriter(Serialization.write(_))
-}
+//  implicit def liftJsonStringWriter[A <: AnyRef](implicit format: Formats): Writer[A] =
+//    StringWriter(Serialization.write(_))
+//}
 
-object LiftJsonSupport extends LiftJsonSupport
+//object LiftJsonSupport extends LiftJsonSupport

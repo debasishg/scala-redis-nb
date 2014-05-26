@@ -115,21 +115,21 @@ trait KeyOperations { this: RedisOps =>
 
   // SORT
   // sort keys in a set, and optionally pull values for them
-  def sort[A](key: String, 
-    limit: Option[Pair[Int, Int]] = None, 
-    desc: Boolean = false, 
-    alpha: Boolean = false, 
-    by: Option[String] = None, 
+  def sort[A](key: String,
+    limit: Option[Tuple2[Int, Int]] = None,
+    desc: Boolean = false,
+    alpha: Boolean = false,
+    by: Option[String] = None,
     get: Seq[String] = Nil)(implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(Sort(key, limit, desc, alpha, by, get)).mapTo[Sort[A]#Ret]
 
   // SORT with STORE
   // sort keys in a set, and store result in the supplied key
   def sortNStore(key: String,
-    limit: Option[Pair[Int, Int]] = None, 
-    desc: Boolean = false, 
-    alpha: Boolean = false, 
-    by: Option[String] = None, 
+    limit: Option[Tuple2[Int, Int]] = None,
+    desc: Boolean = false,
+    alpha: Boolean = false,
+    by: Option[String] = None,
     get: Seq[String] = Nil,
     storeAt: String)(implicit timeout: Timeout) =
     clientRef.ask(SortNStore(key, limit, desc, alpha, by, get, storeAt)).mapTo[SortNStore#Ret]

@@ -86,7 +86,7 @@ object KeyCommands {
   }
 
   case class Sort[A: Reader](key: String,
-    limit: Option[Pair[Int, Int]] = None,
+    limit: Option[Tuple2[Int, Int]] = None,
     desc: Boolean = false,
     alpha: Boolean = false,
     by: Option[String] = None,
@@ -96,7 +96,7 @@ object KeyCommands {
   }
 
   case class SortNStore(key: String,
-    limit: Option[Pair[Int, Int]] = None,
+    limit: Option[Tuple2[Int, Int]] = None,
     desc: Boolean = false,
     alpha: Boolean = false,
     by: Option[String] = None,
@@ -107,7 +107,7 @@ object KeyCommands {
   }
 
   private def makeSortArgs(key: String,
-    limit: Option[Pair[Int, Int]] = None,
+    limit: Option[Tuple2[Int, Int]] = None,
     desc: Boolean = false,
     alpha: Boolean = false,
     by: Option[String] = None,
