@@ -9,6 +9,7 @@ private [redis] trait RedisOps extends StringOperations
   with SetOperations
   with SortedSetOperations
   with HashOperations
+  with HyperLogLogOperations
   with KeyOperations
   with ServerOperations
   with EvalOperations
