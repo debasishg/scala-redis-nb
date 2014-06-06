@@ -133,20 +133,21 @@ class SerializationSpec extends FunSpec with Matchers  {
     }
 
     describe("LiftJsonSupport") {
-      it("should encode/decode json objects") {
-        import LiftJsonSupport._
+      pending
+      //it("should encode/decode json objects") {
+      //  import LiftJsonSupport._
 
-        implicit val format = net.liftweb.json.DefaultFormats
+      //  implicit val format = net.liftweb.json.DefaultFormats
 
-        val write = implicitly[Writer[Person]].toByteString _
-        val read = implicitly[Reader[Person]].fromByteString _
+      //  val write = implicitly[Writer[Person]].toByteString _
+      //  val read = implicitly[Reader[Person]].fromByteString _
 
-        val writeL = implicitly[Writer[List[Person]]].toByteString _
-        val readL = implicitly[Reader[List[Person]]].fromByteString _
+      //  val writeL = implicitly[Writer[List[Person]]].toByteString _
+      //  val readL = implicitly[Reader[List[Person]]].fromByteString _
 
-        read(write(debasish)) should equal (debasish)
-        readL(writeL(people)) should equal (people)
-      }
+      //  read(write(debasish)) should equal (debasish)
+      //  readL(writeL(people)) should equal (people)
+      //}
     }
   }
 
