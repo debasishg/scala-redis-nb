@@ -25,7 +25,7 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
 
   private[this] var pendingRequests = Queue.empty[RedisRequest]
   private[this] var txnRequests = Queue.empty[RedisRequest]
-  private[this] lazy val reconnectionSchedule = settings.reconnectionSettings.newSchedule
+  private[this] var reconnectionSchedule = settings.reconnectionSettings.newSchedule
 
   IO(Tcp) ! Connect(remote)
 
@@ -44,6 +44,7 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
       sendAllPendingRequests(pipe)
       context become (running(pipe))
       context watch pipe
+      reconnectionSchedule = settings.reconnectionSettings.newSchedule
 
     case CommandFailed(c: Connect) =>
       log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
