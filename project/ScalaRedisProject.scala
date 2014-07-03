@@ -15,18 +15,20 @@ object ScalaRedisProject extends Build
     resolvers ++= Seq(akkaRelease, akkaSnapshot, sprayJson)
   )
 
+  val akkaVersion = "2.3.4"
+
   lazy val coreSettings = commonSettings ++ Seq(
     name := "RedisReact",
     libraryDependencies :=
         Seq(
-          "com.typesafe.akka" %%  "akka-actor"      % "2.3.3",
-          "com.typesafe.akka" %%  "akka-slf4j"      % "2.3.3"     % "provided",
+          "com.typesafe.akka" %%  "akka-actor"      % akkaVersion,
+          "com.typesafe.akka" %%  "akka-slf4j"      % akkaVersion % "provided",
           "commons-pool"      %   "commons-pool"    % "1.6",
           "org.slf4j"         %   "slf4j-api"       % "1.7.7"     % "provided",
           "ch.qos.logback"    %   "logback-classic" % "1.1.2"     % "provided",
           "junit"             %   "junit"           % "4.11"      % "test",
           "org.scalatest"     %%  "scalatest"       % "2.1.6"     % "test",
-          "com.typesafe.akka" %%  "akka-testkit"    % "2.3.3"     % "test",
+          "com.typesafe.akka" %%  "akka-testkit"    % akkaVersion % "test",
 
           // Third-party serialization libraries
           //"net.liftweb" %%  "lift-json"      % "2.5.1" % "provided, test",
