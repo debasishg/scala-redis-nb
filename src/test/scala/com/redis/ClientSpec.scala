@@ -80,6 +80,22 @@ class ClientSpec extends RedisSpecBase {
 
   describe("reconnections based on policy") {
 
+    // Since 2.8.12, Redis requires an additional 'SKIPME no' parameter for killing its own connection
+    // This parameter is not (yet) supported by our kill command, so we have to
+    // use a different client for killing the desired connection on newer Redis servers
+    val killingClient: (RedisClient) => RedisClient = {
+      val redisVersion = client.info().futureValue flatMap { info =>
+        info.lines.collectFirst {
+          case RedisVersion(major, minor, mini) => RedisVersion(major, minor, mini)
+        }
+      }
+      val isNewKillSemantics = redisVersion.exists(_ >= RedisVersion(2, 8, 12))
+      if (isNewKillSemantics) {
+        val differentClient = RedisClient("localhost", 6379)
+        (_: RedisClient) => differentClient
+      } else identity
+    }
+
     def killClientsNamed(rc: RedisClient, name: String): Future[List[Boolean]] = {
       // Clients are a list of lines similar to
       // addr=127.0.0.1:65227 fd=9 name= age=0 idle=0 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=32768 obl=0 oll=0 omem=0 events=r cmd=client
@@ -95,7 +111,8 @@ class ClientSpec extends RedisSpecBase {
             item => (item(0), item(1))
           )
         ).map(_.toMap)
-      Future.sequence(clients.filter(_("name") == name).map(_("addr")).map(rc.client.kill).toList)
+      val killCandidates = clients.filter(_("name") == name).map(_("addr")).toList
+      Future.sequence(killCandidates.map(killingClient(rc).client.kill))
     }
 
     it("should not reconnect by default") {
