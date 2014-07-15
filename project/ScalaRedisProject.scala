@@ -23,6 +23,7 @@ object ScalaRedisProject extends Build
         Seq(
           "com.typesafe.akka" %%  "akka-actor"      % akkaVersion,
           "com.typesafe.akka" %%  "akka-slf4j"      % akkaVersion % "provided",
+          "com.typesafe.akka" %%  "akka-stream-experimental"      % "0.4",
           "commons-pool"      %   "commons-pool"    % "1.6",
           "org.slf4j"         %   "slf4j-api"       % "1.7.7"     % "provided",
           "ch.qos.logback"    %   "logback-classic" % "1.1.2"     % "provided",
@@ -38,9 +39,9 @@ object ScalaRedisProject extends Build
         ),
     parallelExecution in Test := false,
     publishTo <<= version { (v: String) =>
-      val nexus = "https://oss.sonatype.org/" 
+      val nexus = "https://oss.sonatype.org/"
       if (v.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
-      else Some("releases" at nexus + "service/local/staging/deploy/maven2") 
+      else Some("releases" at nexus + "service/local/staging/deploy/maven2")
     },
     credentials += Credentials(Path.userHome / ".sbt" / "sonatype.credentials"),
     publishMavenStyle := true,
