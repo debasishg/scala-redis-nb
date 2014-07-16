@@ -10,6 +10,7 @@ import scala.language.existentials
 
 import akka.actor._
 import akka.io.IO
+import akka.pattern.{pipe => pipeTo}
 import akka.stream.io.StreamTcp
 
 import com.redis.pipeline.AkkaStreamTransport
@@ -22,6 +23,7 @@ object RedisConnection {
 
 private [redis] class RedisConnection(remote: InetSocketAddress, settings: RedisClientSettings)
   extends Actor with ActorLogging with AkkaStreamTransport {
+  import context.dispatcher
 
   private[this] var pendingRequests = Queue.empty[RedisRequest]
   private[this] var txnRequests = Queue.empty[RedisRequest]
@@ -33,7 +35,7 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
     context unwatch pipe
     context stop pipe
     context become unconnected
-    context.system.scheduler.scheduleOnce(delay, ioExtension, connectionMessage(remote))(context.dispatcher, self)
+    context.system.scheduler.scheduleOnce(delay, ioExtension, connectionMessage(remote))
   }
 
   private def handleDisconnection(pipe: ActorRef, dueToError: Option[Throwable]): Unit = {
@@ -59,9 +61,7 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
     val (pipe, closeFuture) = initiateConnection(clientBinding.outputStream, clientBinding.inputStream)
     reconnectionSchedule = settings.reconnectionSettings.newSchedule
 
-    closeFuture.onSuccess {
-      case optError => handleDisconnection(pipe, optError)
-    }(context.dispatcher)
+    closeFuture pipeTo self
 
     sendAllPendingRequests(pipe)
     context become running(pipe)
@@ -113,6 +113,12 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
 
     case command: RedisCommand[_] =>
       sendRequest(pipe, RedisRequest(sender(), command))
+
+    case Some(reasonForDisconnect: Throwable) =>
+      handleDisconnection(pipe, Some(reasonForDisconnect))
+
+    case None =>
+      handleDisconnection(pipe, None)
   }
 
   def buffering(pipe: ActorRef): Receive = {
