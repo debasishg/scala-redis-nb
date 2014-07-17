@@ -25,10 +25,9 @@ trait AkkaStreamTransport { me: Actor =>
   private def createPipe = context watch context.actorOf(TcpPipeProducer.props())
 
   private def returnToSender(commanderAndResult: (ActorRef, Try[Any])): Unit = {
-    val (commander, result) = commanderAndResult
-    result match {
-      case Success(res) => commander ! res
-      case Failure(e) => commander ! Status.Failure(e)
+    commanderAndResult match {
+      case (commander, Success(res)) => commander ! res
+      case (commander, Failure(e)) => commander ! Status.Failure(e)
     }
   }
 
