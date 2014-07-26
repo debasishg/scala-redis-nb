@@ -31,6 +31,8 @@ package object protocol {
 
   val Newline = ByteString("\r\n")
 
+  val OKBytes = "+OK".getBytes("UTF-8")
+
   val NullBulkReplyCount = -1
   val NullMultiBulkReplyCount = -1
 

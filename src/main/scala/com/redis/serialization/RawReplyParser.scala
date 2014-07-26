@@ -132,7 +132,6 @@ private[serialization] object RawReplyParser {
 
     private[this] val _booleanStatusPD =
       new PartialDeserializer[Boolean] {
-        private val OKBytes = "+OK".getBytes("UTF-8")
         def isDefinedAt(x: RawReply): Boolean =
           (x.head == Status) && {
             val firstWord = parseSingle(x)
