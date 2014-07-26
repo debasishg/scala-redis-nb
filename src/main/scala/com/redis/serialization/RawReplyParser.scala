@@ -136,7 +136,13 @@ private[serialization] object RawReplyParser {
         def isDefinedAt(x: RawReply): Boolean =
           (x.head == Status) && {
             val firstWord = parseSingle(x)
-            x.jump(-firstWord.size - 2)  // really, really ugly
+            // TODO: Find a better way to 'unread' data from the RawReply
+            // The String reply '+OK' can be translated into a true, but there
+            // are other String responses (e.g. '+QUEUED'), that should result
+            // in different behaviour. So, we have to peek at the string to decide
+            // whether it can be parsed as a Boolean. In any case, we have to
+            // reset the reader index, since this is not the actual parsing.
+            x.jump(-firstWord.size - 2)
             firstWord.corresponds(OKBytes)(_ == _)
           }
 
