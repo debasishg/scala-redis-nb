@@ -6,8 +6,14 @@ import scala.language.implicitConversions
 
 
 @implicitNotFound(msg = "Cannot find implicit Read or Format type class for ${A}")
-private[redis] trait Reader[A] {
+private[redis] trait Reader[A] { self =>
   def fromByteString(in: ByteString): A
+
+  def map[B](f: A => B): Reader[B] =
+    new Reader[B] {
+      def fromByteString(in: ByteString) =
+        f(self.fromByteString(in))
+    }
 }
 
 private[redis] trait ReaderLowPriorityImplicits {
@@ -26,8 +32,14 @@ object Reader extends ReaderLowPriorityImplicits {
 
 
 @implicitNotFound(msg = "Cannot find implicit Write or Format type class for ${A}")
-private[redis] trait Writer[A] {
+private[redis] trait Writer[A] { self =>
   private[redis] def toByteString(in: A): ByteString
+
+  def contramap[B](f: B => A): Writer[B] =
+    new Writer[B] {
+      def toByteString(in: B) =
+        self.toByteString(f(in))
+    }
 }
 
 private[redis] trait WriterLowPriorityImplicits {
@@ -46,10 +58,16 @@ object Writer extends WriterLowPriorityImplicits {
 
 
 
-trait StringReader[A] extends Reader[A] {
+trait StringReader[A] extends Reader[A] { self =>
   def read(in: String): A
 
   def fromByteString(in: ByteString): A = read(in.utf8String)
+
+  override def map[B](f: A => B): StringReader[B] =
+    new StringReader[B] {
+      def read(in: String) =
+        f(self.read(in))
+    }
 }
 
 object StringReader {
@@ -68,10 +86,16 @@ trait DefaultReaders {
 object DefaultReaders extends DefaultReaders
 
 
-trait StringWriter[A] extends Writer[A] {
+trait StringWriter[A] extends Writer[A] { self =>
   def write(in: A): String
 
   def toByteString(in: A): ByteString = ByteString(write(in))
+
+  override def contramap[B](f: B => A): StringWriter[B] =
+    new StringWriter[B] {
+      def write(in: B) =
+        self.write(f(in))
+    }
 }
 
 object StringWriter {
