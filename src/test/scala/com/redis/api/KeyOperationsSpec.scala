@@ -22,7 +22,7 @@ class KeyOperationsSpec extends RedisSpecBase {
     }
 
     it("should fetch keys with spaces") {
-      val prepare = Seq(client.set("anshin-1", "debasish"), client.set("anshin-2", "maulindu"))
+      val prepare = Seq(client.set("anshin 1", "debasish"), client.set("anshin 2", "maulindu"))
       val prepareRes = Future.sequence(prepare).futureValue
 
       val res = client.keys("anshin*")
