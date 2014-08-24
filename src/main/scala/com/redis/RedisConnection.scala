@@ -5,29 +5,69 @@ import java.util.concurrent.TimeUnit
 
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.language.existentials
 
 import akka.actor._
-import akka.io.{BackpressureBuffer, IO, Tcp, TcpPipelineHandler}
-import com.redis.RedisClientSettings.ReconnectionSettings
-import pipeline._
-import protocol._
+import akka.io.IO
+import akka.pattern.{pipe => pipeTo}
+import akka.stream.io.StreamTcp
+
+import com.redis.pipeline.AkkaStreamTransport
+import com.redis.protocol.{RedisCommand, RedisRequest, TransactionCommands}
+
 
 object RedisConnection {
   def props(remote: InetSocketAddress, settings: RedisClientSettings) = Props(classOf[RedisConnection], remote, settings)
 }
 
-private [redis] class RedisConnection(remote: InetSocketAddress, settings: RedisClientSettings) 
-  extends Actor with ActorLogging {
-  import Tcp._
-  import context.system
+private [redis] class RedisConnection(remote: InetSocketAddress, settings: RedisClientSettings)
+  extends Actor with ActorLogging with AkkaStreamTransport {
+  import context.dispatcher
 
   private[this] var pendingRequests = Queue.empty[RedisRequest]
   private[this] var txnRequests = Queue.empty[RedisRequest]
   private[this] var reconnectionSchedule = settings.reconnectionSettings.newSchedule
 
-  IO(Tcp) ! Connect(remote)
+  private val ioExtension = IO(StreamTcp)(context.system)
+
+  private def reconnectIn(pipe: ActorRef, delay: FiniteDuration): Unit = {
+    context unwatch pipe
+    context stop pipe
+    context become unconnected
+    context.system.scheduler.scheduleOnce(delay, ioExtension, connectionMessage(remote))
+  }
+
+  private def handleDisconnection(pipe: ActorRef, dueToError: Option[Throwable]): Unit = {
+    val msg =
+      if (reconnectionSchedule.attempts < reconnectionSchedule.maxAttempts) {
+        val reconnectDelay = Duration(reconnectionSchedule.nextDelayMs, TimeUnit.MILLISECONDS)
+        reconnectIn(pipe, reconnectDelay)
+        s"Client disconnected. Reconnecting in $reconnectDelay... "
+      } else {
+        context stop self
+        "Client disconnected."
+      }
+    dueToError match {
+      case Some(ex) => log.error(ex, msg)
+      case None => log.info(msg)
+    }
+  }
+
+  private def becomeRunning(clientBinding: StreamTcp.OutgoingTcpConnection): Unit = {
+    val remoteAddress = clientBinding.remoteAddress
+    log.info("Stream: Connected to redis server {}:{}", remoteAddress.getHostName, remoteAddress.getPort)
+
+    val (pipe, closeFuture) = initiateConnection(clientBinding.outputStream, clientBinding.inputStream)
+    reconnectionSchedule = settings.reconnectionSettings.newSchedule
+
+    closeFuture pipeTo self
+
+    sendAllPendingRequests(pipe)
+    context become running(pipe)
+  }
+
+  ioExtension ! connectionMessage(remote)
 
   def receive = unconnected
 
@@ -36,36 +76,29 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
       log.info("Attempting to send command before connected: {}", cmd)
       addPendingRequest(cmd)
 
-    case Connected(remote, _) =>
-      log.info("Connected to redis server {}:{}.", remote.getHostName, remote.getPort)
-      val connection = sender
-      val pipe = context.actorOf(TcpPipelineHandler.props(init, connection, self), name = "pipeline")
-      connection ! Register(pipe)
-      sendAllPendingRequests(pipe)
-      context become (running(pipe))
-      context watch pipe
-      reconnectionSchedule = settings.reconnectionSettings.newSchedule
+    case clientBinding: StreamTcp.OutgoingTcpConnection =>
+      becomeRunning(clientBinding)
 
-    case CommandFailed(c: Connect) =>
-      log.error("Connect failed for {} with {}. Stopping... ", c.remoteAddress, c.failureMessage)
+    case akka.actor.Status.Failure(error) =>
+      log.error(error, "Connect failed for {} with {}. Stopping... ", remote, error.getMessage)
       context stop self
   }
 
-  def transactional(pipe: ActorRef): Receive = withTerminationManagement {
+  def transactional(pipe: ActorRef): Receive = {
     case TransactionCommands.Exec =>
       sendAllTxnRequests(pipe)
-      sendRequest(pipe, RedisRequest(sender, TransactionCommands.Exec))
-      context become (running(pipe))
+      sendRequest(pipe, RedisRequest(sender(), TransactionCommands.Exec))
+      context become running(pipe)
 
     case TransactionCommands.Discard =>
       txnRequests = txnRequests.drop(txnRequests.size)
-      sendRequest(pipe, RedisRequest(sender, TransactionCommands.Discard))
-      context become (running(pipe))
+      sendRequest(pipe, RedisRequest(sender(), TransactionCommands.Discard))
+      context become running(pipe)
 
     // this should not happen
     // if it comes allow to flow through and Redis will report an error
     case TransactionCommands.Multi =>
-      sendRequest(pipe, RedisRequest(sender, TransactionCommands.Multi))
+      sendRequest(pipe, RedisRequest(sender(), TransactionCommands.Multi))
 
     case cmd: RedisCommand[_] =>
       log.debug("Received a command in Multi: {}", cmd)
@@ -73,67 +106,39 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
 
   }
 
-  def running(pipe: ActorRef): Receive = withTerminationManagement {
+  def running(pipe: ActorRef): Receive = {
     case TransactionCommands.Multi =>
-      sendRequest(pipe, RedisRequest(sender, TransactionCommands.Multi))
-      context become (transactional(pipe))
+      sendRequest(pipe, RedisRequest(sender(), TransactionCommands.Multi))
+      context become transactional(pipe)
 
     case command: RedisCommand[_] =>
-      sendRequest(pipe, RedisRequest(sender, command))
+      sendRequest(pipe, RedisRequest(sender(), command))
 
-    case init.Event(BackpressureBuffer.HighWatermarkReached) =>
-      log.info("Backpressure is too high. Start buffering...")
-      context become (buffering(pipe))
+    case Some(reasonForDisconnect: Throwable) =>
+      handleDisconnection(pipe, Some(reasonForDisconnect))
 
-    case c: CloseCommand =>
-      log.info("Got to close ..")
-      sendAllPendingRequests(pipe)
-      context become (closing(pipe))
+    case None =>
+      handleDisconnection(pipe, None)
   }
 
-  def buffering(pipe: ActorRef): Receive = withTerminationManagement {
+  def buffering(pipe: ActorRef): Receive = {
     case cmd: RedisCommand[_] =>
       log.debug("Received a command while buffering: {}", cmd)
       addPendingRequest(cmd)
-
-    case init.Event(BackpressureBuffer.LowWatermarkReached) =>
-      log.info("Client backpressure became lower, resuming...")
-      context become running(pipe)
-      sendAllPendingRequests(pipe)
   }
 
-  def closing(pipe: ActorRef): Receive = withTerminationManagement {
-    case init.Event(RequestQueueEmpty) =>
-      log.debug("All done.")
-      context stop self
-
-    case init.Event(Closed) =>
-      log.debug("Closed")
-      context stop self
-  }
-
-  def withTerminationManagement(handler: Receive): Receive = handler orElse {
-    case Terminated(x) => {
-      if (reconnectionSchedule.attempts < reconnectionSchedule.maxAttempts) {
-        val delayMs = reconnectionSchedule.nextDelayMs
-        log.error("Child termination detected: {}. Reconnecting in {} ms... ", x, delayMs)
-        context become unconnected
-        context.system.scheduler.scheduleOnce(Duration(delayMs, TimeUnit.MILLISECONDS), IO(Tcp), Connect(remote))(context.dispatcher, self)
-      } else {
-        log.error("Child termination detected: {}", x)
-        context stop self
-      }
-    }
+  def closing(): Receive = {
+    case _ => context stop self
   }
 
   def addPendingRequest(cmd: RedisCommand[_]): Unit =
-    pendingRequests :+= RedisRequest(sender, cmd)
+    pendingRequests :+= RedisRequest(sender(), cmd)
 
   def addTxnRequest(cmd: RedisCommand[_]): Unit =
-    txnRequests :+= RedisRequest(sender, cmd)
+    txnRequests :+= RedisRequest(sender(), cmd)
 
   def sendRequest(pipe: ActorRef, req: RedisRequest): Unit = {
-    pipe ! init.Command(req)
+    pipe ! req
   }
 
   @tailrec
@@ -152,20 +157,10 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
       sendAllTxnRequests(pipe)
     }
 
-  val init = {
-    import RedisClientSettings._
-    import settings._
-
-    val stages = Seq(
-      Some(new ResponseHandling),
-      Some(new Serializing),
-      backpressureBufferSettings map {
-        case BackpressureBufferSettings(lowBytes, highBytes, maxBytes) =>
-          new BackpressureBuffer(lowBytes, highBytes, maxBytes)
-      }
-    ).flatten.reduceLeft(_ >> _)
-
-    TcpPipelineHandler.withLogger(log, stages)
+  override def unhandled(message: Any): Unit = message match {
+    case Terminated(x) =>
+      handleDisconnection(x, None)
+    case x =>
+      super.unhandled(x)
   }
-
 }

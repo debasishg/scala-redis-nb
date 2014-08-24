@@ -15,21 +15,21 @@ private[serialization] object RawReplyParser {
     @tailrec def loop(acc: Int, isMinus: Boolean): Int =
       input.nextByte().toChar match {
         case '\r' => input.jump(1); if (isMinus) -acc else acc
-        case '-'  => loop(acc, true)
+        case '-'  => loop(acc, isMinus = true)
         case c    => loop((acc * 10) + c - '0', isMinus)
       }
-    loop(0, false)
+    loop(0, isMinus = false)
   }
 
   def parseLong(input: RawReply) = {
     @tailrec def loop(acc: Long, isMinus: Boolean): Long =
       input.nextByte().toChar match {
         case '\r' => input.jump(1); if (isMinus) -acc else acc
-        case '-'  => loop(acc, true)
+        case '-'  => loop(acc, isMinus = true)
         case c    => loop((acc * 10) + c - '0', isMinus)
       }
 
-    loop(0, false)
+    loop(0, isMinus = false)
   }
 
   // Parse a string of undetermined length
@@ -46,7 +46,7 @@ private[serialization] object RawReplyParser {
 
     loop()
     input.jump(1)
-    builder.result
+    builder.result()
   }
 
   // Parse a string with known length
@@ -80,7 +80,7 @@ private[serialization] object RawReplyParser {
 
     builder.sizeHint(len)
     inner(len)
-    builder.result
+    builder.result()
   }
 
   class RawReply(val data: CompactByteString, private[this] var cursor: Int = 0) {
@@ -102,7 +102,7 @@ private[serialization] object RawReplyParser {
         res
       }
 
-    private[RawReplyParser] def jump(amount: Int) {
+    private[RawReplyParser] def jump(amount: Int): Unit = {
       if (cursor + amount > data.length) throw NotEnoughDataException
       else cursor += amount
     }
@@ -130,8 +130,30 @@ private[serialization] object RawReplyParser {
     val _rawBulkPD       = new PrefixDeserializer[Option[ByteString]]  (Bulk,    parseBulk _)
     val _errorPD         = new PrefixDeserializer[RedisError]          (Err,     parseError _)
 
+    private[this] val _booleanStatusPD =
+      new PartialDeserializer[Boolean] {
+        def isDefinedAt(x: RawReply): Boolean =
+          (x.head == Status) && {
+            val firstWord = parseSingle(x)
+            // TODO: Find a better way to 'unread' data from the RawReply
+            // The String reply '+OK' can be translated into a true, but there
+            // are other String responses (e.g. '+QUEUED'), that should result
+            // in different behaviour. So, we have to peek at the string to decide
+            // whether it can be parsed as a Boolean. In any case, we have to
+            // reset the reader index, since this is not the actual parsing.
+            x.jump(-firstWord.size - 2)
+            firstWord.corresponds(OKBytes)(_ == _)
+          }
+
+        def apply(r: RawReply): Boolean = {
+          r.jump(1)
+          parseSingle(r)
+          true
+        }
+      }
+
     val _booleanPD =
-      new PrefixDeserializer[Boolean](Status, (x: RawReply) => {parseSingle(x); true }) orElse
+      _booleanStatusPD orElse
         (_longPD andThen (_ > 0)) orElse
         (_rawBulkPD andThen (_.isDefined))
 
