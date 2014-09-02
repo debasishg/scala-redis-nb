@@ -24,81 +24,116 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
     private[this] var txnMode = false
     private[this] var txnRequests = Queue.empty[RedisRequest]
 
-    @tailrec 
-    private def parseExecResponse(data: CompactByteString, acc: Iterable[Any]): Iterable[Any] = {
-      if (txnRequests isEmpty) acc
-      else {
-        // process every response with the appropriate de-serializer that we have accumulated in txnRequests
-        parser.parse(data, txnRequests.head.command.des) match {
-          case Result.Ok(reply, remaining) => 
+    type ResponseHandler = CompactByteString => Iterable[Result]
+
+    def pubSubHandler(handlerActor: ActorRef) : ResponseHandler = data => {
+      def parsePushedEvents(data: CompactByteString) : Iterable[Result] = {
+        import com.redis.serialization.PartialDeserializer.pubSubMessagePD
+        parser.parse(data, pubSubMessagePD) match {
+          case Result.Ok(reply, remaining) =>
             val result = reply match {
               case err: RedisError => Failure(err)
               case _ => reply
             }
-            val RedisRequest(commander, cmd) = txnRequests.head
-            commander.tell(result, redisClientRef)
-            txnRequests = txnRequests.tail
-            parseExecResponse(remaining, acc ++ List(result)) 
-
-          case Result.NeedMoreData => 
-            if (data isEmpty) ctx.singleEvent(RequestQueueEmpty)
-            else parseExecResponse(data, acc)
-  
+            handlerActor ! result
+            parsePushedEvents( remaining )
+          case Result.NeedMoreData =>
+            ctx.nothing
           case Result.Failed(err, data) =>
             log.error(err, "Response parsing failed: {}", data.utf8String.replace("\r\n", "\\r\\n"))
             ctx.singleCommand(Close)
         }
       }
+      if (sentRequests.isEmpty) {
+        log.debug("Received data from server: {}", data.utf8String.replace("\r\n", "\\r\\n"))
+        parsePushedEvents(data)
+      }
+      else defaultHandler(data)
     }
 
-    private def handleResponse(data: CompactByteString): Iterable[Result] = {
+    val defaultHandler : CompactByteString => Iterable[Result] = {
+
       @tailrec
-      def parseAndDispatch(data: CompactByteString): Iterable[Result] =
-        if (sentRequests.isEmpty) ctx.singleEvent(RequestQueueEmpty)
+      def parseExecResponse(data: CompactByteString, acc: Iterable[Any]): Iterable[Any] = {
+        if (txnRequests isEmpty) acc
         else {
-          val RedisRequest(commander, cmd) = sentRequests.head
-
-          // we have an Exec : need to parse the response which will be a collection of 
-          // MultiBulk and then end transaction mode
-          if (cmd == TransactionCommands.Exec) {
-            if (data isEmpty) ctx.singleEvent(RequestQueueEmpty)
-            else {
-              val result =
-                if (Deserializer.nullMultiBulk(data)) {
-                  txnRequests = txnRequests.drop(txnRequests.size)
-                  Failure(Deserializer.EmptyTxnResultException)
-                } else parseExecResponse(data.splitAt(data.indexOf(Lf) + 1)._2.compact, List.empty[Result])
-
-              commander.tell(result, redisClientRef)
-              txnMode = false
-            }
-          } 
-          parser.parse(data, cmd.des) match {
+          // process every response with the appropriate de-serializer that we have accumulated in txnRequests
+          parser.parse(data, txnRequests.head.command.des) match {
             case Result.Ok(reply, remaining) =>
               val result = reply match {
                 case err: RedisError => Failure(err)
                 case _ => reply
               }
-              log.debug("RESULT: {}", result)
-              if (reply != Queued) commander.tell(result, redisClientRef)
-              sentRequests = sentRequests.tail
-              parseAndDispatch(remaining)
+              val RedisRequest(commander, cmd) = txnRequests.head
+              commander.tell(result, redisClientRef)
+              txnRequests = txnRequests.tail
+              parseExecResponse(remaining, acc ++ List(result))
 
-            case Result.NeedMoreData => ctx.singleEvent(RequestQueueEmpty)
+            case Result.NeedMoreData =>
+              if (data isEmpty) ctx.singleEvent(RequestQueueEmpty)
+              else parseExecResponse(data, acc)
 
             case Result.Failed(err, data) =>
               log.error(err, "Response parsing failed: {}", data.utf8String.replace("\r\n", "\\r\\n"))
-              commander.tell(Failure(err), redisClientRef)
               ctx.singleCommand(Close)
           }
         }
+      }
 
-      log.debug("Received data from server: {}", data.utf8String.replace("\r\n", "\\r\\n"))
-      parseAndDispatch(data)
+      (data: CompactByteString) => {
+        @tailrec
+        def parseAndDispatch(data: CompactByteString): Iterable[Result] =
+          if (sentRequests.isEmpty) ctx.singleEvent(RequestQueueEmpty)
+          else {
+            val RedisRequest(commander, cmd) = sentRequests.head
+
+            // we have an Exec : need to parse the response which will be a collection of
+            // MultiBulk and then end transaction mode
+            if (cmd == TransactionCommands.Exec) {
+              if (data isEmpty) ctx.singleEvent(RequestQueueEmpty)
+              else {
+                val result =
+                  if (Deserializer.nullMultiBulk(data)) {
+                    txnRequests = txnRequests.drop(txnRequests.size)
+                    Failure(Deserializer.EmptyTxnResultException)
+                  } else parseExecResponse(data.splitAt(data.indexOf(Lf) + 1)._2.compact, List.empty[Result])
+
+                commander.tell(result, redisClientRef)
+                txnMode = false
+              }
+            }
+            parser.parse(data, cmd.des) match {
+              case Result.Ok(reply, remaining) =>
+                val result = reply match {
+                  case err: RedisError => Failure(err)
+                  case _ => reply
+                }
+                log.debug("RESULT: {}", result)
+                if (reply != Queued) commander.tell(result, redisClientRef)
+                sentRequests = sentRequests.tail
+                parseAndDispatch(remaining)
+
+              case Result.NeedMoreData => ctx.singleEvent(RequestQueueEmpty)
+
+              case Result.Failed(err, data) =>
+                log.error(err, "Response parsing failed: {}", data.utf8String.replace("\r\n", "\\r\\n"))
+                commander.tell(Failure(err), redisClientRef)
+                ctx.singleCommand(Close)
+            }
+          }
+
+        log.debug("Received data from server: {}", data.utf8String.replace("\r\n", "\\r\\n"))
+        parseAndDispatch(data)
+      }
     }
+
+    private[this] var handleResponse : ResponseHandler = defaultHandler
 
 
     val commandPipeline = (cmd: Command) => cmd match {
+      case req @ RedisRequest(commander, cmd ) if cmd.isInstanceOf[PubSubCommands.PubSubCommand] =>
+        handleResponse = pubSubHandler( commander )
+        ctx singleCommand req
       case req: RedisRequest =>
 
         // Multi begins a txn mode & Discard ends a txn mode

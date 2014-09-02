@@ -5,7 +5,7 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.{Iterator, GenTraversable}
 import scala.language.higherKinds
 import scala.annotation.implicitNotFound
-import com.redis.protocol.Err
+import com.redis.protocol._
 import RawReplyParser._
 
 
@@ -38,6 +38,15 @@ object PartialDeserializer extends LowPriorityPD {
   implicit def listPD[A](implicit pd: PartialDeserializer[A]) = multiBulkPD[A, List]
 
   val errorPD = _errorPD
+
+  implicit val pubSubMessagePD = _pubSubMessagePD
+
+  // Is needed to implement Pub/Sub messages, since they have no direct result.
+  implicit val UnitDeserializer = new PartialDeserializer[Unit] {
+    override def isDefinedAt(x: RawReply): Boolean = true
+
+    override def apply(v1: RawReply): Unit = ()
+  }
 }
 
 private[serialization] trait LowPriorityPD extends CommandSpecificPD {
