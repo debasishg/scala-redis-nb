@@ -3,6 +3,10 @@ package com.redis
 import java.net.InetSocketAddress
 import java.util.concurrent.TimeUnit
 
+import akka.actor.Status.Failure
+import akka.routing.Listen
+import com.redis.RedisConnection.CommandRejected
+
 import scala.annotation.tailrec
 import scala.collection.immutable.Queue
 import scala.concurrent.duration.Duration
@@ -15,6 +19,8 @@ import pipeline._
 import protocol._
 
 object RedisConnection {
+  case class CommandRejected(msg: String, cmd: Any) extends Throwable(msg)
+
   def props(remote: InetSocketAddress, settings: RedisClientSettings) = Props(classOf[RedisConnection], remote, settings)
 }
 
@@ -73,10 +79,31 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
 
   }
 
+  def subscription(pipe: ActorRef, handler: ActorRef): Receive = withTerminationManagement {
+    case command: PubSubCommands.SubscribeCommand =>
+      handler ! Listen( sender() )
+      sendRequest(pipe, RedisRequest(handler, command))
+    case command: PubSubCommands.PubSubCommand =>
+      sendRequest(pipe, RedisRequest(handler, command))
+    case ConnectionCommands.Quit =>
+      sendRequest(pipe, RedisRequest(sender, ConnectionCommands.Quit))
+    case cmd =>
+      val message = s"Command '$cmd' is not allowed in subscribed state"
+      log.warning( message )
+      sender ! Failure( CommandRejected( message, cmd) )
+  }
+
   def running(pipe: ActorRef): Receive = withTerminationManagement {
     case TransactionCommands.Multi =>
       sendRequest(pipe, RedisRequest(sender, TransactionCommands.Multi))
       context become (transactional(pipe))
+
+    case command: PubSubCommands.SubscribeCommand =>
+      log.debug( "Switching to subscription state." )
+      val handler = context.actorOf( PubSubHandler.props, "pub-sub")
+      context become subscription(pipe, handler)
+      handler ! Listen( sender() )
+      sendRequest(pipe, RedisRequest(handler, command))
 
     case command: RedisCommand[_] =>
       sendRequest(pipe, RedisRequest(sender, command))
@@ -139,7 +166,8 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
   @tailrec
   final def sendAllPendingRequests(pipe: ActorRef): Unit =
     if (pendingRequests.nonEmpty) {
-      sendRequest(pipe, pendingRequests.head)
+      val request = pendingRequests.head
+      self.tell( request.command, request.sender )
       pendingRequests = pendingRequests.tail
       sendAllPendingRequests(pipe)
     }

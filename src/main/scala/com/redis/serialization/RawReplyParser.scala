@@ -1,5 +1,7 @@
 package com.redis.serialization
 
+import com.redis.protocol.PubSubCommands.PMessage
+
 import scala.annotation.tailrec
 
 import akka.util.{ByteString, CompactByteString, ByteStringBuilder}
@@ -83,6 +85,35 @@ private[serialization] object RawReplyParser {
     builder.result
   }
 
+  import PubSubCommands.{PushedMessage, Subscribed, Unsubscribed, Message}
+
+  val Subscribe = ByteString("subscribe")
+  val PSubscribe = ByteString("psubscribe")
+  val Unsubscribe = ByteString("unsubscribe")
+  val PUnsubscribe = ByteString("punsubscribe")
+  val Msg = ByteString("message")
+  val PMsg = ByteString("pmessage")
+
+  def parsePubSubMsg(input: RawReply): PushedMessage = {
+    val len = parseInt( input )
+    input.jump(1)
+    val msgType = parseBulk( input )
+    input.jump(1)
+    val destination = parseBulk( input ).map( _.utf8String ).get
+    input.jump(1)
+    (msgType: @unchecked) match {
+      case Some(Subscribe) => Subscribed( destination, isPattern = false, parseInt( input ) )
+      case Some(PSubscribe) => Subscribed( destination, isPattern = true, parseInt( input ) )
+      case Some(Unsubscribe) => Unsubscribed( destination, isPattern = false, parseInt( input ) )
+      case Some(PUnsubscribe) => Unsubscribed( destination, isPattern = true, parseInt( input ) )
+      case Some(Msg) => Message( destination, parseBulk(input).getOrElse(ByteString.empty) )
+      case Some(PMsg) =>
+        val channel = parseBulk(input).get.utf8String
+        input.jump(1)
+        PMessage( destination, channel, parseBulk(input).getOrElse(ByteString.empty) )
+    }
+  }
+
   class RawReply(val data: CompactByteString, private[this] var cursor: Int = 0) {
     import com.redis.serialization.Deserializer._
 
@@ -137,5 +168,7 @@ private[serialization] object RawReplyParser {
 
     def _multiBulkPD[A, B[_] <: GenTraversable[_]](implicit cbf: CanBuildFrom[_, A, B[A]], pd: PartialDeserializer[A]) =
       new PrefixDeserializer[B[A]](Multi, parseMultiBulk(_)(cbf, pd))
+
+    def _pubSubMessagePD = new PrefixDeserializer(Multi, parsePubSubMsg _)
   }
 }

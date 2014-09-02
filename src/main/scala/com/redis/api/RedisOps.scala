@@ -14,7 +14,8 @@ private [redis] trait RedisOps extends StringOperations
   with ServerOperations
   with EvalOperations
   with ConnectionOperations
-  with TransactionOperations {
+  with TransactionOperations
+  with PubSubOperations {
 
   def clientRef: ActorRef
 }
