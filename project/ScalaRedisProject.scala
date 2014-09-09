@@ -10,7 +10,7 @@ object ScalaRedisProject extends Build
     organization := "net.debasishg",
     version := "0.6",
     scalaVersion := "2.10.4",
-    crossScalaVersions := Seq("2.10.4", "2.11.1"),
+    crossScalaVersions := Seq("2.10.4", "2.11.2"),
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
     resolvers ++= Seq(akkaRelease, akkaSnapshot, sprayJson)
   )

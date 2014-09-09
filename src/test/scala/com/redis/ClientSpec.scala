@@ -125,5 +125,25 @@ class ClientSpec extends RedisSpecBase {
         list.reverse should equal(0 to 100)
       }
     }
+
+    it("should reconnect when maxattempts is set in reconnect settings ") {
+      withFixedConstantReconnectingClient { client =>
+        val name = "test-client-2"
+        client.client.setname(name).futureValue should equal (true)
+
+        val key = "reconnect_test_with_maxattempts"
+        client.lpush(key, 0)
+
+        killClientsNamed(client, name).futureValue.reduce(_ && _) should equal (true)
+        Thread.sleep(100) //ensure enough time has passed to reconnect
+
+        client.lpush(key, 1 to 100).futureValue should equal(101)
+        val list = client.lrange[Long](key, 0, -1).futureValue
+
+        list.size should equal(101)
+        list.reverse should equal(0 to 100)
+
+      }
+    }
   }
 }
