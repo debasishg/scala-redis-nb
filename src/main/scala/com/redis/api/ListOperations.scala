@@ -109,4 +109,10 @@ trait ListOperations { this: RedisOps =>
   def brpop[A](timeoutInSeconds: Int, key: String, keys: String*)
                 (implicit timeout: Timeout, reader: Reader[A]) =
     clientRef.ask(BRPop[A](timeoutInSeconds, key, keys:_*)).mapTo[BRPop[A]#Ret]
+
+  // LINSERT
+  // Inserts value in the list stored at key either before or after the reference value pivot
+  def linsert(key: String, position: InsertPosition, pivot: Stringified, value: Stringified)
+             (implicit timeout: Timeout) =
+    clientRef.ask(LInsert(key, position, pivot, value)).mapTo[LInsert#Ret]
 }

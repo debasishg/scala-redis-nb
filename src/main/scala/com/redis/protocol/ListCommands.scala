@@ -100,4 +100,12 @@ object ListCommands {
     def apply[A](timeoutInSeconds: Int, key: String, keys: String*)(implicit reader: Reader[A]): BRPop[A] =
       BRPop(timeoutInSeconds, key +: keys)
   }
+
+  case class LInsert(key: String, position: InsertPosition, pivot: Stringified, value: Stringified) extends RedisCommand[Long]("LINSERT") {
+    def params = key +: position.label +: pivot +: value +: ANil
+  }
+
+  sealed abstract class InsertPosition(val label: String)
+  case object Before extends InsertPosition("BEFORE")
+  case object After extends InsertPosition("AFTER")
 }
