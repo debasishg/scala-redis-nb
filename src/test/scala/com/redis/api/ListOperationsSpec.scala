@@ -6,6 +6,7 @@ import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
 import com.redis.RedisSpecBase
+import com.redis.protocol.ListCommands.{After, Before}
 
 
 @RunWith(classOf[JUnitRunner])
@@ -63,4 +64,39 @@ class ListOperationsSpec extends RedisSpecBase {
     }
   }
 
+  describe("linsert") {
+    it("should insert the value before pivot") {
+      val key = "linsert1"
+      client.rpush(key, "foo", "bar", "baz").futureValue should equal (3)
+      client.linsert(key, Before, "bar", "mofu").futureValue should equal (4)
+      client.lrange[String](key, 0, -1).futureValue should equal ("foo" :: "mofu" :: "bar" :: "baz" :: Nil)
+    }
+
+    it("should insert the value after pivot") {
+      val key = "linsert2"
+      client.rpush(key, "foo", "bar", "baz").futureValue should equal (3)
+      client.linsert(key, After, "bar", "mofu").futureValue should equal (4)
+      client.lrange[String](key, 0, -1).futureValue should equal ("foo" :: "bar" :: "mofu" :: "baz" :: Nil)
+    }
+
+    it("should not insert any value and return -1 when pivot is not found") {
+      val key = "linsert3"
+      client.rpush(key, "foo", "bar", "baz").futureValue should equal (3)
+      client.linsert(key, Before, "mofu", "value").futureValue should equal (-1)
+      client.lrange[String](key, 0, -1).futureValue should equal ("foo" :: "bar" :: "baz" :: Nil)
+    }
+
+    it("should not insert any value and return 0 when key does not exist") {
+      val key = "linsert4"
+      client.linsert(key, Before, "mofu", "value").futureValue should equal (0)
+      client.lrange[String](key, 0, -1).futureValue should equal (Nil)
+    }
+
+    it("should fail if the key points to a non-list") {
+      val key = "linsert5"
+      client.set(key, "string").futureValue should equal (true)
+      val thrown = intercept[Exception] { client.linsert(key, Before, "mofu", "value").futureValue }
+      thrown.getCause.getMessage should include ("Operation against a key holding the wrong kind of value")
+    }
+  }
 }
