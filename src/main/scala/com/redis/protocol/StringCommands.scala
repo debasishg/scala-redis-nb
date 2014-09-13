@@ -133,5 +133,10 @@ object StringCommands {
   case class BitCount(key: String, range: Option[(Int, Int)]) extends RedisCommand[Long]("BITCOUNT") {
     def params = key +: range.fold(ANil) { case (from, to) => from +: to +: ANil }
   }
+
+  case class BitPos(key: String, bit: Boolean, start: Option[Int], end: Option[Int]) extends RedisCommand[Long]("BITPOS") {
+    require(start.isDefined || end.isEmpty)
+    def params = key +: (if (bit) "1" else "0") +: start.toSeq ++: end.toSeq ++: ANil
+  }
 }
 
