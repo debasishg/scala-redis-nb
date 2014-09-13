@@ -6,6 +6,7 @@ import akka.util.Timeout
 import scala.language.existentials
 import protocol.StringCommands
 import serialization._
+import scala.concurrent.Future
 
 
 trait StringOperations { this: RedisOps =>
@@ -134,4 +135,15 @@ trait StringOperations { this: RedisOps =>
   // Count the number of set bits in the given key within the optional range
   def bitcount(key: String, range: Option[(Int, Int)] = None)(implicit timeout: Timeout) =
     clientRef.ask(BitCount(key, range)).mapTo[BitCount#Ret]
+
+  // BITPOS key bit start end
+  // Return the position of the first bit set to 1 or 0 in a string
+  def bitpos(key: String, bit: Boolean, start: Option[Int] = None, end: Option[Int] = None)(implicit timeout: Timeout) =
+    clientRef.ask(BitPos(key, bit, start, end)).mapTo[BitPos#Ret]
+
+  def bitpos(key: String, bit: Boolean, start: Int)(implicit timeout: Timeout): Future[BitPos#Ret] =
+    bitpos(key, bit, Some(start))
+
+  def bitpos(key: String, bit: Boolean, start: Int, end: Int)(implicit timeout: Timeout): Future[BitPos#Ret] =
+    bitpos(key, bit, Some(start), Some(end))
 }

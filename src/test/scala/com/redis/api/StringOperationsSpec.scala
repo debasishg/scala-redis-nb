@@ -5,8 +5,10 @@ import scala.concurrent.Future
 import org.scalatest.junit.JUnitRunner
 import org.junit.runner.RunWith
 
+import akka.util.ByteString
 import com.redis.protocol.StringCommands
 import com.redis.RedisSpecBase
+import com.redis.serialization.Stringified
 
 
 @RunWith(classOf[JUnitRunner])
@@ -155,6 +157,74 @@ class StringOperationsSpec extends RedisSpecBase {
       } yield r).futureValue
 
       res.get should equal (Array(0x85.toByte))
+    }
+  }
+
+  describe("bitpos") {
+    it("should return the position of the first bit set to 1") {
+      val key = "bitpos1"
+      val bits = Stringified(ByteString(0x00, 0xf0, 0x00).map(_.toByte))
+      client.set(key, bits).futureValue should equal (true)
+      val bit = true
+      client.bitpos(key, bit).futureValue should equal (8)
+    }
+
+    it("should return the position of the first bit set to 0") {
+      val key = "bitpos2"
+      val bits = Stringified(ByteString(Array(0xff, 0xf0, 0x00).map(_.toByte)))
+      client.set(key, bits).futureValue should equal (true)
+      val bit = false
+      client.bitpos(key, bit).futureValue should equal (12)
+    }
+
+    it("should return the position of hte first bit set to 1 after start position") {
+      val key = "bitpos3"
+      val bits = Stringified(ByteString(Array(0xff, 0xf0, 0xf0, 0xf0, 0x00).map(_.toByte)))
+      client.set(key, bits).futureValue should equal (true)
+      val bit = false
+      client.bitpos(key, bit, 2).futureValue should equal (20)
+    }
+
+    it("should return the position of the first bit set to 1 between start and end") {
+      val key = "bitpos4"
+      val bits = Stringified(ByteString(Array(0xff, 0xf0, 0xf0, 0xf0, 0x00).map(_.toByte)))
+      client.set(key, bits).futureValue should equal (true)
+      val bit = false
+      client.bitpos(key, bit, 2, 3).futureValue should equal (20)
+    }
+
+    it("should return -1 if 1 bit is specified and the string is composed of just zero bytes") {
+      val key = "bitpos5"
+      val bits = Stringified(ByteString(Array(0x00, 0x00, 0x00).map(_.toByte)))
+      client.set(key, bits).futureValue should equal (true)
+      val bit = true
+      client.bitpos(key, bit).futureValue should equal (-1)
+    }
+
+    it("should return the first bit not part of the string on the right if 0 bit is specified and the string only contains bit set to 1") {
+      val key = "bitpos6"
+      val bits = Stringified(ByteString(Array(0xff, 0xff, 0xff).map(_.toByte)))
+      client.set(key, bits).futureValue should equal (true)
+      val bit = false
+      client.bitpos(key, bit).futureValue should equal (24)
+    }
+
+    it("should return -1 if 0 bit is specified and the string contains and clear bit is not found in the specified range") {
+      val key = "bitpos7"
+      val bits = Stringified(ByteString(Array(0xff, 0xff, 0xff).map(_.toByte)))
+      client.set(key, bits).futureValue should equal (true)
+      val bit = false
+      client.bitpos(key, bit, 0, 2).futureValue should equal (-1)
+    }
+
+    it("should fail if start is not specified but end is specified") {
+      val key = "bitpos8"
+      val bits = Stringified(ByteString(Array(0xff, 0xff, 0xff).map(_.toByte)))
+      client.set(key, bits).futureValue should equal (true)
+      val bit = false
+      intercept[IllegalArgumentException] {
+        client.bitpos(key, bit, None, Some(2)).futureValue
+      }
     }
   }
 
