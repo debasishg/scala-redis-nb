@@ -43,6 +43,39 @@ class HashOperationsSpec extends RedisSpecBase {
     }
    }
 
+  describe("hincrbyfloat") {
+    it("should increment the specified field value") {
+      val key = "hincrbyfloat1"
+      val field = "hincrbyfloatfield"
+      client.hset(key, field, "10.50").futureValue should equal (true)
+      client.hincrbyfloat(key, field, 1.1).futureValue should equal (Some(11.6))
+      client.hget(key, field).futureValue should equal (Some("11.6"))
+    }
+
+    it("should regard the field value as 0 and increment that field if the specified field is not found") {
+      val key = "hincrbyfloat2"
+      val field = "hincrbyfloatfield"
+      client.hincrbyfloat(key, field, 1.1).futureValue should equal (Some(1.1))
+      client.hget(key, field).futureValue should equal (Some("1.1"))
+    }
+
+    it("should fail if the stored value is not a hash") {
+      val key = "hincrbyfloat3"
+      val field = "hincrbyfloatfield"
+      client.set(key, "string").futureValue should equal (true)
+      val thrown = intercept[Exception] { client.hincrbyfloat(key, field, 1.1).futureValue }
+      thrown.getCause.getMessage should include ("Operation against a key holding the wrong kind of value")
+    }
+
+    it("should fail if the field value is not a number") {
+      val key = "hincrbyfloat4"
+      val field = "hincrbyfloatfield"
+      client.hset(key, field, "non-number").futureValue should equal (true)
+      val thrown = intercept[Exception] { client.hincrbyfloat(key, field, 1.1).futureValue }
+      thrown.getCause.getMessage should include ("hash value is not a valid float")
+    }
+  }
+
    describe("hexists") {
     it("should check existence") {
       val key = "hexists1"
