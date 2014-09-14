@@ -61,6 +61,11 @@ trait StringOperations { this: RedisOps =>
   def incrby(key: String, amount: Int)(implicit timeout: Timeout) =
     clientRef.ask(IncrBy(key, amount)).mapTo[IncrBy#Ret]
 
+  // INCRBYFLOAT (key, by)
+  // Increment the string representing a floating point number stored at key by the specified increment
+  def incrbyfloat(key: String, amount: Double)(implicit timeout: Timeout) =
+    clientRef.ask(IncrByFloat(key, amount)).mapTo[IncrByFloat#Ret]
+
   // DECR (key)
   // decrements the specified key by 1
   def decr(key: String)(implicit timeout: Timeout) =
