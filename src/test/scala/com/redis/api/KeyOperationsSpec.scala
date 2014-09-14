@@ -131,7 +131,7 @@ class KeyOperationsSpec extends RedisSpecBase {
       val prepareRes = Future.sequence(prepare).futureValue
 
       client.sort("alltest").futureValue should equal(List("1", "2", "3"))
-      client.sort("alltest", Some(Pair(0, 1))).futureValue should equal(List("1"))
+      client.sort("alltest", Some(Tuple2(0, 1))).futureValue should equal(List("1"))
       client.sort("alltest", None, true).futureValue should equal(List("3", "2", "1"))
       client.sort("alltest", None, false, false, Some("hash-*->order")).futureValue should equal(List("2", "3", "1"))
       client.sort("alltest", None, false, false, None, List("hash-*->description")).futureValue should equal(List("one", "two", "three"))

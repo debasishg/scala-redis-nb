@@ -27,7 +27,7 @@ object ScalaRedisProject extends Build
           "org.slf4j"         %   "slf4j-api"       % "1.7.7"     % "provided",
           "ch.qos.logback"    %   "logback-classic" % "1.1.2"     % "provided",
           "junit"             %   "junit"           % "4.11"      % "test",
-          "org.scalatest"     %%  "scalatest"       % "2.1.6"     % "test",
+          "org.scalatest"     %%  "scalatest"       % "2.2.1"     % "test",
           "com.typesafe.akka" %%  "akka-testkit"    % akkaVersion % "test",
 
           // Third-party serialization libraries
