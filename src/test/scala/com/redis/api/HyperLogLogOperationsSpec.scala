@@ -16,7 +16,7 @@ class HyperLogLogOperationsSpec extends RedisSpecBase {
     }
 
     it("should ignore duplicated elements (with very low error rate)") {
-      val key1 = "pfcount1"
+      val key1 = "pfadd2"
       client.pfadd(key1, "foo", "bar", "zap").futureValue should be(1)
       client.pfadd(key1, "zap", "zap", "zap").futureValue should be(0)
       client.pfadd(key1, "foo", "bar").futureValue should be(0)
