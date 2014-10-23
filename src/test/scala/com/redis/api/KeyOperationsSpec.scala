@@ -24,11 +24,49 @@ class KeyOperationsSpec extends RedisSpecBase {
     it("should fetch keys with spaces") {
       val prepare = Seq(client.set("anshin 1", "debasish"), client.set("anshin 2", "maulindu"))
       val prepareRes = Future.sequence(prepare).futureValue
-
       val res = client.keys("anshin*")
       res.futureValue should have length (2)
     }
   }
+
+	describe("scan") {
+
+		val prepare = Seq(
+			client.set("key:1", "1"),
+			client.set("key:2", "2"),
+			client.set("key:3", "3"),
+			client.set("key:4", "4"),
+			client.set("key:5", "5"),
+			client.set("key:11", "11"),
+			client.set("key:22", "22"),
+			client.set("key:33", "33"),
+			client.set("key:44", "44"),
+			client.set("key:55", "55")
+		)
+
+		it("should collect all keys in keyspace") {
+			Future.sequence(prepare).futureValue
+			prepare.size equals iterateScan().size
+		}
+
+		it("should filter base on pattern") {
+			Future.sequence(prepare).futureValue
+			iterateScan(pattern = "*5*").size equals 2
+		}
+
+		def iterateScan(cursor:Long = 0, count:Long = 0, pattern:String = "") = {
+			var cursor = -1l
+			var keys = Seq[String]()
+			while(cursor != 0) {
+				val res = client.scan(cursor = if(cursor == -1) 0 else cursor, count = 2)
+				val w = res.futureValue
+				keys = keys ++ w._2
+				cursor = w._1
+			}
+			keys
+		}
+
+	}
 
   describe("randomkey") {
     it("should give") {

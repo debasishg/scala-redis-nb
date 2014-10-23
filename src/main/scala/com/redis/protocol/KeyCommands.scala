@@ -10,6 +10,13 @@ object KeyCommands {
     def params = pattern +: ANil
   }
 
+	case class Scan(cursor:Long = 0, pattern:String = "", count:Long = 0) extends RedisCommand[(Long, List[String])]("SCAN") {
+		def params = Seq( Seq(cursor.toString),
+			if(pattern != "") Seq("MATCH", pattern) else Nil,
+			if(count > 0) Seq("COUNT", count.toString) else Nil
+		).flatten.toArgs
+	}
+
   case object RandomKey extends RedisCommand[Option[String]]("RANDOMKEY") {
     def params = ANil
   }
