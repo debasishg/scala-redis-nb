@@ -19,8 +19,8 @@ trait KeyOperations { this: RedisOps =>
   def keys(pattern: String = "*")(implicit timeout: Timeout) =
     clientRef.ask(Keys(pattern)).mapTo[Keys#Ret]
 
-	def scan(cursor:Long = 0, pattern: String = "", count: Long = 0)(implicit timeout: Timeout) =
-		clientRef.ask(Scan(cursor, pattern, count)).mapTo[Scan#Ret]
+  def scan(cursor:Long = 0, pattern: String = "", count: Long = 0)(implicit timeout: Timeout) =
+    clientRef.ask(Scan(cursor, pattern, count)).mapTo[Scan#Ret]
 
   // RANDOMKEY
   // return a randomly selected key from the currently selected DB.

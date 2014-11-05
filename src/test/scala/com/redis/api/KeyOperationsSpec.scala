@@ -29,49 +29,49 @@ class KeyOperationsSpec extends RedisSpecBase {
     }
   }
 
-	describe("scan") {
+  describe("scan") {
 
-		val keys = Seq(
-			"key:1", "key:2", "key:3", "key:4", "key:5",
-			"key:11", "key:22", "key:33", "key:44", "key:55"
-		)
+    val keys = Seq(
+      "key:1", "key:2", "key:3", "key:4", "key:5",
+      "key:11", "key:22", "key:33", "key:44", "key:55"
+    )
 
-		def prepare = keys.map(k => client.set(k, k))
+    def prepare = keys.map(k => client.set(k, k))
 
-		it("should collect all keys in keyspace") {
-			Future.sequence(prepare).futureValue
-			prepare.size should equal(iterateScan().size)
-		}
+    it("should collect all keys in keyspace") {
+      Future.sequence(prepare).futureValue
+      prepare.size should equal(iterateScan().size)
+    }
 
-		it("should filter base on pattern") {
-			Future.sequence(prepare).futureValue
-			val res = iterateScan(pattern = "*5*")
-			res.size should equal(2)
-		}
+    it("should filter base on pattern") {
+      Future.sequence(prepare).futureValue
+      val res = iterateScan(pattern = "*5*")
+      res.size should equal(2)
+    }
 
-		it("should contain string encoded keys in result") {
-			Future.sequence(prepare).futureValue
-			val res = client.scan().futureValue
-			res._2.foreach(k => keys.contains(k) should be(true))
-		}
+    it("should contain string encoded keys in result") {
+      Future.sequence(prepare).futureValue
+      val res = client.scan().futureValue
+      res._2.foreach(k => keys.contains(k) should be(true))
+    }
 
-		it("should throw on negative cursor") {
-			an[IllegalArgumentException] shouldBe thrownBy(client.scan(cursor = -1))
-		}
+    it("should throw on negative cursor") {
+      an[IllegalArgumentException] shouldBe thrownBy(client.scan(cursor = -1))
+    }
 
-		def iterateScan(count:Long = 0, pattern:String = "") = {
-			var cursor = -1l
-			var keys = Seq[String]()
-			while(cursor != 0) {
-				val res = client.scan(cursor = if(cursor < 0) 0 else cursor, pattern = pattern, count = 2)
-				val w = res.futureValue
-				keys = keys ++ w._2
-				cursor = w._1
-			}
-			keys
-		}
+    def iterateScan(count:Long = 0, pattern:String = "") = {
+      var cursor = -1l
+      var keys = Seq[String]()
+      while(cursor != 0) {
+        val res = client.scan(cursor = if(cursor < 0) 0 else cursor, pattern = pattern, count = 2)
+        val w = res.futureValue
+        keys = keys ++ w._2
+        cursor = w._1
+      }
+      keys
+    }
 
-	}
+  }
 
   describe("randomkey") {
     it("should give") {

@@ -110,13 +110,13 @@ private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
       }.toMap
     }
 
-	// special deserializer for SCAN
-	implicit def scanResultPD(implicit reader: Reader[String]):PartialDeserializer[(Long, List[String])] = {
-		new PrefixDeserializer[(Long, List[String])](Multi, (x: RawReply) => {
-			parseBulk(x)
-			(parseLong(x), listPD[String].apply(x))
-		})
-	}
+  // special deserializer for SCAN
+  implicit def scanResultPD(implicit reader: Reader[String]):PartialDeserializer[(Long, List[String])] = {
+    new PrefixDeserializer[(Long, List[String])](Multi, (x: RawReply) => {
+      parseBulk(x)
+      (parseLong(x), listPD[String].apply(x))
+    })
+  }
 
   // special deserializer for EVAL(SHA)
   def ensureListPD[A](implicit reader: Reader[A]): PartialDeserializer[List[A]] =
