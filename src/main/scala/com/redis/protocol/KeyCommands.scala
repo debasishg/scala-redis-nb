@@ -11,6 +11,7 @@ object KeyCommands {
   }
 
 	case class Scan(cursor:Long = 0, pattern:String = "", count:Long = 0) extends RedisCommand[(Long, List[String])]("SCAN") {
+		require(cursor >= 0)
 		def params = Seq( Seq(cursor.toString),
 			if(pattern != "") Seq("MATCH", pattern) else Nil,
 			if(count > 0) Seq("COUNT", count.toString) else Nil

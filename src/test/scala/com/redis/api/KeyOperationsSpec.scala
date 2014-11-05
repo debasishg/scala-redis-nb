@@ -31,34 +31,39 @@ class KeyOperationsSpec extends RedisSpecBase {
 
 	describe("scan") {
 
-		val prepare = Seq(
-			client.set("key:1", "1"),
-			client.set("key:2", "2"),
-			client.set("key:3", "3"),
-			client.set("key:4", "4"),
-			client.set("key:5", "5"),
-			client.set("key:11", "11"),
-			client.set("key:22", "22"),
-			client.set("key:33", "33"),
-			client.set("key:44", "44"),
-			client.set("key:55", "55")
+		val keys = Seq(
+			"key:1", "key:2", "key:3", "key:4", "key:5",
+			"key:11", "key:22", "key:33", "key:44", "key:55"
 		)
+
+		def prepare = keys.map(k => client.set(k, k))
 
 		it("should collect all keys in keyspace") {
 			Future.sequence(prepare).futureValue
-			prepare.size equals iterateScan().size
+			prepare.size should equal(iterateScan().size)
 		}
 
 		it("should filter base on pattern") {
 			Future.sequence(prepare).futureValue
-			iterateScan(pattern = "*5*").size equals 2
+			val res = iterateScan(pattern = "*5*")
+			res.size should equal(2)
 		}
 
-		def iterateScan(cursor:Long = 0, count:Long = 0, pattern:String = "") = {
+		it("should contain string encoded keys in result") {
+			Future.sequence(prepare).futureValue
+			val res = client.scan().futureValue
+			res._2.foreach(k => keys.contains(k) should be(true))
+		}
+
+		it("should throw on negative cursor") {
+			an[IllegalArgumentException] shouldBe thrownBy(client.scan(cursor = -1))
+		}
+
+		def iterateScan(count:Long = 0, pattern:String = "") = {
 			var cursor = -1l
 			var keys = Seq[String]()
 			while(cursor != 0) {
-				val res = client.scan(cursor = if(cursor == -1) 0 else cursor, count = 2)
+				val res = client.scan(cursor = if(cursor < 0) 0 else cursor, pattern = pattern, count = 2)
 				val w = res.futureValue
 				keys = keys ++ w._2
 				cursor = w._1
