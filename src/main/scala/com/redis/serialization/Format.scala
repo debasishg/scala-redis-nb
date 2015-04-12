@@ -6,7 +6,7 @@ import scala.language.implicitConversions
 
 
 @implicitNotFound(msg = "Cannot find implicit Read or Format type class for ${A}")
-private[redis] trait Reader[A] { self =>
+trait Reader[A] { self =>
   def fromByteString(in: ByteString): A
 
   def map[B](f: A => B): Reader[B] =
@@ -16,7 +16,7 @@ private[redis] trait Reader[A] { self =>
     }
 }
 
-private[redis] trait ReaderLowPriorityImplicits {
+trait ReaderLowPriorityImplicits {
   implicit object bypassingReader extends Reader[ByteString] {
     def fromByteString(in: ByteString) = in
   }
@@ -32,8 +32,8 @@ object Reader extends ReaderLowPriorityImplicits {
 
 
 @implicitNotFound(msg = "Cannot find implicit Write or Format type class for ${A}")
-private[redis] trait Writer[A] { self =>
-  private[redis] def toByteString(in: A): ByteString
+trait Writer[A] { self =>
+  def toByteString(in: A): ByteString
 
   def contramap[B](f: B => A): Writer[B] =
     new Writer[B] {
@@ -42,7 +42,7 @@ private[redis] trait Writer[A] { self =>
     }
 }
 
-private[redis] trait WriterLowPriorityImplicits {
+trait WriterLowPriorityImplicits {
   implicit object bypassingWriter extends Writer[ByteString] {
     def toByteString(in: ByteString) = in
   }
