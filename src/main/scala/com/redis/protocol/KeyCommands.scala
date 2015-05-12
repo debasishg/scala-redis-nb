@@ -32,7 +32,7 @@ object KeyCommands {
 
 
   case class Del(keys: Seq[String]) extends RedisCommand[Long]("DEL") {
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = keys.toArgs
   }
 

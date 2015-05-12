@@ -18,7 +18,7 @@ object PubSubCommands {
   abstract class SubscribeCommand(_cmd: String) extends PubSubCommand(_cmd)
 
   case class Subscribe(channels: Seq[String]) extends SubscribeCommand("SUBSCRIBE") {
-    require(channels.nonEmpty)
+    require(channels.nonEmpty, "Channels should not be empty")
     def params = channels.toArgs
   }
 
@@ -27,7 +27,7 @@ object PubSubCommands {
   }
 
   case class PSubscribe( patterns: Seq[String] ) extends SubscribeCommand("PSUBSCRIBE") {
-    require(patterns.nonEmpty)
+    require(patterns.nonEmpty, "Patterns should not be empty")
     def params = patterns.toArgs
   }
 

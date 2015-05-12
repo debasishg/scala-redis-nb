@@ -13,7 +13,7 @@ object SortedSetCommands {
   final val `-LexInf`   = "-"
 
   case class ZAdd(key: String, scoreMembers: Seq[ScoredValue]) extends RedisCommand[Long]("ZADD") {
-    require(scoreMembers.nonEmpty)
+    require(scoreMembers.nonEmpty, "Score members should not be empty")
     def params = key +: scoreMembers.foldRight (ANil) { (x, acc) => x.score +: x.value +: acc }
   }
 
@@ -27,7 +27,7 @@ object SortedSetCommands {
 
 
   case class ZRem(key: String, members: Seq[Stringified]) extends RedisCommand[Long]("ZREM") {
-    require(members.nonEmpty)
+    require(members.nonEmpty, "Members should not be empty")
     def params = key +: members.toArgs
   }
 

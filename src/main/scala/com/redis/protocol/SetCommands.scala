@@ -7,7 +7,7 @@ object SetCommands {
   import DefaultWriters._
 
   case class SAdd(key: String, values: Seq[Stringified]) extends RedisCommand[Long]("SADD") {
-    require(values.nonEmpty)
+    require(values.nonEmpty, "Values should not be empty")
     def params = key +: values.toArgs
   }
 
@@ -17,7 +17,7 @@ object SetCommands {
 
 
   case class SRem(key: String, values: Seq[Stringified]) extends RedisCommand[Long]("SREM") {
-    require(values.nonEmpty)
+    require(values.nonEmpty, "Values should not be empty")
     def params = key +: values.toArgs
   }
 
@@ -44,7 +44,7 @@ object SetCommands {
 
 
   case class SInter[A: Reader](keys: Seq[String]) extends RedisCommand[Set[A]]("SINTER") {
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = keys.toArgs
   }
 
@@ -54,7 +54,7 @@ object SetCommands {
 
   
   case class SUnion[A: Reader](keys: Seq[String]) extends RedisCommand[Set[A]]("SUNION") {
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = keys.toArgs
   }
 
@@ -64,7 +64,7 @@ object SetCommands {
 
 
   case class SDiff[A: Reader](keys: Seq[String]) extends RedisCommand[Set[A]]("SDIFF") {
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = keys.toArgs
   }
 
@@ -74,7 +74,7 @@ object SetCommands {
 
 
   case class SInterStore(destKey: String, keys: Seq[String]) extends RedisCommand[Long]("SINTERSTORE") {
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = destKey +: keys.toArgs
   }
 
@@ -85,7 +85,7 @@ object SetCommands {
 
 
   case class SUnionStore(destKey: String, keys: Seq[String]) extends RedisCommand[Long]("SUNIONSTORE") {
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = destKey +: keys.toArgs
   }
 
@@ -96,7 +96,7 @@ object SetCommands {
 
 
   case class SDiffStore(destKey: String, keys: Seq[String]) extends RedisCommand[Long]("SDIFFSTORE") {
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = destKey +: keys.toArgs
   }
 
