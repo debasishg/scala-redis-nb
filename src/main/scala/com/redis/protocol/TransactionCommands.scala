@@ -20,7 +20,7 @@ object TransactionCommands {
   }
 
   case class Watch(keys: Seq[String]) extends RedisCommand[Boolean]("WATCH") {
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = keys.toArgs
   }
 

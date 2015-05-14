@@ -24,7 +24,7 @@ object HashCommands {
   
   case class HMGet[A: Reader](key: String, fields: Seq[String])
       extends RedisCommand[Map[String, A]]("HMGET")(PartialDeserializer.keyedMapPD(fields)) {
-    require(fields.nonEmpty)
+    require(fields.nonEmpty, "Fields should not be empty")
     def params = key +: fields.toArgs
   }
 
@@ -42,7 +42,7 @@ object HashCommands {
 
 
   case class HDel(key: String, fields: Seq[String]) extends RedisCommand[Long]("HDEL") {
-    require(fields.nonEmpty)
+    require(fields.nonEmpty, "Fields should not be empty")
     def params = key +: fields.toArgs
   }
 

@@ -7,7 +7,7 @@ object ListCommands {
   import DefaultWriters._
 
   case class LPush(key: String, values: Seq[Stringified]) extends RedisCommand[Long]("LPUSH") {
-    require(values.nonEmpty)
+    require(values.nonEmpty, "Values should not be empty")
     def params = key +: values.toArgs
   }
 
@@ -22,7 +22,7 @@ object ListCommands {
 
 
   case class RPush(key: String, values: Seq[Stringified]) extends RedisCommand[Long]("RPUSH") {
-    require(values.nonEmpty)
+    require(values.nonEmpty, "Values should not be empty")
     def params = key +: values.toArgs
   }
 
@@ -80,7 +80,7 @@ object ListCommands {
   
   case class BLPop[A: Reader](timeoutInSeconds: Int, keys: Seq[String]) extends RedisCommand[Option[(String, A)]]("BLPOP") {
 
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = keys.toArgs :+ timeoutInSeconds
   }
 
@@ -92,7 +92,7 @@ object ListCommands {
   
   case class BRPop[A: Reader](timeoutInSeconds: Int, keys: Seq[String])
     extends RedisCommand[Option[(String, A)]]("BRPOP") {
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = keys.toArgs :+ timeoutInSeconds
   }
 

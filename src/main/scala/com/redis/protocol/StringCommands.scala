@@ -78,7 +78,7 @@ object StringCommands {
 
   case class MGet[A: Reader](keys: Seq[String])
       extends RedisCommand[Map[String, A]]("MGET")(PartialDeserializer.keyedMapPD(keys)) {
-    require(keys.nonEmpty)
+    require(keys.nonEmpty, "Keys should not be empty")
     def params = keys.toArgs
   }
 
@@ -121,7 +121,7 @@ object StringCommands {
 
 
   case class BitOp(op: String, destKey: String, srcKeys: Seq[String]) extends RedisCommand[Long]("BITOP") {
-    require(srcKeys.nonEmpty)
+    require(srcKeys.nonEmpty, "Src keys should not be empty")
     def params = op +: destKey +: srcKeys.toArgs
   }
 
@@ -135,7 +135,7 @@ object StringCommands {
   }
 
   case class BitPos(key: String, bit: Boolean, start: Option[Int], end: Option[Int]) extends RedisCommand[Long]("BITPOS") {
-    require(start.isDefined || end.isEmpty)
+    require(start.isDefined || end.isEmpty, "Start should be defined or end should be empty")
     def params = key +: (if (bit) "1" else "0") +: start.toSeq ++: end.toSeq ++: ANil
   }
 }
