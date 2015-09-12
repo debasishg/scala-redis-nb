@@ -8,9 +8,9 @@ object ScalaRedisProject extends Build
 
   lazy val commonSettings: Seq[Setting[_]] = Seq(
     organization := "net.debasishg",
-    version := "0.7",
-    scalaVersion := "2.10.4",
-    crossScalaVersions := Seq("2.10.4", "2.11.2"),
+    version := "0.8",
+    scalaVersion := "2.11.7",
+    crossScalaVersions := Seq("2.10.4", "2.11.7"),
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
     resolvers ++= Seq(akkaRelease, akkaSnapshot, sprayJson)
   )
