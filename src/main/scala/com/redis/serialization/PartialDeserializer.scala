@@ -61,11 +61,11 @@ private[serialization] trait LowPriorityPD extends CommandSpecificPD {
   implicit def setPD[A](implicit parse: Reader[A]): PartialDeserializer[Set[A]] =
     multiBulkPD[A, Set]
 
-  implicit def pairOptionListPD[A, B](implicit parseA: Reader[A], parseB: Reader[B]): PartialDeserializer[List[Option[(A, B)]]] =
-    pairOptionIteratorPD[A, B] andThen (_.toList)
-
   implicit def pairOptionPD[A, B](implicit parseA: Reader[A], parseB: Reader[B]): PartialDeserializer[Option[(A, B)]] =
-    pairOptionIteratorPD[A, B] andThen (_.next)
+    pairIteratorPD[A, B] andThen {
+      case iterator if iterator.hasNext => Some(iterator.next())
+      case _ => None
+    }
 
   implicit def mapPD[K, V](implicit parseA: Reader[K], parseB: Reader[V]): PartialDeserializer[Map[K, V]] =
     pairIteratorPD[K, V] andThen (_.toMap)
@@ -76,12 +76,6 @@ private[serialization] trait LowPriorityPD extends CommandSpecificPD {
         case Seq(a, b) => (readA.fromByteString(a), readB.fromByteString(b))
       }
     }
-
-  protected def pairOptionIteratorPD[A, B](implicit readA: Reader[A], readB: Reader[B]): PartialDeserializer[Iterator[Option[(A, B)]]] =
-    multiBulkPD[Option[ByteString], Iterable] andThen (_.grouped(2).map {
-      case Seq(Some(a), Some(b)) => Some((readA.fromByteString(a), readB.fromByteString(b)))
-      case _ => None
-    })
 }
 
 private[serialization] trait CommandSpecificPD { this: LowPriorityPD =>
