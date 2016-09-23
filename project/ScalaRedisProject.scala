@@ -10,31 +10,35 @@ object ScalaRedisProject extends Build
     organization := "net.debasishg",
     version := "0.9",
     scalaVersion := "2.11.7",
-    crossScalaVersions := Seq("2.10.4", "2.11.7"),
+    crossScalaVersions := Seq("2.10.4", "2.11.7", "2.12.0-RC1"),
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
     resolvers ++= Seq(akkaRelease, akkaSnapshot, sprayJson)
   )
 
-  val akkaVersion = "2.3.4"
+  val akkaVersion = Def.setting{
+    if(scalaVersion.value startsWith "2.12") "2.4.10"
+    else "2.3.4"
+  }
+  val json4sVersion = "3.4.1"
 
   lazy val coreSettings = commonSettings ++ Seq(
     name := "RedisReact",
     libraryDependencies :=
         Seq(
-          "com.typesafe.akka" %%  "akka-actor"      % akkaVersion,
-          "com.typesafe.akka" %%  "akka-slf4j"      % akkaVersion % "provided",
+          "com.typesafe.akka" %%  "akka-actor"      % akkaVersion.value,
+          "com.typesafe.akka" %%  "akka-slf4j"      % akkaVersion.value % "provided",
           "commons-pool"      %   "commons-pool"    % "1.6",
           "org.slf4j"         %   "slf4j-api"       % "1.7.7"     % "provided",
           "ch.qos.logback"    %   "logback-classic" % "1.1.2"     % "provided",
           "junit"             %   "junit"           % "4.11"      % "test",
-          "org.scalatest"     %%  "scalatest"       % "2.2.1"     % "test",
-          "com.typesafe.akka" %%  "akka-testkit"    % akkaVersion % "test",
+          "org.scalatest"     %%  "scalatest"       % "3.0.0"     % "test",
+          "com.typesafe.akka" %%  "akka-testkit"    % akkaVersion.value % "test",
 
           // Third-party serialization libraries
           //"net.liftweb" %%  "lift-json"      % "2.5.1" % "provided, test",
-          "org.json4s"  %%  "json4s-native"  % "3.2.10" % "provided, test",
-          "org.json4s"  %%  "json4s-jackson" % "3.2.10" % "provided, test",
-          "io.spray"    %%  "spray-json"     % "1.2.6" % "provided, test"
+          "org.json4s"  %%  "json4s-native"  % json4sVersion % "provided, test",
+          "org.json4s"  %%  "json4s-jackson" % json4sVersion % "provided, test",
+          "io.spray"    %%  "spray-json"     % "1.3.2" % "provided, test"
         ),
     parallelExecution in Test := false,
     publishTo <<= version { (v: String) =>
