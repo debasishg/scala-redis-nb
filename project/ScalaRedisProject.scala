@@ -10,16 +10,16 @@ object ScalaRedisProject extends Build
     organization := "net.debasishg",
     version := "0.9",
     scalaVersion := "2.11.7",
-    crossScalaVersions := Seq("2.10.4", "2.11.7", "2.12.0-RC1"),
+    crossScalaVersions := Seq("2.10.4", "2.11.7", "2.12.0"),
     scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
     resolvers ++= Seq(akkaRelease, akkaSnapshot, sprayJson)
   )
 
   val akkaVersion = Def.setting{
-    if(scalaVersion.value startsWith "2.12") "2.4.10"
+    if(scalaVersion.value startsWith "2.12") "2.4.12"
     else "2.3.4"
   }
-  val json4sVersion = "3.4.1"
+  val json4sVersion = "3.5.0"
 
   lazy val coreSettings = commonSettings ++ Seq(
     name := "RedisReact",
