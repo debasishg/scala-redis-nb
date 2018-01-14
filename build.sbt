@@ -3,8 +3,8 @@ lazy val root = Project("RedisReact", file(".")) settings(coreSettings : _*)
 lazy val commonSettings: Seq[Setting[_]] = Seq(
   organization := "net.debasishg",
   version := "0.9",
-  scalaVersion := "2.11.7",
-  crossScalaVersions := Seq("2.10.4", "2.11.7", "2.12.0"),
+  scalaVersion := "2.11.12",
+  crossScalaVersions := Seq("2.10.7", "2.11.12", "2.12.4"),
   scalacOptions := Seq("-deprecation", "-unchecked", "-feature", "-language:postfixOps"),
   resolvers ++= Seq(akkaRelease, akkaSnapshot, sprayJson)
 )
