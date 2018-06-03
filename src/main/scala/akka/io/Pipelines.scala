@@ -797,7 +797,7 @@ class BackpressureBuffer(lowBytes: Long, highBytes: Long, maxBytes: Long)
     override def commandPipeline = behavior
     override def eventPipeline = behavior
 
-    private def become(f: Message ⇒ Iterable[Result]) { behavior = f }
+    private def become(f: Message ⇒ Iterable[Result]): Unit = { behavior = f }
 
     private lazy val writing: Message ⇒ Iterable[Result] = {
       case Write(data, ack) ⇒
