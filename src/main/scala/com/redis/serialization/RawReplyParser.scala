@@ -133,7 +133,7 @@ private[serialization] object RawReplyParser {
         res
       }
 
-    private[RawReplyParser] def jump(amount: Int) {
+    private[RawReplyParser] def jump(amount: Int): Unit = {
       if (cursor + amount > data.length) throw NotEnoughDataException
       else cursor += amount
     }
