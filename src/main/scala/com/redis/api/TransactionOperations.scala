@@ -1,13 +1,10 @@
 package com.redis
 package api
 
-import scala.concurrent.ExecutionContext
-import scala.util.{Success, Failure}
-import serialization._
 import akka.pattern.ask
 import akka.util.Timeout
 import com.redis.protocol.{TransactionCommands, Discarded}
-import ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
 trait TransactionOperations { this: RedisOps =>
   import TransactionCommands._
@@ -18,7 +15,7 @@ trait TransactionOperations { this: RedisOps =>
   def exec()(implicit timeout: Timeout) =
     clientRef.ask(Exec).mapTo[Exec.type#Ret]
 
-  def discard()(implicit timeout: Timeout) =
+  def discard()(implicit timeout: Timeout, executor: ExecutionContext) =
     clientRef.ask(Discard).mapTo[Discard.type#Ret].map(_ => Discarded)
 
   def watch(keys: Seq[String])(implicit timeout: Timeout) =
@@ -30,7 +27,7 @@ trait TransactionOperations { this: RedisOps =>
   def unwatch()(implicit timeout: Timeout) =
     clientRef.ask(Unwatch).mapTo[Unwatch.type#Ret]
 
-  def withTransaction(txn: RedisOps => Unit)(implicit timeout: Timeout) = {
+  def withTransaction(txn: RedisOps => Unit)(implicit timeout: Timeout, executor: ExecutionContext) = {
     multi()
     try {
       txn(this)
