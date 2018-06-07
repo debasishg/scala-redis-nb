@@ -12,5 +12,5 @@ before_script:
 
 matrix:
   include:
-  - scala: 2.12.4
+  - scala: 2.12.6
     jdk: oraclejdk8
