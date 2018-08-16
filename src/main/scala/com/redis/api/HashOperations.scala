@@ -32,6 +32,11 @@ trait HashOperations { this: RedisOps =>
   def hincrby(key: String, field: String, value: Int)(implicit timeout: Timeout) =
     clientRef.ask(HIncrby(key, field, value)).mapTo[HIncrby#Ret]
 
+  // HINCRBYFLOAT (key, field, increment)
+  // Increment the specified field of an hash stored at key, and representing a floating point number, by the specified increment
+  def hincrbyfloat(key: String, field: String, value: Double)(implicit timeout: Timeout) =
+    clientRef.ask(HIncrByFloat(key, field, value)).mapTo[HIncrByFloat#Ret]
+
   def hexists(key: String, field: String)(implicit timeout: Timeout) =
     clientRef.ask(HExists(key, field)).mapTo[HExists#Ret]
 

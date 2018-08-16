@@ -35,6 +35,10 @@ object HashCommands {
   case class HIncrby(key: String, field: String, value: Int) extends RedisCommand[Long]("HINCRBY") {
     def params = key +: field +: value +: ANil
   }
+
+  case class HIncrByFloat(key: String, field: String, amount: Double) extends RedisCommand[Option[Double]]("HINCRBYFLOAT") {
+    def params = key +: field +: amount +: ANil
+  }
   
   case class HExists(key: String, field: String) extends RedisCommand[Boolean]("HEXISTS") {
     def params = key +: field +: ANil
