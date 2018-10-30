@@ -91,6 +91,35 @@ class StringOperationsSpec extends RedisSpecBase {
     }
   }
 
+  describe("incrbyfloat") {
+    it("should increment the stored number") {
+      val key = "incrbyfloat1"
+      client.set(key, "10.50").futureValue should equal (true)
+      client.incrbyfloat(key, 1.1).futureValue should equal (Some(11.6))
+      client.get(key).futureValue should equal (Some("11.6"))
+    }
+
+    it("should regard the stored value as 0 and then increment that value") {
+      val key = "incrbyfloat2"
+      client.incrbyfloat(key, 0.5).futureValue should equal (Some(0.5))
+      client.get(key).futureValue should equal (Some("0.5"))
+    }
+
+    it("should fail if the stored value is not a string") {
+      val key = "incrbyfloat3"
+      client.lpush(key, "element").futureValue should equal (1)
+      val thrown = intercept[Exception] { client.incrbyfloat(key, 0.5).futureValue }
+      thrown.getCause.getMessage should include ("Operation against a key holding the wrong kind of value")
+    }
+
+    it("should fail if the stored value is not a number") {
+      val key = "incrbyfloat4"
+      client.set(key, "non-number").futureValue should equal (true)
+      val thrown = intercept[Exception] { client.incrbyfloat(key, 0.5).futureValue }
+      thrown.getCause.getMessage should include ("value is not a valid float")
+    }
+  }
+
   describe("mset") {
     it("should set multiple keys") {
       val numKeys = 3

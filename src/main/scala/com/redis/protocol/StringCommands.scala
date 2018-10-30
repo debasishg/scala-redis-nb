@@ -66,6 +66,9 @@ object StringCommands {
     def params = key +: amount +: ANil
   }
 
+  case class IncrByFloat(key: String, amount: Double) extends RedisCommand[Option[Double]]("INCRBYFLOAT") {
+    def params = key +: amount +: ANil
+  }
 
   case class Decr(key: String) extends RedisCommand[Long]("DECR") {
     def params = key +: ANil
