@@ -14,7 +14,6 @@ import scala.language.existentials
 
 import akka.actor._
 import akka.io.{BackpressureBuffer, IO, Tcp, TcpPipelineHandler}
-import com.redis.RedisClientSettings.ReconnectionSettings
 import pipeline._
 import protocol._
 
@@ -71,7 +70,7 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
       context become (running(pipe))
 
     case TransactionCommands.Discard =>
-      txnRequests = txnRequests.drop(txnRequests.size)
+      txnRequests = Queue.empty
       sendRequest(pipe, RedisRequest(sender, TransactionCommands.Discard))
       context become (running(pipe))
 
@@ -161,10 +160,10 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
   }
 
   def addPendingRequest(cmd: RedisCommand[_]): Unit =
-    pendingRequests :+= RedisRequest(sender, cmd)
+    pendingRequests = pendingRequests.enqueue(RedisRequest(sender(), cmd))
 
   def addTxnRequest(cmd: RedisCommand[_]): Unit =
-    txnRequests :+= RedisRequest(sender, cmd)
+    txnRequests = txnRequests.enqueue(RedisRequest(sender(), cmd))
 
   def sendRequest(pipe: ActorRef, req: RedisRequest): Unit = {
     pipe ! init.Command(req)
@@ -173,17 +172,18 @@ private [redis] class RedisConnection(remote: InetSocketAddress, settings: Redis
   @tailrec
   final def sendAllPendingRequests(pipe: ActorRef): Unit =
     if (pendingRequests.nonEmpty) {
-      val request = pendingRequests.head
+      val (request, tail) = pendingRequests.dequeue
       self.tell( request.command, request.sender )
-      pendingRequests = pendingRequests.tail
+      pendingRequests = tail
       sendAllPendingRequests(pipe)
     }
 
   @tailrec
   final def sendAllTxnRequests(pipe: ActorRef): Unit =
     if (txnRequests.nonEmpty) {
-      sendRequest(pipe, txnRequests.head)
-      txnRequests = txnRequests.tail
+      val (request, tail) = txnRequests.dequeue
+      sendRequest(pipe, request)
+      txnRequests = tail
       sendAllTxnRequests(pipe)
     }
 

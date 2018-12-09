@@ -55,18 +55,18 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
 
       @tailrec
       def parseExecResponse(data: CompactByteString, acc: Iterable[Any]): Iterable[Any] = {
-        if (txnRequests isEmpty) acc
+        if (txnRequests.isEmpty) acc
         else {
+          val (RedisRequest(commander, command), tail) = txnRequests.dequeue
           // process every response with the appropriate de-serializer that we have accumulated in txnRequests
-          parser.parse(data, txnRequests.head.command.des) match {
+          parser.parse(data, command.des) match {
             case Result.Ok(reply, remaining) =>
               val result = reply match {
                 case err: RedisError => Failure(err)
                 case _ => reply
               }
-              val RedisRequest(commander, cmd) = txnRequests.head
               commander.tell(result, redisClientRef)
-              txnRequests = txnRequests.tail
+              txnRequests = tail
               parseExecResponse(remaining, acc ++ List(result))
 
             case Result.NeedMoreData =>
@@ -85,7 +85,7 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
         def parseAndDispatch(data: CompactByteString): Iterable[Result] =
           if (sentRequests.isEmpty) ctx.singleEvent(RequestQueueEmpty)
           else {
-            val RedisRequest(commander, cmd) = sentRequests.head
+            val (RedisRequest(commander, cmd), tail) = sentRequests.dequeue
 
             // we have an Exec : need to parse the response which will be a collection of
             // MultiBulk and then end transaction mode
@@ -94,7 +94,7 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
               else {
                 val result =
                   if (Deserializer.nullMultiBulk(data)) {
-                    txnRequests = txnRequests.drop(txnRequests.size)
+                    txnRequests = Queue.empty
                     Failure(Deserializer.EmptyTxnResultException)
                   } else parseExecResponse(data.splitAt(data.indexOf(Lf) + 1)._2.compact, List.empty[Result])
 
@@ -110,7 +110,7 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
                 }
                 log.debug("RESULT: {}", result)
                 if (reply != Queued) commander.tell(result, redisClientRef)
-                sentRequests = sentRequests.tail
+                sentRequests = tail
                 parseAndDispatch(remaining)
 
               case Result.NeedMoreData => ctx.singleEvent(RequestQueueEmpty)
@@ -142,11 +142,12 @@ class ResponseHandling extends PipelineStage[WithinActorContext, Command, Comman
 
         // queue up all commands between multi & exec
         // this is an optimization that sends commands in bulk for transaction mode
-        if (txnMode && req.command != TransactionCommands.Multi && req.command != TransactionCommands.Exec)
-          txnRequests :+= req
+        if (txnMode && req.command != TransactionCommands.Multi && req.command != TransactionCommands.Exec) {
+          txnRequests = txnRequests.enqueue(req)
+        }
 
         log.debug("Sending {}, previous head: {}", req.command, sentRequests.headOption.map(_.command))
-        sentRequests :+= req
+        sentRequests = sentRequests.enqueue(req)
         ctx singleCommand req
 
       case _ => ctx singleCommand cmd
